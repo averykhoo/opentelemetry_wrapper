@@ -3,7 +3,7 @@ import traceback
 
 
 def f(x):
-    print(x / 0.0))
+    print(x / 0.0)
 
 
 class A:
