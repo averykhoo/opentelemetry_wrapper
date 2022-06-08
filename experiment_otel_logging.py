@@ -3,6 +3,7 @@ import os
 import sys
 from typing import Union
 
+from asgiref.sync import async_to_sync
 from opentelemetry import trace
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.sdk.trace import TracerProvider
@@ -19,24 +20,17 @@ trace.get_tracer_provider().add_span_processor(
 tracer = trace.get_tracer(__name__)
 
 
-def double(x: float):
-    """
-    todo: make this async
-    :param x:
-    :return:
-    """
+async def double(x: float):
     with tracer.start_as_current_span('def-double'):
         assert isinstance(x, (float, int))
         logging.info(f'doubling {x=}')
         return x + x
 
 
-def _multiply(multiplier: Union[float, int], multiplicand: int):
+async def _multiply(multiplier: Union[float, int], multiplicand: int):
     """
     very silly way to multiply things
     inspired by exponentiation-by-squaring
-
-    todo: call double in parallel for all options to test how logging works async
     """
     with tracer.start_as_current_span('def-multiply'):
         logging.debug(f'multiply {multiplier=} by non-negative {multiplicand=}')
@@ -50,18 +44,21 @@ def _multiply(multiplier: Union[float, int], multiplicand: int):
                 accumulator += multiplier
             multiplicand >>= 1
             if multiplicand:
-                multiplier = double(multiplier)
+                multiplier = await double(multiplier)
         return accumulator
 
 
 def square(x):
+    """
+    wraps async multiply in a sync wrapper
+    """
     with tracer.start_as_current_span('def-square'):
         assert isinstance(x, int)
         if x < 0:
             logging.warning(f'squaring absolute of negative integer abs({x=})')
         else:
             logging.info(f'squaring non-negative number {x=}')
-        return _multiply(abs(x), abs(x))
+        return async_to_sync(_multiply)(abs(x), abs(x))
 
 
 def exponentiate(base, exponent):
