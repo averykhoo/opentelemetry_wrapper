@@ -7,3 +7,5 @@ opentelemetry-instrumentation-sqlalchemy
 opentelemetry-sdk
 requests
 sqlalchemy
+uvicorn
+itsdangerous
