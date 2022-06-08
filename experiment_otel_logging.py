@@ -3,7 +3,6 @@ import os
 import sys
 from typing import Union
 
-from asgiref.sync import async_to_sync
 from opentelemetry import trace
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.sdk.trace import TracerProvider
@@ -21,19 +20,26 @@ tracer = trace.get_tracer(__name__)
 
 
 def double(x: float):
+    """
+    todo: make this async
+    :param x:
+    :return:
+    """
     with tracer.start_as_current_span('def-double'):
         assert isinstance(x, (float, int))
-        logging.debug(f'doubling {x=}')
+        logging.info(f'doubling {x=}')
         return x + x
 
 
-def multiply(multiplier: Union[float, int], multiplicand: int):
+def _multiply(multiplier: Union[float, int], multiplicand: int):
     """
     very silly way to multiply things
     inspired by exponentiation-by-squaring
+
+    todo: call double in parallel for all options to test how logging works async
     """
     with tracer.start_as_current_span('def-multiply'):
-        logging.info(f'multiply {multiplier=} by non-negative {multiplicand=}')
+        logging.debug(f'multiply {multiplier=} by non-negative {multiplicand=}')
         assert multiplicand >= 0
         assert isinstance(multiplier, (float, int))
         assert isinstance(multiplicand, int)
@@ -48,15 +54,14 @@ def multiply(multiplier: Union[float, int], multiplicand: int):
         return accumulator
 
 
-@async_to_sync
-async def square(x):
+def square(x):
     with tracer.start_as_current_span('def-square'):
         assert isinstance(x, int)
         if x < 0:
             logging.warning(f'squaring absolute of negative integer abs({x=})')
         else:
             logging.info(f'squaring non-negative number {x=}')
-        return multiply(abs(x), abs(x))
+        return _multiply(abs(x), abs(x))
 
 
 def exponentiate(base, exponent):
@@ -64,7 +69,7 @@ def exponentiate(base, exponent):
     exponentiation-by-squaring
     """
     with tracer.start_as_current_span('def-multiply'):
-        logging.info(f'exponentiate non-negative {base=} by non-negative {exponent=}')
+        logging.info(f'exponentiate {base=} by non-negative {exponent=}')
         assert exponent >= 0
         assert isinstance(base, int)
         assert isinstance(exponent, int)
@@ -80,8 +85,4 @@ def exponentiate(base, exponent):
 
 
 if __name__ == '__main__':
-    # print(double(2))
-    # print([multiply(i, i) for i in range(5)])
-    multiply(-5.5, 20)
-    square(-10)
-    print(exponentiate(-10, 3))
+    assert exponentiate(-10, 5) == -100000
