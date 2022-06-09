@@ -6,17 +6,26 @@ import time
 from asgiref.sync import async_to_sync
 from opentelemetry import trace
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
-from opentelemetry.instrumentation.logging.constants import DEFAULT_LOGGING_FORMAT
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter
 
 # instrument logging.Logger
 # write as 0xBEEF instead of BEEF so it matches the trace exactly
-_log_format = (DEFAULT_LOGGING_FORMAT
-               .replace('%(otelTraceID)s', '0x%(otelTraceID)s')
-               .replace('%(otelSpanID)s', '0x%(otelSpanID)s'))
-LoggingInstrumentor().instrument(set_logging_format=True, logging_format=_log_format)
+# from opentelemetry.instrumentation.logging.constants import DEFAULT_LOGGING_FORMAT
+# _log_format = (DEFAULT_LOGGING_FORMAT
+#                .replace('%(otelTraceID)s', '0x%(otelTraceID)s')
+#                .replace('%(otelSpanID)s', '0x%(otelSpanID)s'))
+_log_format = ('%(asctime)s '
+               '%(levelname)-8s '
+               '[%(name)s] '
+               '[%(filename)s:%(funcName)s:%(lineno)d] '
+               '[trace_id=0x%(otelTraceID)s span_id=0x%(otelSpanID)s resource.service.name=%(otelServiceName)s] '
+               '- %(message)s')
+LoggingInstrumentor().instrument(set_logging_format=True,
+                                 logging_format=_log_format,
+                                 log_level=logging.DEBUG,
+                                 )
 
 # init tracer
 trace.set_tracer_provider(TracerProvider())
