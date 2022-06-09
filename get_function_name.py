@@ -1,5 +1,6 @@
 import asyncio
 import inspect
+import os
 from functools import lru_cache
 from functools import partial
 from typing import Callable
@@ -27,6 +28,13 @@ def get_function_name(func: Union[Coroutine, Callable, partial, asyncio.Task]) -
     # get the module
     module = inspect.getmodule(func)
     _module_name = f'<{module.__name__}>.' if module is not None else ''
+
+    # attempt to fallback to filename if no module is found
+    if not _module_name:
+        _code = getattr(func, '__code__', getattr(func, 'cr_code', None))
+        if getattr(_code, 'co_filename', None):
+            if inspect.getmodulename(_code.co_filename):
+                _module_name = f'<{os.path.basename(_code.co_filename)}.py>.'
 
     # get class if it's a bound method
     cls = None
@@ -59,14 +67,37 @@ def get_function_name(func: Union[Coroutine, Callable, partial, asyncio.Task]) -
     return f'{_module_name}{_class_name}{_function_name}'
 
 
-class A:
-    async def test(self):
-        print(1)
-
-
 if __name__ == '__main__':
-    print(get_function_name(asyncio.ensure_future(A().test())))
-    print(get_function_name(A().test))
-    # # print(get_function_name(A().test))
-    # print(dir(asyncio.ensure_future(A().test()).get_coro()))
-    # print(asyncio.ensure_future(A().test()).get_coro().__qualname__)
+    class A:
+        async def test(self):
+            print(1)
+
+
+    b = lambda x: x + 1
+
+
+    def c():
+        def d(y):
+            return y * y
+
+        return d
+
+
+    # print(get_function_name(A().test))
+    # print(get_function_name(asyncio.ensure_future(A().test())))
+    # print(dir(asyncio.ensure_future(A().test()).get_coro().cr_code))
+    # print(inspect.getsourcefile(asyncio.ensure_future(A().test()).get_coro().cr_code))
+    # print(inspect.getmodulename(asyncio.ensure_future(A().test()).get_coro().cr_code.co_filename))
+    # print(asyncio.ensure_future(A().test()).get_coro().cr_code.co_firstlineno)
+    # print(get_function_name(asyncio.ensure_future(A().test()).get_coro()))
+    # print(get_function_name(b))
+    # print(get_function_name(c))
+    # print(dir(b))
+    # print(dir(b.__code__))
+    # print(b.__code__.co_firstlineno)
+
+    # print(inspect.getsourcelines(d))
+    for f in [A, A().test, asyncio.ensure_future(A().test()), asyncio.ensure_future(A().test()).get_coro(), b, c, c(),
+              iter]:
+        print(get_function_name(f))
+        # print(f.__code__)

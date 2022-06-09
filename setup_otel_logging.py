@@ -1,9 +1,10 @@
+import json
 import logging
 from functools import reduce
+from functools import wraps
 from typing import Any
 from typing import Dict
 from typing import Optional
-from typing import Union
 
 import fastapi
 from opentelemetry import trace
@@ -75,63 +76,22 @@ def instrument_fastapi(app: fastapi.FastAPI):
 
 
 def logging_tree():
-    """
-    from: https://github.com/brandon-rhodes/logging_tree/blob/master/logging_tree/nodes.py
-    Return a tree of tuples representing the logger layout.
-    Each tuple looks like ``('logger-name', <Logger>, [...])`` where the
-    third element is a list of zero or more child tuples that share the
-    same layout.
-    """
-    root: Dict[Optional[str], Any] = {None: logging.root}
+    root: Dict[Optional[str], Any] = dict()  # {...: logging.root}
     for logger_name in sorted(logging.root.manager.loggerDict.keys()):
         logger = logging.root.manager.loggerDict[logger_name]
         if isinstance(logger, logging.Logger):
-            reduce(lambda node, name: node.setdefault(name, {}), logger_name.split('.'), root)[None] = logger
+            reduce(lambda node, name: node.setdefault(name, {}), logger_name.split('.'), root)  # [...] = logger
     return root
 
 
-tmp = ('',
-       [('asyncio'),
-        ('charset_normalizer'),
-        ('concurrent',
-         [('concurrent.futures')]),
-        ('fastapi'),
-        # ('opentelemetry',
-        # [('opentelemetry.attributes'),
-        #  ('opentelemetry.baggage',
-        #   [('opentelemetry.baggage.propagation')]),
-        #  ('opentelemetry.context'),
-        #  ('opentelemetry.instrumentation',
-        #   [('opentelemetry.instrumentation.dependencies'),
-        #    ('opentelemetry.instrumentation.fastapi'),
-        #    ('opentelemetry.instrumentation.instrumentor')]),
-        #  ('opentelemetry.propagate'),
-        #  ('opentelemetry.propagators',
-        #   [('opentelemetry.propagators.composite')]),
-        #  ('opentelemetry.sdk',
-        #   [('opentelemetry.sdk.resources'),
-        #    ('opentelemetry.sdk.trace',
-        #     [('opentelemetry.sdk.trace.export'),
-        #      ('opentelemetry.sdk.trace.sampling')])]),
-        #  ('opentelemetry.trace',
-        #   [('opentelemetry.trace.span'),
-        #    ('opentelemetry.trace.status')]),
-        #  ('opentelemetry.util',
-        #   [('opentelemetry.util._providers'),
-        #    ('opentelemetry.util.http',
-        #     [('opentelemetry.util.http.httplib')]),
-        #    ('opentelemetry.util.re')])]),
-        ('pkg_resources',
-         [('pkg_resources.extern',
-           [('pkg_resources.extern.packaging',
-             [('pkg_resources.extern.packaging.tags')])])]),
-        ('requests'),
-        ('urllib3',
-         [('urllib3.connection'),
-          ('urllib3.connectionpool'),
-          ('urllib3.poolmanager'),
-          ('urllib3.response'),
-          ('urllib3.util',
-           [('urllib3.util.retry')])]),
-        ('uvicorn',
-         [('uvicorn.error')])])
+def instrument_decorate(func):
+
+    @wraps(func)
+    def wrapped(*args, **kwargs):
+        return func(*args, **kwargs)
+
+    return wrapped
+
+
+if __name__ == '__main__':
+    print(json.dumps(logging_tree(), indent=4))
