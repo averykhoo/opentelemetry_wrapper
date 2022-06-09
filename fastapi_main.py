@@ -11,34 +11,15 @@ from fastapi import status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import RedirectResponse
-from opentelemetry import trace
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-from opentelemetry.instrumentation.logging import LoggingInstrumentor
-from opentelemetry.instrumentation.logging.constants import DEFAULT_LOGGING_FORMAT
-from opentelemetry.instrumentation.requests import RequestsInstrumentor
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.sdk.trace.export import ConsoleSpanExporter
 from starlette.middleware.sessions import SessionMiddleware
 
-app = FastAPI(title='My Super Project',
-              description='This is a very fancy project, with auto docs for the API and everything',
-              version='2.5.0',  # only semver makes sense here
-              )
-FastAPIInstrumentor.instrument_app(app)
-RequestsInstrumentor().instrument()
+from setup_otel_logging import instrument_fastapi
+from setup_otel_logging import logging_tree
 
-# instrument logging.Logger
-# write as 0xBEEF instead of BEEF so it matches the trace exactly
-_log_format = (DEFAULT_LOGGING_FORMAT
-               .replace('%(otelTraceID)s', '0x%(otelTraceID)s')
-               .replace('%(otelSpanID)s', '0x%(otelSpanID)s'))
-LoggingInstrumentor().instrument(set_logging_format=True, logging_format=_log_format)
-
-# init tracer
-trace.set_tracer_provider(tp := TracerProvider())
-tp.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter(formatter=lambda span: f'{span.to_json(indent=None)}\n')))
-tracer = trace.get_tracer(__name__)
+app = instrument_fastapi(FastAPI(title='My Super Project',
+                                 description='This is a very fancy project, with auto docs for the API and everything',
+                                 version='2.5.0',  # only semver makes sense here
+                                 ))
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(SessionMiddleware, secret_key='config.settings.secret_key')
@@ -78,7 +59,9 @@ def hello_hello() -> str:
 
 
 if __name__ == '__main__':
-    _module_name = os.path.basename(__file__).rsplit(".", 1)[0]
+    logging_tree()
+
+    _module_name = os.path.basename(__file__).rsplit('.', 1)[0]
     uvicorn.run(f'{_module_name}:app',
                 host='localhost',
                 port=8000,
