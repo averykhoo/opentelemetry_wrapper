@@ -1,3 +1,4 @@
+import inspect
 import json
 import logging
 from functools import reduce
@@ -11,13 +12,17 @@ from opentelemetry import trace
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
+from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter
+from opentelemetry.sdk.resources import SERVICE_NAME
 
 __version__ = '0.1'
 
 # write IDs as 0xBEEF instead of BEEF so it matches the trace json exactly
+from get_function_name import get_function_name
+
 LOGGING_FORMAT_VERBOSE = (
     '%(asctime)s '
     '%(levelname)-8s '
@@ -35,26 +40,45 @@ LOGGING_FORMAT_MINIMAL = (
 )
 
 # init tracer
-trace.set_tracer_provider(tp := TracerProvider())
+trace.set_tracer_provider(tp := TracerProvider(resource=Resource.create({SERVICE_NAME: 'test-service-name'})))
 tp.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter(formatter=lambda span: f'{span.to_json(indent=None)}\n')))
 tracer = trace.get_tracer(__name__, __version__)
 
 
+def instrument_decorate(func):
+    if inspect.iscoroutinefunction(func):
+        @wraps(func)
+        async def wrapped(*args, **kwargs):
+            with tracer.start_as_current_span(get_function_name(func)):
+                out = await func(*args, **kwargs)
+                return out
+
+    else:
+        @wraps(func)
+        def wrapped(*args, **kwargs):
+            with tracer.start_as_current_span(get_function_name(func)):
+                out = func(*args, **kwargs)
+                return out
+
+    return wrapped
+
+
+@instrument_decorate
 def instrument_logging(*, verbose: bool = True):
-    with tracer.start_as_current_span('instrument_logging'):
-        # re-instrument if called
-        _instrumentor = LoggingInstrumentor()
-        if _instrumentor.is_instrumented_by_opentelemetry:
-            _instrumentor.uninstrument()
-        _instrumentor.instrument(set_logging_format=False)
+    # re-instrument if called
+    _instrumentor = LoggingInstrumentor()
+    if _instrumentor.is_instrumented_by_opentelemetry:
+        _instrumentor.uninstrument()
+    _instrumentor.instrument(set_logging_format=False)
 
-        # force overwrite of logging basic config since their instrumentor doesn't do it correctly
-        logging.basicConfig(format=LOGGING_FORMAT_VERBOSE if verbose else LOGGING_FORMAT_MINIMAL,
-                            level=logging.DEBUG if verbose else logging.INFO,
-                            force=True,
-                            )
+    # force overwrite of logging basic config since their instrumentor doesn't do it correctly
+    logging.basicConfig(format=LOGGING_FORMAT_VERBOSE if verbose else LOGGING_FORMAT_MINIMAL,
+                        level=logging.DEBUG if verbose else logging.INFO,
+                        force=True,
+                        )
 
 
+@instrument_decorate
 def instrument_fastapi(app: fastapi.FastAPI):
     with tracer.start_as_current_span('instrument_fastapi'):
         # first instrument logging, if not already instrumented
@@ -82,15 +106,6 @@ def logging_tree():
         if isinstance(logger, logging.Logger):
             reduce(lambda node, name: node.setdefault(name, {}), logger_name.split('.'), root)  # [...] = logger
     return root
-
-
-def instrument_decorate(func):
-
-    @wraps(func)
-    def wrapped(*args, **kwargs):
-        return func(*args, **kwargs)
-
-    return wrapped
 
 
 if __name__ == '__main__':

@@ -1,6 +1,5 @@
 import asyncio
 import inspect
-import os
 from functools import lru_cache
 from functools import partial
 from typing import Callable
@@ -34,7 +33,7 @@ def get_function_name(func: Union[Coroutine, Callable, partial, asyncio.Task]) -
         _code = getattr(func, '__code__', getattr(func, 'cr_code', None))
         if getattr(_code, 'co_filename', None):
             if inspect.getmodulename(_code.co_filename):
-                _module_name = f'<{os.path.basename(_code.co_filename)}.py>.'
+                _module_name = f'<{inspect.getmodulename(_code.co_filename)}>.'
 
     # get class if it's a bound method
     cls = None

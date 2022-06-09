@@ -5,6 +5,7 @@ import time
 from asgiref.sync import async_to_sync
 from opentelemetry import trace
 
+from setup_otel_logging import instrument_decorate
 from setup_otel_logging import instrument_logging
 
 instrument_logging()
@@ -12,26 +13,27 @@ instrument_logging()
 tracer = trace.get_tracer(__name__)
 
 
+@instrument_decorate
 async def bitshift(x: int, shift_by: int):
     """
     shifts left if positive, right if negative
     uses async in order to test that logging works normally
     """
-    with tracer.start_as_current_span('def-bitshift'):
-        await asyncio.sleep(0.01)
+    # with tracer.start_as_current_span('def-bitshift'):
+    await asyncio.sleep(0.01)
 
-        assert isinstance(x, int)
-        assert isinstance(shift_by, int)
+    assert isinstance(x, int)
+    assert isinstance(shift_by, int)
 
-        if shift_by > 0:
-            logging.debug(f'bit-shifting {x=} right by {shift_by}')
-            return x << shift_by
-        elif shift_by < 0:
-            logging.debug(f'bit-shifting {x=} left by {-shift_by}')
-            return x >> -shift_by
-        else:
-            logging.debug(f'bit-shifting {x=} by 0')
-            return x
+    if shift_by > 0:
+        logging.debug(f'bit-shifting {x=} right by {shift_by}')
+        return x << shift_by
+    elif shift_by < 0:
+        logging.debug(f'bit-shifting {x=} left by {-shift_by}')
+        return x >> -shift_by
+    else:
+        logging.debug(f'bit-shifting {x=} by 0')
+        return x
 
 
 async def multiply(multiplier: int, multiplicand: int):
@@ -84,7 +86,7 @@ async def exponentiate(base, exponent):
     exponentiation-by-squaring
     constrained not to use any math other than the functions defined above
     """
-    with tracer.start_as_current_span('def-multiply'):
+    with tracer.start_as_current_span('def-exponentiate'):
         await asyncio.sleep(0.01)
 
         logging.info(f'exponentiate {base=} by non-negative {exponent=}')
