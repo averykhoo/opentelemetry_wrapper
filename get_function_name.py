@@ -6,8 +6,9 @@ from typing import Callable
 from typing import Coroutine
 from typing import Union
 
-from aaaa.bbbb import cccc
-from aaaa.bbbb import dddd
+
+class NotAFunctionError(TypeError):
+    pass
 
 
 @lru_cache(maxsize=None)
@@ -25,7 +26,7 @@ def get_function_name(func: Union[Coroutine, Callable, partial, asyncio.Task]) -
 
     # sanity check
     if not isinstance(func, (Callable, Coroutine)):
-        raise TypeError(func)
+        raise NotAFunctionError(func)
 
     # get the module
     module = inspect.getmodule(func)
@@ -43,12 +44,12 @@ def get_function_name(func: Union[Coroutine, Callable, partial, asyncio.Task]) -
     # extremely special case to handle asgiref.async_to_sync and asgiref.sync_to_async
     if module_name == 'asgiref.sync':
         try:
-            return f'asgiref.sync.SyncToAsync({get_function_name(getattr(func, "func"))})'
-        except (AttributeError, TypeError):
+            return f'SyncToAsync({get_function_name(getattr(func, "func"))})'
+        except (AttributeError, NotAFunctionError):
             pass
         try:
-            return f'asgiref.sync.AsyncToSync({get_function_name(getattr(func, "awaitable"))})'
-        except (AttributeError, TypeError):
+            return f'AsyncToSync({get_function_name(getattr(func, "awaitable"))})'
+        except (AttributeError, NotAFunctionError):
             pass
 
     # get class if it's a bound method
@@ -78,10 +79,12 @@ def get_function_name(func: Union[Coroutine, Callable, partial, asyncio.Task]) -
     # format class name
     _class_name = f'{cls.__name__}.' if cls is not None else ''
 
-    # use qualname instead of name if we couldn't find the class
+    # use qualname instead of name if possible, which should already contain a class
     _function_name = ''
-    if hasattr(func, '__qualname__') and not _class_name:
+    if hasattr(func, '__qualname__'):
         _function_name = func.__qualname__
+        if _function_name.startswith(_class_name):
+            _function_name = _function_name[len(_class_name):]
     if hasattr(func, '__name__') and not _function_name:
         _function_name = func.__name__
     if not _function_name:
@@ -92,10 +95,16 @@ def get_function_name(func: Union[Coroutine, Callable, partial, asyncio.Task]) -
 
 
 if __name__ == '__main__':
+
+    from aaaa.bbbb import cccc
+    from aaaa.bbbb import dddd
+
+
     class A:
         def __init__(self):
             def e():
-                 return 1
+                return 1
+
             self.f = e
 
         async def test(self):
