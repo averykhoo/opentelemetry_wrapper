@@ -1,4 +1,5 @@
 import asyncio
+import dataclasses
 import inspect
 import logging
 from functools import lru_cache
@@ -52,11 +53,42 @@ _CACHE_INSTRUMENTED = dict()
 
 
 def instrument_decorate(func: Union[Callable, Coroutine],
+                        /, *,
                         func_name: Optional[str] = None,
                         ) -> Union[Callable, Coroutine]:
     """
+    use as a decorator to start a new trace with any class, function, or async function
+    for a class, it will instrument the new, init, and call dunders, as well as any defined methods and properties
 
-    :param func:
+    if `func_name` is not set, it will attempt to guess the function/class name
+    to decorate a function/class but specify `func_name`, use functools.partial as follows
+        @partial(instrument_decorate, func_name='example')
+        def f():
+            pass
+
+    alternatively, use it as a function to wrap something and optionally set a function name
+
+    todo: correctly set span attributes
+     from opentelemetry.semconv.trace import SpanAttributes
+     from opentelemetry.trace.status import Status
+     span_attributes = {
+            SpanAttributes.CODE_FUNCTION:  function name,
+            SpanAttributes.CODE_NAMESPACE: module name,
+            SpanAttributes.CODE_FILEPATH:  full path,
+            SpanAttributes.CODE_LINENO:    first line number,
+        }
+     with tracer.start_as_current_span(span_name, kind=SpanKind.???, attributes=span_attributes) as span
+     ...
+     if span.is_recording():
+         span.set_attribute(
+             SpanAttributes.HTTP_STATUS_CODE, result.status_code
+         )
+         span.set_status(
+             Status(http_status_to_status_code(result.status_code))
+         )
+
+    :param func: function or class
+    :param func_name: if not set, makes an intelligent guess
     :return:
     """
     # avoid re-instrumenting (or double-instrumenting) things
@@ -89,7 +121,6 @@ def instrument_decorate(func: Union[Callable, Coroutine],
         def _wrapped_getattribute(*args, **kwargs):
 
             # if it's a property, start a trace before getting it
-            print(args, func, getattr(func, args[1], None))
             if isinstance(getattr(func, args[1], None), property):
                 with tracer.start_as_current_span(f'property {func_name}.{args[1]}'):
                     return _original_getattribute(*args, **kwargs)
@@ -136,11 +167,13 @@ def instrument_decorate(func: Union[Callable, Coroutine],
 
 
 @instrument_decorate
-def instrument_logging(*, verbose: bool = True):
-    # re-instrument if called
+def instrument_logging(*, verbose: bool = True, force_reinstrumentation: bool = True):
     _instrumentor = LoggingInstrumentor()
     if _instrumentor.is_instrumented_by_opentelemetry:
-        _instrumentor.uninstrument()
+        if force_reinstrumentation:
+            _instrumentor.uninstrument()
+        else:
+            return
     _instrumentor.instrument(set_logging_format=False)
 
     # force overwrite of logging basic config since their instrumentor doesn't do it correctly
@@ -151,24 +184,57 @@ def instrument_logging(*, verbose: bool = True):
 
 
 @instrument_decorate
-def instrument_fastapi(app: fastapi.FastAPI):
-    with tracer.start_as_current_span('instrument_fastapi'):
-        # first instrument logging, if not already instrumented
-        if not LoggingInstrumentor().is_instrumented_by_opentelemetry:
-            instrument_logging()
+def instrument_requests(*, force_reinstrumentation: bool = True):
+    _instrumentor = RequestsInstrumentor()
+    if _instrumentor.is_instrumented_by_opentelemetry:
+        if force_reinstrumentation:
+            _instrumentor.uninstrument()
+        else:
+            return
+    _instrumentor.instrument()
 
-        # instrument the app
-        FastAPIInstrumentor.instrument_app(app)
 
-        # instrument requests as well
-        try:
-            import requests
-            RequestsInstrumentor().instrument()
-        except ImportError:
-            pass
+@instrument_decorate
+def instrument_fastapi(app: fastapi.FastAPI) -> fastapi.FastAPI:
+    """
+    instrument a FastAPI app
+    also instruments logging and requests (if requests exists)
+    """
+    # first instrument logging, if not already instrumented
+    instrument_logging(force_reinstrumentation=False)
 
-        # return app
-        return app
+    # instrument the app
+    FastAPIInstrumentor.instrument_app(app)
+
+    # instrument requests as well
+    if not RequestsInstrumentor().is_instrumented_by_opentelemetry:
+        RequestsInstrumentor().instrument()
+
+    # return app
+    return app
+
+
+@instrument_decorate
+def instrument_dataclasses():
+    """
+    magical way to auto-instrument all dataclasses created using the @dataclass decorator
+    note that this MUST be called **before** any code imports dataclasses.dataclass
+    """
+    _original = dataclasses.dataclass
+
+    @wraps(dataclasses.dataclass)
+    def wrapped(*args, **kwargs):
+        dataclass_or_wrap = _original(*args, **kwargs)
+        if inspect.isclass(dataclass_or_wrap):
+            return instrument_decorate(dataclass_or_wrap)
+        else:
+            @wraps(dataclass_or_wrap)
+            def double_wrap(*args, **kwargs):
+                return instrument_decorate(dataclass_or_wrap(*args, **kwargs))
+
+            return double_wrap
+
+    dataclasses.dataclass = wrapped
 
 
 def logging_tree():
@@ -180,53 +246,57 @@ def logging_tree():
     return root
 
 
-@instrument_decorate
-class A:
-    x = 1
+if __name__ == '__main__':
+    instrument_dataclasses()
+    from dataclasses import dataclass
 
-    # @instrument_decorate
-    # def __new__(cls, *args, **kwargs):
-    #     logging.info('A.__new__')
-    #     return super(A, cls).__new__(cls, *args, **kwargs)
 
-    @instrument_decorate
-    def __init__(self):
-        logging.info('A.__init__')
-        self.y = 2
+    @dataclass  # (frozen=True)
+    class A:
+        x = 1
 
-    # @instrument_decorate
-    def b(self):
-        logging.info('A.b')
-        return 1
+        # @instrument_decorate
+        # def __new__(cls, *args, **kwargs):
+        #     logging.info('A.__new__')
+        #     return super(A, cls).__new__(cls, *args, **kwargs)
 
-    # @instrument_decorate
-    def c(self):
-        logging.info('A.c')
+        # @instrument_decorate
+        def __init__(self):
+            logging.info('A.__init__')
+            # self.y = 2
 
-        @instrument_decorate
-        def d():
-            logging.info('A.c.d')
+        # @instrument_decorate
+        def b(self):
+            logging.info('A.b')
             return 1
 
-        return d
+        # @instrument_decorate
+        def c(self):
+            logging.info('A.c')
 
-    def __call__(self, *args, **kwargs):
-        logging.info('A.call')
-        return
+            @instrument_decorate
+            def d():
+                logging.info('A.c.d')
+                return 1
 
-    @property
-    def e(self):
-        logging.info('A.e')
-        return 1
+            return d
+
+        def __call__(self, *args, **kwargs):
+            logging.info('A.call')
+            return
+
+        @property
+        def e(self):
+            logging.info('A.e')
+            return 1
 
 
-@instrument_decorate
-@lru_cache
-def f(x):
-    return x + 1
+    @instrument_decorate
+    @lru_cache
+    def f(x):
+        return x + 1
 
 
-if __name__ == '__main__':
     instrument_logging()
     A().b()
     A().c()()
