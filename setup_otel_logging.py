@@ -1,11 +1,13 @@
 import inspect
-import json
 import logging
 from functools import reduce
 from functools import wraps
 from typing import Any
+from typing import Callable
+from typing import Coroutine
 from typing import Dict
 from typing import Optional
+from typing import Union
 
 import fastapi
 from opentelemetry import trace
@@ -13,10 +15,10 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.resources import SERVICE_NAME
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter
-from opentelemetry.sdk.resources import SERVICE_NAME
 
 __version__ = '0.1'
 
@@ -45,18 +47,33 @@ tp.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter(formatter=lambda sp
 tracer = trace.get_tracer(__name__, __version__)
 
 
-def instrument_decorate(func):
+def instrument_decorate(func: Union[Callable, Coroutine],
+                        func_name: Optional[str] = None,
+                        ) -> Union[Callable, Coroutine]:
+    """
+    todo: auto error logging for instrumented function
+    todo: do warnings get logged?
+
+    :param func:
+    :return:
+    """
+    if func_name is None:
+        func_name = get_function_name(func)
+
     if inspect.iscoroutinefunction(func):
         @wraps(func)
         async def wrapped(*args, **kwargs):
-            with tracer.start_as_current_span(get_function_name(func)):
-                out = await func(*args, **kwargs)
-                return out
+            with tracer.start_as_current_span(f'async {func_name}'):
+                return await func(*args, **kwargs)
+
+    elif isinstance(func, type):
+        func.__new__ = instrument_decorate(func.__new__, func_name=func_name)
+        wrapped = func
 
     else:
         @wraps(func)
         def wrapped(*args, **kwargs):
-            with tracer.start_as_current_span(get_function_name(func)):
+            with tracer.start_as_current_span(func_name):
                 out = func(*args, **kwargs)
                 return out
 
@@ -108,5 +125,34 @@ def logging_tree():
     return root
 
 
+# @instrument_decorate
+class A:
+    # @instrument_decorate
+    def __new__(cls, *args, **kwargs):
+        return super(A, cls).__new__(cls, *args, **kwargs)
+
+    @instrument_decorate
+    def __init__(self):
+        logging.info('A.__init__')
+
+    @instrument_decorate
+    def b(self):
+        logging.info('A.b')
+        return 1
+
+    @instrument_decorate
+    def c(self):
+        logging.info('A.c')
+
+        @instrument_decorate
+        def d():
+            logging.info('A.c.d')
+            return 1
+
+        return d
+
+
 if __name__ == '__main__':
-    print(json.dumps(logging_tree(), indent=4))
+    instrument_logging()
+    A().b()
+    A().c()()
