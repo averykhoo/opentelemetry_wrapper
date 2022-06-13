@@ -2,6 +2,7 @@ import asyncio
 import dataclasses
 import inspect
 import logging
+from functools import cached_property
 from functools import lru_cache
 from functools import reduce
 from functools import wraps
@@ -121,7 +122,7 @@ def instrument_decorate(func: Union[Callable, Coroutine],
         def _wrapped_getattribute(*args, **kwargs):
 
             # if it's a property, start a trace before getting it
-            if isinstance(getattr(func, args[1], None), property):
+            if isinstance(getattr(func, args[1], None), (property, cached_property)):
                 with tracer.start_as_current_span(f'property {func_name}.{args[1]}'):
                     return _original_getattribute(*args, **kwargs)
 
