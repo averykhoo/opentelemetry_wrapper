@@ -63,7 +63,7 @@ class CodeInfo:
         _prefixes = ' '.join(self.__unwrapped_prefixes) + ' ' if self.__unwrapped_prefixes else ''
         _module_name = f'<{self.module_name}>.' if self.module_name else ''
         _class_name = f'{self.class_name}.' if self.class_name else ''
-        _function_name = self.function_name or '<unknown function>'
+        _function_name = self.function_name or ''
 
         return f'{_prefixes}{_module_name}{_class_name}{_function_name}'
 
@@ -241,13 +241,14 @@ class CodeInfo:
             self.__cached_cls.append(_cls)
 
         # use qualname instead of name if possible, which should already contain a class
-        if hasattr(self.__unwrapped_code_object, '__qualname__'):
-            _function_name = self.__unwrapped_code_object.__qualname__
-            if self.class_name and _function_name.startswith(self.class_name + '.'):
-                _function_name = _function_name[len(self.class_name)+1:]
-            self.__cached_function.append(_function_name)
-        if getattr(self.__unwrapped_code_object, '__name__', None):
-            self.__cached_function.append(self.__unwrapped_code_object.__name__)
+        if not inspect.isclass(self.__unwrapped_code_object):
+            if hasattr(self.__unwrapped_code_object, '__qualname__'):
+                _function_name = self.__unwrapped_code_object.__qualname__
+                if self.class_name and _function_name.startswith(self.class_name + '.'):
+                    _function_name = _function_name[len(self.class_name)+1:]
+                self.__cached_function.append(_function_name)
+            if getattr(self.__unwrapped_code_object, '__name__', None):
+                self.__cached_function.append(self.__unwrapped_code_object.__name__)
 
         # get the code stuff
         _code = getattr(self.__unwrapped_code_object, '__code__', None)
@@ -279,6 +280,7 @@ if __name__ == '__main__':
 
 
     print(json.dumps(CodeInfo(asyncio.ensure_future(A().f()).get_coro()).json, indent=4))
+    print(json.dumps(CodeInfo(A).json, indent=4))
     print(json.dumps(CodeInfo(A().f).json, indent=4))
     print(json.dumps(CodeInfo(A().B().c).json, indent=4))
     print(json.dumps(CodeInfo(A().B().c(1)).json, indent=4))
