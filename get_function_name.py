@@ -1,10 +1,14 @@
 import asyncio
 import inspect
+import json
 from functools import lru_cache
 from functools import partial
+from functools import partialmethod
 from typing import Callable
 from typing import Coroutine
 from typing import Union
+
+from introspect import CodeInfo
 
 
 class NotAFunctionError(TypeError):
@@ -16,6 +20,7 @@ def get_function_name(func: Union[Coroutine, Callable, partial, asyncio.Task]) -
     """
     Get the name of a function.
     """
+
     # recursively un-partial if needed
     if isinstance(func, partial):
         return get_function_name(func.func)
@@ -94,47 +99,48 @@ def get_function_name(func: Union[Coroutine, Callable, partial, asyncio.Task]) -
     return f'{_module_name}{_class_name}{_function_name}'
 
 
+from aaaa.bbbb import cccc
+from aaaa.bbbb import dddd
+
+
+class A:
+    def __init__(self):
+        def e():
+            return 1
+
+        self.f = e
+
+    async def test(self):
+        print(1)
+
+
+b = lambda x: x + 1
+
+
+def c():
+    def d(y):
+        return y * y
+
+    return d
+
+
+class Aa:
+    class B:
+        def c(self, a):
+            @lru_cache
+            def d(x):
+                return x + 1
+
+            return partial(d, x=1)
+
+        e = partialmethod(c, a=2)
+
+    async def f(self):
+        pass
+
+
 if __name__ == '__main__':
 
-    from aaaa.bbbb import cccc
-    from aaaa.bbbb import dddd
-
-
-    class A:
-        def __init__(self):
-            def e():
-                return 1
-
-            self.f = e
-
-        async def test(self):
-            print(1)
-
-
-    b = lambda x: x + 1
-
-
-    def c():
-        def d(y):
-            return y * y
-
-        return d
-
-
-    # print(get_function_name(A().test))
-    # print(get_function_name(asyncio.ensure_future(A().test())))
-    # print(dir(asyncio.ensure_future(A().test()).get_coro().cr_code))
-    # print(inspect.getsourcefile(asyncio.ensure_future(A().test()).get_coro().cr_code))
-    # print(inspect.getmodulename(asyncio.ensure_future(A().test()).get_coro().cr_code.co_filename))
-    # print(asyncio.ensure_future(A().test()).get_coro().cr_code.co_firstlineno)
-    # print(get_function_name(asyncio.ensure_future(A().test()).get_coro()))
-    # print(get_function_name(b))
-    # print(get_function_name(c))
-    # print(dir(b))
-    # print(dir(b.__code__))
-    # print(b.__code__.co_firstlineno)
-
-    # print(inspect.getsourcelines(d))
     for f in [
         A,
         A().test,
@@ -148,6 +154,14 @@ if __name__ == '__main__':
         cccc,
         dddd,
         asyncio.ensure_future(dddd()),
+        asyncio.ensure_future(Aa().f()),
+        asyncio.ensure_future(Aa().f()).get_coro(),
+        Aa,
+        Aa().f,
+        Aa().B().c,
+        Aa().B().c(1),
+        Aa().B().e,
     ]:
         print(get_function_name(f))
-        # print(f.__code__)
+        print(json.dumps(CodeInfo(f).json, indent=4))
+        # print(inspect.getsourcelines(f))
