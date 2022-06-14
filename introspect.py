@@ -13,6 +13,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Callable
 from typing import Coroutine
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Union
@@ -43,7 +44,7 @@ class CodeInfo:
         assert isinstance(self.unwrap_async, bool), self.unwrap_async
 
     @cached_property
-    def json(self):
+    def json(self) -> Dict[str, Union[str, int, bool, None]]:
         return {
             'name':              self.name,
             'module_name':       self.module_name,
@@ -52,7 +53,15 @@ class CodeInfo:
             'function_qualname': self.function_qualname,
             'path':              str(self.path) if self.path else None,
             'lineno':            self.lineno,
+            'is_class':          self.is_class,
         }
+
+    @cached_property
+    def is_class(self) -> bool:
+        """
+        is the unwrapped base object a class?
+        """
+        return inspect.isclass(self.__unwrapped_code_object)
 
     @cached_property
     def name(self) -> str:
@@ -63,9 +72,15 @@ class CodeInfo:
         if self.function_qualname:
             _class_name = ''
             _function_name = self.function_qualname
-        else:
+        elif self.function_name:
             _class_name = f'{self.class_name}.' if self.class_name else ''
-            _function_name = self.function_name or ''
+            _function_name = self.function_name
+        elif self.class_name:
+            _class_name = self.class_name
+            _function_name = '' if self.is_class else '<unknown function>'
+        else:
+            _class_name = '<unknown class>' if self.is_class else ''
+            _function_name = '' if self.is_class else '<unknown function>'
 
         return f'{_prefixes}{_module_name}{_class_name}{_function_name}'
 
@@ -83,7 +98,7 @@ class CodeInfo:
     @cached_property
     def function_qualname(self) -> Optional[str]:
         # a class does not have a function name
-        if inspect.isclass(self.__unwrapped_code_object):
+        if self.is_class:
             return None
 
         # use qualname instead of name if possible, but strip out the class name
@@ -93,7 +108,7 @@ class CodeInfo:
     @cached_property
     def function_name(self) -> Optional[str]:
         # a class does not have a function name
-        if inspect.isclass(self.__unwrapped_code_object):
+        if self.is_class:
             return None
 
         # use qualname instead of name if possible, but strip out the class name
@@ -136,7 +151,7 @@ class CodeInfo:
     @cached_property
     def cls(self) -> Optional[type]:
         # if we already are a class
-        if inspect.isclass(self.__unwrapped_code_object):
+        if self.is_class:
             return self.__unwrapped_code_object
 
         # get class of method
@@ -151,9 +166,18 @@ class CodeInfo:
                             if inspect.isclass(_cls):
                                 return _cls
 
-        # get class of unbound method
-        if hasattr(self.__unwrapped_code_object, '__qualname__') and self.module:
-            _cls_qualname = self.__unwrapped_code_object.__qualname__.split('.<locals>')[0].rsplit('.', 1)[0]
+        # get class qualname
+        if hasattr(self.__unwrapped_code_object, '__qualname__'):
+            _cls_qualname = self.__unwrapped_code_object.__qualname__.split('.<locals>')[0]
+            if '.' in _cls_qualname:
+                _cls_qualname = _cls_qualname.rsplit('.', 1)[0]
+            else:
+                _cls_qualname = ''
+        else:
+            _cls_qualname = ''
+
+        # get class from class qualname
+        if _cls_qualname and self.module:
             _cls: Union[ModuleType, type, None] = self.module
 
             for _cls_name in _cls_qualname.split('.'):
@@ -171,11 +195,9 @@ class CodeInfo:
             if inspect.isclass(_cls):
                 return _cls
 
-        # try harder: load module from path and search inside it to find the class
-        if hasattr(self.__unwrapped_code_object, '__qualname__') and self.path:
-            _cls_qualname = self.__unwrapped_code_object.__qualname__.split('.<locals>')[0].rsplit('.', 1)[0]
-
-            _temp_module_name = f'__introspect__.{self.path}'
+        # try harder: load module from path and search inside it to find the class qualname
+        if _cls_qualname and self.path:
+            _temp_module_name = f'__introspected_file__.{self.path}'
             if _temp_module_name in sys.modules:
                 _cls = sys.modules[_temp_module_name]
             else:
@@ -225,7 +247,7 @@ class CodeInfo:
                 return self.__code__.co_firstlineno
 
     @staticmethod
-    def __is_supported_type(code_object):
+    def __is_supported_type(code_object) -> bool:
         if callable(code_object):
             return True
         if isinstance(code_object, (Callable, Coroutine, cached_property)):
@@ -307,7 +329,7 @@ class CodeInfo:
         return _prefixes, _code_object
 
     @property
-    def __unwrapped_prefixes(self):
+    def __unwrapped_prefixes(self) -> List[str]:
         return self.__unwrapped[0]
 
     @property
