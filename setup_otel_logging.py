@@ -20,15 +20,19 @@ from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.resources import SERVICE_NAME
+from opentelemetry.sdk.trace import ReadableSpan
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter
+from opentelemetry.semconv.trace import SpanAttributes
+from opentelemetry.trace import Status
+from opentelemetry.trace import StatusCode
 
-__version__ = '0.1'
+from introspect import CodeInfo
+
+__version__ = '0.2'
 
 # write IDs as 0xBEEF instead of BEEF so it matches the trace json exactly
-from get_function_name import get_function_name
-
 LOGGING_FORMAT_VERBOSE = (
     '%(asctime)s '
     '%(levelname)-8s '
@@ -37,17 +41,31 @@ LOGGING_FORMAT_VERBOSE = (
     '[trace_id=0x%(otelTraceID)s span_id=0x%(otelSpanID)s resource.service.name=%(otelServiceName)s] '
     '- %(message)s'
 )
+
+# in the short format, write it as a [traceparent header](https://www.w3.org/TR/trace-context/#traceparent-header)
 LOGGING_FORMAT_MINIMAL = (
-    '%(levelname)-8s '
+    '%(levelname)s '
     '%(otelServiceName)s '
     '[00-%(otelTraceID)s-%(otelSpanID)s-01] '
     '[%(name)s:%(module)s:%(funcName)s] '
     '%(message)s'
 )
 
-# init tracer
-trace.set_tracer_provider(tp := TracerProvider(resource=Resource.create({SERVICE_NAME: 'test-service-name'})))
-tp.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter(formatter=lambda span: f'{span.to_json(indent=None)}\n')))
+
+def init_tracer():
+    def format_span(span: ReadableSpan) -> str:
+        return f'{span.to_json(indent=None)}\n'
+
+    tp = TracerProvider(resource=Resource.create({SERVICE_NAME: 'test-service-name'}))
+
+    # noinspection PyProtectedMember
+    trace._set_tracer_provider(tp, log=False)  # try to set, but don't warn otherwise
+    if trace.get_tracer_provider() is tp:  # if we succeeded in setting it, set it up
+        tp.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter(formatter=format_span)))
+
+
+# get tracer
+init_tracer()
 tracer = trace.get_tracer(__name__, __version__)
 
 _CACHE_INSTRUMENTED = dict()
@@ -69,25 +87,6 @@ def instrument_decorate(func: Union[Callable, Coroutine],
 
     alternatively, use it as a function to wrap something and optionally set a function name
 
-    todo: correctly set span attributes
-     from opentelemetry.semconv.trace import SpanAttributes
-     from opentelemetry.trace.status import Status
-     span_attributes = {
-            SpanAttributes.CODE_FUNCTION:  function name,
-            SpanAttributes.CODE_NAMESPACE: module name,
-            SpanAttributes.CODE_FILEPATH:  full path,
-            SpanAttributes.CODE_LINENO:    first line number,
-        }
-     with tracer.start_as_current_span(span_name, kind=SpanKind.???, attributes=span_attributes) as span
-     ...
-     if span.is_recording():
-         span.set_attribute(
-             SpanAttributes.HTTP_STATUS_CODE, result.status_code
-         )
-         span.set_status(
-             Status(http_status_to_status_code(result.status_code))
-         )
-
     :param func: function or class
     :param func_name: if not set, makes an intelligent guess
     :return:
@@ -99,8 +98,18 @@ def instrument_decorate(func: Union[Callable, Coroutine],
         return _CACHE_INSTRUMENTED[func]
 
     # if not provided, try to find the function name
-    if func_name is None:
-        func_name = get_function_name(func)
+    code_info = CodeInfo(func)
+    func_name = func_name or code_info.name
+
+    span_attributes = dict()
+    if code_info.function_name:
+        span_attributes[SpanAttributes.CODE_FUNCTION] = code_info.function_name
+    if code_info.module_name:
+        span_attributes[SpanAttributes.CODE_NAMESPACE] = code_info.module_name
+    if code_info.path:
+        span_attributes[SpanAttributes.CODE_FILEPATH] = str(code_info.path)
+    if code_info.lineno:
+        span_attributes[SpanAttributes.CODE_LINENO] = code_info.lineno
 
     # somewhat complex logic to wrap all methods and properties in a class
     if inspect.isclass(func):
@@ -123,8 +132,18 @@ def instrument_decorate(func: Union[Callable, Coroutine],
 
             # if it's a property, start a trace before getting it
             if isinstance(getattr(func, args[1], None), (property, cached_property)):
-                with tracer.start_as_current_span(f'property {func_name}.{args[1]}'):
-                    return _original_getattribute(*args, **kwargs)
+                _name = f'property {func_name}.{args[1]}'
+                if hasattr(getattr(func, args[1]), 'fget'):
+                    _attribs = dict()
+                    _attribs.update(span_attributes)
+                    _attribs[SpanAttributes.CODE_LINENO] = inspect.getsourcelines(getattr(func, args[1]).fget)[1]
+                else:
+                    _attribs = span_attributes
+                with tracer.start_as_current_span(_name, attributes=_attribs) as span:
+                    ret = _original_getattribute(*args, **kwargs)
+                    if span.is_recording():
+                        span.set_status(Status(StatusCode.OK))
+                    return ret
 
             # otherwise just get it
             obj = _original_getattribute(*args, **kwargs)
@@ -146,16 +165,23 @@ def instrument_decorate(func: Union[Callable, Coroutine],
     elif asyncio.iscoroutinefunction(func):
         @wraps(func)
         async def wrapped(*args, **kwargs):
-            with tracer.start_as_current_span(f'async {func_name}'):
-                return await func(*args, **kwargs)
+            with tracer.start_as_current_span(f'async {func_name}', attributes=span_attributes) as span:
+                ret = await func(*args, **kwargs)
+                if span.is_recording():
+                    # span.set_attribute(SpanAttributes.HTTP_STATUS_CODE, result.status_code)
+                    span.set_status(Status(StatusCode.OK))
+                return ret
 
     # normal routines (functions, methods, builtins) just use a normal decorator
     # note that coroutine functions are also functions, so this needs to be checked last
     elif inspect.isroutine(func):
         @wraps(func)
         def wrapped(*args, **kwargs):
-            with tracer.start_as_current_span(func_name):
-                return func(*args, **kwargs)
+            with tracer.start_as_current_span(func_name, attributes=span_attributes) as span:
+                ret = func(*args, **kwargs)
+                if span.is_recording():
+                    span.set_status(Status(StatusCode.OK))
+                return ret
 
     # what is this?
     else:
