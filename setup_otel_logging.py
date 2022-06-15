@@ -14,10 +14,10 @@ if __name__ == '__main__':
     class A:
         x = 1
 
-        # @instrument_decorate
-        # def __new__(cls, *args, **kwargs):
-        #     logging.info('A.__new__')
-        #     return super(A, cls).__new__(cls, *args, **kwargs)
+        @instrument_decorate
+        def __new__(cls, *args, **kwargs):
+            logging.info('A.__new__')
+            return super(A, cls).__new__(cls, *args, **kwargs)
 
         # @instrument_decorate
         def __init__(self):

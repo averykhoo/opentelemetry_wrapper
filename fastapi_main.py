@@ -13,13 +13,15 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
 
-from otel_instrumentation.instrument_fastapi import instrument_fastapi_app
+from otel_instrumentation.instrument_fastapi import instrument_fastapi
 from otel_instrumentation.instrument_logging import logging_tree
 
-app = instrument_fastapi_app(FastAPI(title='My Super Project',
-                                     description='This is a very fancy project, with auto docs for the API and everything',
-                                     version='2.5.0',  # only semver makes sense here
-                                     ))
+instrument_fastapi()
+
+app = FastAPI(title='My Super Project',
+              description='This is a very fancy project, with auto docs for the API and everything',
+              version='2.5.0',  # only semver makes sense here
+              )
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(SessionMiddleware, secret_key='config.settings.secret_key')

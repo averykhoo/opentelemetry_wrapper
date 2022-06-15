@@ -164,6 +164,14 @@ def instrument_logging(*,
                        verbose: bool = True,
                        force_reinstrumentation: bool = True,
                        ) -> None:
+    """
+    this function is (by default) idempotent; calling it multiple times has no additional side effects
+
+    :param print_json:
+    :param verbose:
+    :param force_reinstrumentation:
+    :return:
+    """
     _instrumentor = LoggingInstrumentor()
     if _instrumentor.is_instrumented_by_opentelemetry:
         if force_reinstrumentation:

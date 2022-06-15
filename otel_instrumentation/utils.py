@@ -10,13 +10,18 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter
 
+from otel_instrumentation.config import __service_name__
+
 
 @lru_cache  # only run once
 def init_tracer():
     def format_span(span: ReadableSpan) -> str:
         return f'{span.to_json(indent=None)}\n'
 
-    tp = TracerProvider(resource=Resource.create({SERVICE_NAME: 'test-service-name'}))
+    if __service_name__:
+        tp = TracerProvider(resource=Resource.create({SERVICE_NAME: __service_name__}))
+    else:
+        tp = TracerProvider()
 
     # noinspection PyProtectedMember
     trace._set_tracer_provider(tp, log=False)  # try to set, but don't warn otherwise
