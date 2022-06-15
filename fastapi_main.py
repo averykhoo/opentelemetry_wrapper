@@ -1,6 +1,6 @@
 import datetime
+import inspect
 import logging
-import os
 from typing import Callable
 
 import requests
@@ -14,7 +14,6 @@ from fastapi.responses import RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
 
 from otel_instrumentation.instrument_fastapi import instrument_fastapi
-from otel_instrumentation.instrument_logging import logging_tree
 
 instrument_fastapi()
 
@@ -61,10 +60,7 @@ def hello_hello() -> str:
 
 
 if __name__ == '__main__':
-    logging_tree()
-
-    _module_name = os.path.basename(__file__).rsplit('.', 1)[0]
-    uvicorn.run(f'{_module_name}:app',
+    uvicorn.run(f'{inspect.getmodulename(__file__)}:app',
                 host='localhost',
                 port=8000,
                 reload=True,
