@@ -15,9 +15,6 @@ from otel_instrumentation.config import __service_name__
 
 @lru_cache  # only run once
 def init_tracer():
-    def format_span(span: ReadableSpan) -> str:
-        return f'{span.to_json(indent=None)}\n'
-
     if __service_name__:
         tp = TracerProvider(resource=Resource.create({SERVICE_NAME: __service_name__}))
     else:
@@ -26,6 +23,9 @@ def init_tracer():
     # noinspection PyProtectedMember
     trace._set_tracer_provider(tp, log=False)  # try to set, but don't warn otherwise
     if trace.get_tracer_provider() is tp:  # if we succeeded in setting it, set it up
+        def format_span(span: ReadableSpan) -> str:
+            return f'{span.to_json(indent=None)}\n'
+
         tp.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter(formatter=format_span)))
 
 
