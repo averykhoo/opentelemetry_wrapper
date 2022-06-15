@@ -112,4 +112,4 @@ async def exponentiate(base, exponent):
 if __name__ == '__main__':
     t = time.perf_counter()
     assert exponentiate(-10, 5) == -100000
-    print(round(time.perf_counter() - t, 10))
+    print('elapsed time:', round(time.perf_counter() - t, 10), 'seconds')
