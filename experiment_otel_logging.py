@@ -4,14 +4,11 @@ import time
 
 from asgiref.sync import async_to_sync
 from asgiref.sync import sync_to_async
-from opentelemetry import trace
 
 from otel_instrumentation.instrument_decorator import instrument_decorate
 from otel_instrumentation.instrument_logging import instrument_logging
 
 instrument_logging()
-
-tracer = trace.get_tracer(__name__)
 
 
 @instrument_decorate

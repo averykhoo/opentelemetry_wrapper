@@ -140,7 +140,7 @@ class JsonFormatter(logging.Formatter):
 
 @lru_cache  # avoid creating duplicate handlers
 def get_json_handler(*,
-                     level: int = logging.DEBUG,
+                     level: int = logging.NOTSET,
                      path: Optional[Path] = None,
                      stream: Optional[TextIO] = None,
                      ) -> logging.Handler:
@@ -162,7 +162,8 @@ def get_json_handler(*,
 def instrument_logging(*,
                        print_json: bool = True,
                        verbose: bool = True,
-                       force_reinstrumentation: bool = True,
+                       force_reinstrumentation: bool = False,
+                       level: int = logging.NOTSET,
                        ) -> None:
     """
     this function is (by default) idempotent; calling it multiple times has no additional side effects
@@ -170,6 +171,7 @@ def instrument_logging(*,
     :param print_json:
     :param verbose:
     :param force_reinstrumentation:
+    :param level:
     :return:
     """
     _instrumentor = LoggingInstrumentor()
@@ -180,16 +182,20 @@ def instrument_logging(*,
             return
     _instrumentor.instrument(set_logging_format=False)
 
+    # output as json
     if print_json:
-        # output as json
-        json_handler = get_json_handler(stream=sys.stderr)
+        # todo: take in appropriate args to specify an output (e.g. to a path or stream)
+        # todo: re-instrument correctly if args are different
+        json_handler = get_json_handler(level=level)
         if json_handler not in logging.root.handlers:
             logging.root.addHandler(json_handler)
-        logging.root.setLevel(logging.DEBUG if verbose else logging.INFO)
+        logging.root.setLevel(level)
+
+    # output as above logging string format
     else:
         # force overwrite of logging basic config since their instrumentor doesn't do it correctly
         logging.basicConfig(format=LOGGING_FORMAT_VERBOSE if verbose else LOGGING_FORMAT_MINIMAL,
-                            level=logging.DEBUG if verbose else logging.INFO,
+                            level=level,
                             force=True,
                             )
 

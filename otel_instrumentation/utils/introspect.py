@@ -19,10 +19,6 @@ from typing import Optional
 from typing import Union
 
 
-class NotAFunctionError(TypeError):
-    pass
-
-
 @lru_cache(maxsize=None)
 @dataclass(unsafe_hash=True, frozen=True)
 class CodeInfo:
@@ -38,7 +34,6 @@ class CodeInfo:
     __cached_function: List[str] = field(default_factory=list, init=False, repr=False, hash=False, compare=False)
 
     def __post_init__(self):
-        # sanity checks
         assert self.__is_supported_type(self.code_object), type(self.code_object)
         assert isinstance(self.unwrap_partial, bool), self.unwrap_partial
         assert isinstance(self.unwrap_async, bool), self.unwrap_async

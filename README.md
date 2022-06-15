@@ -19,7 +19,7 @@ testing out python logging with opentelemetry
   * or `/token` which is a jwt containing the namepace
   * also see `/etc/hostname`
 * available instrumentation
-  * https://github.com/open-telemetry/opentelemetry-python 
+  * https://github.com/open-telemetry/opentelemetry-python
   * [`pip install opentelemetry-instrumentation-fastapi`](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/fastapi/fastapi.html)
   * [`pip install opentelemetry-instrumentation-sqlalchemy`](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/sqlalchemy/sqlalchemy.html)
   * [`pip install opentelemetry-instrumentation-requests`](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/requests/requests.html)
