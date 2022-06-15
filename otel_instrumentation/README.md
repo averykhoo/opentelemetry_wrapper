@@ -18,4 +18,8 @@
 ## TODO
 
 * Add support for pushing logs to a real logging platform (Zipkin, Jaeger, etc)
-* 
+* Read through the best practices
+* Metrics? Actual telemetry?
+* SQLAlchemy
+* See [parent README](../README.md)
+  * Read k8s namespace from container path?
