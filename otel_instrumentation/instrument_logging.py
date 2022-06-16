@@ -4,6 +4,7 @@ import logging
 import sys
 from functools import lru_cache
 from functools import reduce
+from functools import wraps
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -160,10 +161,10 @@ def get_json_handler(*,
 
 @instrument_decorate
 def instrument_logging(*,
+                       level: int = logging.NOTSET,
                        print_json: bool = True,
                        verbose: bool = True,
                        force_reinstrumentation: bool = False,
-                       level: int = logging.NOTSET,
                        ) -> None:
     """
     this function is (by default) idempotent; calling it multiple times has no additional side effects
@@ -181,6 +182,23 @@ def instrument_logging(*,
         else:
             return
     _instrumentor.instrument(set_logging_format=False)
+    old_factory = logging.getLogRecordFactory()
+
+    # the instrumentor didn't use wraps so let's do it for them
+    # noinspection PyProtectedMember
+    @wraps(LoggingInstrumentor._old_factory or old_factory)
+    def record_factory(*args, **kwargs):
+        record = old_factory(*args, **kwargs)
+
+        # we want the trace-id and span-id in a log to match the span it was created in
+        # so we format it to match
+        # note that logs outside a span will be assigned an invalid trace-id and span-io (all zeroes)
+        record.otelTraceID = f'0x{int(record.otelTraceID, 16):032x}'
+        record.otelSpanID = f'0x{int(record.otelSpanID, 16):016x}'
+
+        return record
+
+    logging.setLogRecordFactory(record_factory)
 
     # output as json
     if print_json:
