@@ -13,9 +13,9 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
 
-from otel_instrumentation.instrument_fastapi import instrument_fastapi
+from otel_instrumentation import instrument_all
 
-instrument_fastapi()
+instrument_all()
 
 app = FastAPI(title='My Super Project',
               description='This is a very fancy project, with auto docs for the API and everything',

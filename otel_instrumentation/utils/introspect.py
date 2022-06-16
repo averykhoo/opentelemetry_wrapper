@@ -30,6 +30,8 @@ class CodeInfo:
     unwrap_partial: bool = True
     unwrap_async: bool = True
 
+    _maybe_unsafe__try_very_hard_to_find_class: bool = True
+
     __cached_cls: List[type] = field(default_factory=list, init=False, repr=False, hash=False, compare=False)
     __cached_function: List[str] = field(default_factory=list, init=False, repr=False, hash=False, compare=False)
 
@@ -87,6 +89,10 @@ class CodeInfo:
         # asyncio.Task stores it here
         if _code is None:
             _code = getattr(self.__unwrapped_code_object, 'cr_code', None)
+
+        # sometimes it's in __func__.__code__
+        if _code is None:
+            _code = getattr(getattr(self.__unwrapped_code_object, '__func__', None), '__code__', None)
 
         return _code
 
@@ -191,7 +197,7 @@ class CodeInfo:
                 return _cls
 
         # try harder: load module from path and search inside it to find the class qualname
-        if _cls_qualname and self.path:
+        if self._maybe_unsafe__try_very_hard_to_find_class and _cls_qualname and not self.module and self.path:
             _temp_module_name = f'__introspected_file__.{self.path}'
             if _temp_module_name in sys.modules:
                 _cls = sys.modules[_temp_module_name]
@@ -234,7 +240,7 @@ class CodeInfo:
             _source_lines = inspect.getsourcelines(self.__unwrapped_code_object)
             if _source_lines:
                 return _source_lines[1]
-        except TypeError:
+        except (TypeError, OSError):
             pass
 
         if self.__code__ is not None:
