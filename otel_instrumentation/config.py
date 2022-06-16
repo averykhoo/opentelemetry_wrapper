@@ -23,7 +23,7 @@ def get_service_name() -> str:
     if namespace_path.is_file():
         namespace = namespace_path.read_text().strip() or None
 
-    # get domain or something
+    # not in k8s, get domain or something
     else:
         namespace = None
 

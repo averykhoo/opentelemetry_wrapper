@@ -4,6 +4,7 @@ import logging
 import sys
 from functools import lru_cache
 from functools import reduce
+from functools import update_wrapper
 from functools import wraps
 from pathlib import Path
 from typing import Any
@@ -184,9 +185,13 @@ def instrument_logging(*,
     _instrumentor.instrument(set_logging_format=False)
     old_factory = logging.getLogRecordFactory()
 
-    # the instrumentor didn't use wraps so let's do it for them
+    # the instrumentor failed to use the @wraps decorator so let's do it for them
     # noinspection PyProtectedMember
-    @wraps(LoggingInstrumentor._old_factory or old_factory)
+    if LoggingInstrumentor._old_factory is not None:
+        # noinspection PyProtectedMember
+        update_wrapper(old_factory, LoggingInstrumentor._old_factory)
+
+    @wraps(old_factory)
     def record_factory(*args, **kwargs):
         record = old_factory(*args, **kwargs)
 
