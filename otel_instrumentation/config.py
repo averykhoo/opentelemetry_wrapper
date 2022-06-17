@@ -1,3 +1,4 @@
+import getpass
 import os
 import platform
 import socket
@@ -10,6 +11,20 @@ __version__: str = '0.3'
 
 @lru_cache
 def get_service_name() -> str:
+    """
+    get something useful as a service name of whatever's currently running
+    what makes a good service name is not really well specified
+    and services are usually both clients and servers at the same time, often both in the same trace
+    hence i've decided to return something that should uniquely represent the current running instance
+
+    todo: maybe include the py file that's being run as __main__ instead of the user?
+
+    :return: {username}@{hostname}.{namespace or domain}
+    """
+
+    # get username
+    username = getpass.getuser().strip() or None
+
     # get hostname
     hostname: str = (os.getenv('HOSTNAME', '').strip() or
                      os.getenv('COMPUTERNAME', '').strip() or
@@ -38,7 +53,10 @@ def get_service_name() -> str:
             if namespace.casefold() == hostname.casefold():
                 namespace = None
 
-    return f'{hostname}.{namespace}' if namespace else hostname
+    # formatting
+    _username = f'{username}@' if username else ''
+    _namespace = f'.{namespace}' if namespace else ''
+    return f'{_username}{hostname}{_namespace}'
 
 
 __service_name__: Optional[str] = get_service_name()
