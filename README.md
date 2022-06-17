@@ -10,11 +10,11 @@ testing out python logging with opentelemetry
 
 ## best practices to consider
 
-* [Implementing health checks](https://aws.amazon.com/builders-library/implementing-health-checks/)
-* [Instrumenting distributed systems for operational visibility](https://aws.amazon.com/builders-library/instrumenting-distributed-systems-for-operational-visibility/)
-* [Instana ASGI Middleware](https://github.com/instana/python-sensor/blob/master/instana/middleware.py)
-* [IBM Best Practices](https://www.ibm.com/docs/en/obi/current?topic=tracing-best-practices)
-* [10 Things We Forgot to Monitor](https://word.bitly.com/post/74839060954/ten-things-to-monitor)
+* [ ] [Implementing health checks](https://aws.amazon.com/builders-library/implementing-health-checks/)
+* [ ] [Instrumenting distributed systems for operational visibility](https://aws.amazon.com/builders-library/instrumenting-distributed-systems-for-operational-visibility/)
+* [x] [Instana ASGI Middleware](https://github.com/instana/python-sensor/blob/master/instana/middleware.py)
+* [x] [IBM Best Practices](https://www.ibm.com/docs/en/obi/current?topic=tracing-best-practices)
+* [x] [10 Things We Forgot to Monitor](https://word.bitly.com/post/74839060954/ten-things-to-monitor)
 * `/var/run/secrets/kubernetes.io/serviceaccount/namespace`
   * or `/token` which is a jwt containing the namepace
   * also see `/etc/hostname`
