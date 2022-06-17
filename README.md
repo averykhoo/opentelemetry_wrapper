@@ -15,15 +15,15 @@ testing out python logging with opentelemetry
 * [x] [Instana ASGI Middleware](https://github.com/instana/python-sensor/blob/master/instana/middleware.py)
 * [x] [IBM Best Practices](https://www.ibm.com/docs/en/obi/current?topic=tracing-best-practices)
 * [x] [10 Things We Forgot to Monitor](https://word.bitly.com/post/74839060954/ten-things-to-monitor)
-* `/var/run/secrets/kubernetes.io/serviceaccount/namespace`
-  * or `/token` which is a jwt containing the namepace
+* [x] `/var/run/secrets/kubernetes.io/serviceaccount/namespace`
+  * or `/var/run/secrets/kubernetes.io/serviceaccount/token` which is a jwt containing the namepace
   * also see `/etc/hostname`
 * available instrumentation
-  * https://github.com/open-telemetry/opentelemetry-python
-  * [`pip install opentelemetry-instrumentation-fastapi`](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/fastapi/fastapi.html)
-  * [`pip install opentelemetry-instrumentation-sqlalchemy`](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/sqlalchemy/sqlalchemy.html)
-  * [`pip install opentelemetry-instrumentation-requests`](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/requests/requests.html)
-  * [`pip install opentelemetry-instrumentation-logging`](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/logging/logging.html)
+  * [x] https://github.com/open-telemetry/opentelemetry-python
+  * [x] [`pip install opentelemetry-instrumentation-fastapi`](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/fastapi/fastapi.html)
+  * [ ] [`pip install opentelemetry-instrumentation-sqlalchemy`](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/sqlalchemy/sqlalchemy.html)
+  * [x] [`pip install opentelemetry-instrumentation-requests`](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/requests/requests.html)
+  * [x] [`pip install opentelemetry-instrumentation-logging`](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/logging/logging.html)
 * examples
   * jaeger
     * https://github.com/Blueswen/fastapi-jaeger
