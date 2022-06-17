@@ -51,10 +51,16 @@ def hello() -> str:
     return 'hello'
 
 
+@app.get('/hello/{name}')
+def hello(name: str) -> str:
+    logging.info(f'called `hello/{name}`')
+    return 'hello'
+
+
 @app.get('/hello-hello')
 def hello_hello() -> str:
     logging.info('called `hello-hello`')
-    r = requests.get('http://localhost:8000/hello')
+    r = requests.get('http://localhost:8000/hello/hello')
     logging.info(f'`hello` returned {r.text}')
     return r.text
 
