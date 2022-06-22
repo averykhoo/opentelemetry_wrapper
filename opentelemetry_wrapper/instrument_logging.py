@@ -111,8 +111,11 @@ class JsonFormatter(logging.Formatter):
         called to format the event time. If there is exception information,
         it is formatted using formatException() and appended to the message.
         """
-        # add `message`
-        record.message = record.getMessage()
+        # add `message` but catch errors
+        try:
+            record.message = record.getMessage()
+        except TypeError:
+            record.message = f'MSG={repr(record.msg)} ARGS={repr(record.args)}'
 
         # add `asctime`, `tz_name`, and `tz_utc_offset_seconds`
         if self.usesTime():
@@ -132,7 +135,31 @@ class JsonFormatter(logging.Formatter):
         else:
             log_data = record.__dict__
 
-        return json.dumps(jsonable_encoder(log_data),
+        try:
+            safe_log_data = jsonable_encoder(log_data)
+
+        # failsafe: stringify everything using `repr()`
+        except Exception:
+            safe_log_data = dict()
+            for k, v in log_data.items():
+
+                # stringify key
+                if not isinstance(k, str):
+                    try:
+                        k = repr(k)
+                    except Exception:
+                        continue  # failed, skip key
+
+                # encode value
+                if isinstance(v, (int, float, bool, str, type(None))):
+                    safe_log_data[k] = v
+                else:
+                    try:
+                        safe_log_data[k] = repr(v)
+                    except Exception:
+                        continue  # failed, skip key
+
+        return json.dumps(safe_log_data,
                           ensure_ascii=self.ensure_ascii,
                           allow_nan=self.allow_nan,
                           indent=self.indent,
@@ -146,15 +173,16 @@ def get_json_handler(*,
                      path: Optional[Path] = None,
                      stream: Optional[TextIO] = None,
                      ) -> logging.Handler:
-    if not path and not stream:
-        stream = sys.stderr
-    elif path and stream:
+    if path is not None and stream is not None:
         raise ValueError('cannot set both path and stream')
 
-    if path:
+    if path is not None:
         handler = logging.FileHandler(path)
-    else:
+    elif stream is not None:
         handler = logging.StreamHandler(stream=stream)
+    else:
+        handler = logging.StreamHandler(stream=sys.stderr)
+
     handler.setFormatter(JsonFormatter())
     handler.setLevel(level)
     return handler
@@ -197,7 +225,7 @@ def instrument_logging(*,
 
         # we want the trace-id and span-id in a log to match the span it was created in
         # so we format it to match
-        # note that logs outside a span will be assigned an invalid trace-id and span-io (all zeroes)
+        # note that logs outside a span will be assigned an invalid trace-id and span-id (all zeroes)
         record.otelTraceID = f'0x{int(record.otelTraceID, 16):032x}'
         record.otelSpanID = f'0x{int(record.otelSpanID, 16):016x}'
 

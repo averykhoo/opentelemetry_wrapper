@@ -16,6 +16,7 @@ from re import Pattern
 from types import GeneratorType
 from typing import Any
 from typing import Callable
+from typing import Coroutine
 from typing import Dict
 from typing import Optional
 from typing import Set
@@ -23,6 +24,8 @@ from typing import Tuple
 from typing import Type
 from typing import Union
 from uuid import UUID
+
+from opentelemetry_wrapper.utils.introspect import CodeInfo
 
 SetIntStr = Set[Union[int, str]]
 DictIntStrAny = Dict[Union[int, str], Any]
@@ -170,6 +173,9 @@ def jsonable_encoder(obj: Any,
             return encoder(obj)
 
     # EDITS START HERE
+    if isinstance(obj, (Coroutine, Callable)):
+        return CodeInfo(obj).name
+
     try:
         data = dict(obj)
     except Exception:
