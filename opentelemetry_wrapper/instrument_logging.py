@@ -3,11 +3,9 @@ import json
 import logging
 import sys
 from functools import lru_cache
-from functools import reduce
 from functools import update_wrapper
 from functools import wraps
 from pathlib import Path
-from typing import Any
 from typing import Dict
 from typing import Iterable
 from typing import List
@@ -19,6 +17,7 @@ from typing import Union
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 
 from opentelemetry_wrapper.instrument_decorator import instrument_decorate
+from opentelemetry_wrapper.utils.json_encoder import jsonable_encoder
 
 # write IDs as 0xBEEF instead of BEEF so it matches the trace json exactly
 LOGGING_FORMAT_VERBOSE = (
@@ -133,9 +132,7 @@ class JsonFormatter(logging.Formatter):
         else:
             log_data = record.__dict__
 
-        # todo: jsonify data!
-
-        return json.dumps(log_data,
+        return json.dumps(jsonable_encoder(log_data),
                           ensure_ascii=self.ensure_ascii,
                           allow_nan=self.allow_nan,
                           indent=self.indent,
@@ -224,12 +221,3 @@ def instrument_logging(*,
                             level=level,
                             force=True,
                             )
-
-
-def logging_tree():
-    root: Dict[Optional[str], Any] = dict()  # {...: logging.root}
-    for logger_name in sorted(logging.root.manager.loggerDict.keys()):
-        logger = logging.root.manager.loggerDict[logger_name]
-        if isinstance(logger, logging.Logger):
-            reduce(lambda node, name: node.setdefault(name, {}), logger_name.split('.'), root)  # [...] = logger
-    return root
