@@ -132,6 +132,9 @@ class JsonFormatter(logging.Formatter):
             log_data = {k: getattr(record, v, None) for k, v in self._keys.items()}
         else:
             log_data = record.__dict__
+
+        # todo: jsonify data!
+
         return json.dumps(log_data,
                           ensure_ascii=self.ensure_ascii,
                           allow_nan=self.allow_nan,
