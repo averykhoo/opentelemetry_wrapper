@@ -11,9 +11,9 @@ from opentelemetry.semconv.trace import SpanAttributes
 from opentelemetry.trace import Status
 from opentelemetry.trace import StatusCode
 
-from otel_instrumentation.config import __version__
-from otel_instrumentation.utils.introspect import CodeInfo
-from otel_instrumentation.utils.tracers import get_tracer
+from opentelemetry_wrapper.config import __version__
+from opentelemetry_wrapper.utils.introspect import CodeInfo
+from opentelemetry_wrapper.utils.tracers import get_tracer
 
 _TRACER = get_tracer(__name__, __version__)
 _CACHE_INSTRUMENTED = dict()

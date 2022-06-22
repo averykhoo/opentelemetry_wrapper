@@ -18,7 +18,7 @@ from typing import Union
 
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 
-from otel_instrumentation.instrument_decorator import instrument_decorate
+from opentelemetry_wrapper.instrument_decorator import instrument_decorate
 
 # write IDs as 0xBEEF instead of BEEF so it matches the trace json exactly
 LOGGING_FORMAT_VERBOSE = (

@@ -13,7 +13,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
 
-from otel_instrumentation import instrument_all
+from opentelemetry_wrapper import instrument_all
 
 instrument_all()
 

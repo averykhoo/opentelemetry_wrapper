@@ -4,7 +4,7 @@ from opentelemetry.sdk.trace import Span
 from starlette.datastructures import Headers
 from starlette.types import Scope
 
-from otel_instrumentation.instrument_decorator import instrument_decorate
+from opentelemetry_wrapper.instrument_decorator import instrument_decorate
 
 _HEADER_ATTRIBUTES = (
     # subset of headers set in cookiecutter's OPA file

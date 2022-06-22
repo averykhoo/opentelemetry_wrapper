@@ -1,6 +1,6 @@
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 
-from otel_instrumentation.instrument_decorator import instrument_decorate
+from opentelemetry_wrapper.instrument_decorator import instrument_decorate
 
 
 @instrument_decorate

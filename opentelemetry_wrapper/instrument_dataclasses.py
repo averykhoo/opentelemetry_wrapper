@@ -2,7 +2,7 @@ import dataclasses
 import inspect
 from functools import wraps
 
-from otel_instrumentation.instrument_decorator import instrument_decorate
+from opentelemetry_wrapper.instrument_decorator import instrument_decorate
 
 _ORIGINAL = None
 

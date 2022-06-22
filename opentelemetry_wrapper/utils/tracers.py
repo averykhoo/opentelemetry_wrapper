@@ -10,7 +10,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter
 
-from otel_instrumentation.config import __service_name__
+from opentelemetry_wrapper.config import __service_name__
 
 
 @lru_cache  # only run once

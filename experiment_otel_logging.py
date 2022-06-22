@@ -5,8 +5,8 @@ import time
 from asgiref.sync import async_to_sync
 from asgiref.sync import sync_to_async
 
-from otel_instrumentation.instrument_decorator import instrument_decorate
-from otel_instrumentation.instrument_logging import instrument_logging
+from opentelemetry_wrapper.instrument_decorator import instrument_decorate
+from opentelemetry_wrapper.instrument_logging import instrument_logging
 
 instrument_logging()
 
