@@ -27,9 +27,9 @@ def request_hook(span: Span, scope: Scope) -> None:
     """
     headers = dict(Headers(scope=scope))  # keys are lowercase latin-1 (ascii)
     for header_name in _HEADER_ATTRIBUTES:
-        # null values are silently dropped by the attribute setter
-        # so we don't need an explicit check if the header exists
-        span.set_attribute(header_name, headers.get(header_name.lower()))
+        header_value = headers.get(header_name.lower())
+        if isinstance(header_value, (bool, str, bytes, int, float)):
+            span.set_attribute(header_name, header_value)
 
 
 @instrument_decorate
