@@ -90,6 +90,7 @@ def generate_encoders_by_class_tuples(type_encoder_map: Dict[Any, Callable[[Any]
 encoders_by_class_tuples = generate_encoders_by_class_tuples(ENCODERS_BY_TYPE)
 
 
+# flake8: noqa: C901
 def jsonable_encoder(obj: Any,
                      include: Optional[Union[SetIntStr, DictIntStrAny]] = None,
                      exclude: Optional[Union[SetIntStr, DictIntStrAny]] = None,
