@@ -30,16 +30,39 @@ from opentelemetry_wrapper.utils.introspect import CodeInfo
 SetIntStr = Set[Union[int, str]]
 DictIntStrAny = Dict[Union[int, str], Any]
 
-isoformat = lambda o: o.isoformat()
+
+def parse_datetime(o):
+    return o.isoformat()
+
+
+def parse_bytes(o):
+    return o.decode()
+
+
+def parse_timedelta(o):
+    return o.total_seconds()
+
+
+def parse_decimal(o):
+    return int(o) if o.as_tuple().exponent >= 0 else float(o)
+
+
+def parse_enum(o):
+    return o.value
+
+
+def parse_pattern(o):
+    return o.pattern
+
 
 ENCODERS_BY_TYPE: Dict[Type[Any], Callable[[Any], Any]] = {
-    bytes:                   lambda o: o.decode(),
-    datetime.date:           isoformat,
-    datetime.datetime:       isoformat,
-    datetime.time:           isoformat,
-    datetime.timedelta:      lambda td: td.total_seconds(),
-    Decimal:                 lambda o: int(o) if o.as_tuple().exponent >= 0 else float(o),
-    Enum:                    lambda o: o.value,
+    bytes:                   parse_bytes,
+    datetime.date:           parse_datetime,
+    datetime.datetime:       parse_datetime,
+    datetime.time:           parse_datetime,
+    datetime.timedelta:      parse_timedelta,
+    Decimal:                 parse_decimal,
+    Enum:                    parse_enum,
     frozenset:               list,
     deque:                   list,
     GeneratorType:           list,
@@ -50,7 +73,7 @@ ENCODERS_BY_TYPE: Dict[Type[Any], Callable[[Any], Any]] = {
     ipaddress.IPv6Interface: str,
     ipaddress.IPv6Network:   str,
     Path:                    str,
-    Pattern:                 lambda o: o.pattern,
+    Pattern:                 parse_pattern,
     set:                     list,
     UUID:                    str,
 }

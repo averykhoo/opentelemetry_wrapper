@@ -150,6 +150,7 @@ class CodeInfo:
                 return f'<{_module_name}.py{_lineno}>'
 
     @cached_property
+    # flake8: noqa: C901
     def cls(self) -> Optional[type]:
         # if we already are a class
         if self.is_class:
