@@ -12,6 +12,8 @@ testing out python logging with opentelemetry
 
 * [ ] [Implementing health checks](https://aws.amazon.com/builders-library/implementing-health-checks/)
 * [ ] [Instrumenting distributed systems for operational visibility](https://aws.amazon.com/builders-library/instrumenting-distributed-systems-for-operational-visibility/)
+* [ ] https://tersesystems.com/blog/2019/07/22/targeted-diagnostic-logging-in-production/
+* [ ] https://www.honeycomb.io/blog/so-you-want-to-build-an-observability-tool/
 * [x] [Instana ASGI Middleware](https://github.com/instana/python-sensor/blob/master/instana/middleware.py)
 * [x] [IBM Best Practices](https://www.ibm.com/docs/en/obi/current?topic=tracing-best-practices)
 * [x] [10 Things We Forgot to Monitor](https://word.bitly.com/post/74839060954/ten-things-to-monitor)
