@@ -33,3 +33,4 @@ testing out python logging with opentelemetry
     * https://guitton.co/posts/fastapi-monitoring
 * todo:
   * [ ] instrument pydantic
+  * [ ] `with ...` instrumentation for non-callable code (e.g. settings, semi-hardcoded config)
