@@ -98,6 +98,7 @@ class JsonFormatter(logging.Formatter):
     def formatMessage(self, record: logging.LogRecord):
         raise DeprecationWarning
 
+    # flake8: noqa: C901
     def format(self, record):
         """
         Format the specified record as text.

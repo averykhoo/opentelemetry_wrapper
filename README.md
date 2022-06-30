@@ -16,8 +16,8 @@ testing out python logging with opentelemetry
 * [x] [IBM Best Practices](https://www.ibm.com/docs/en/obi/current?topic=tracing-best-practices)
 * [x] [10 Things We Forgot to Monitor](https://word.bitly.com/post/74839060954/ten-things-to-monitor)
 * [x] `/var/run/secrets/kubernetes.io/serviceaccount/namespace`
-  * or `/var/run/secrets/kubernetes.io/serviceaccount/token` which is a jwt containing the namepace
-  * also see `/etc/hostname`
+  * [x] or `/var/run/secrets/kubernetes.io/serviceaccount/token` which is a jwt containing the namepace
+  * [x] also see `/etc/hostname`
 * available instrumentation
   * [x] https://github.com/open-telemetry/opentelemetry-python
   * [x] [`pip install opentelemetry-instrumentation-fastapi`](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/fastapi/fastapi.html)
@@ -29,4 +29,5 @@ testing out python logging with opentelemetry
     * https://github.com/Blueswen/fastapi-jaeger
     * https://github.com/fike/fastapi-blog
     * https://guitton.co/posts/fastapi-monitoring
-    * 
+* todo:
+  * [ ] instrument pydantic
