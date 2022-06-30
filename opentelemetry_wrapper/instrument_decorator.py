@@ -23,7 +23,7 @@ _CACHE_GETATTRIBUTE = dict()
 def instrument_decorate(func: Callable,
                         /, *,
                         func_name: Optional[str] = None,
-                        ) -> Union[Callable, Coroutine]:
+                        ) -> Union[Callable, Coroutine, type]:
     """
     use as a decorator to start a new trace with any class, function, or async function
     for a class, it will instrument the new, init, and call dunders, as well as any defined methods and properties
