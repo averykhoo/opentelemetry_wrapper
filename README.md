@@ -34,3 +34,4 @@ testing out python logging with opentelemetry
 * todo:
   * [ ] instrument pydantic
   * [ ] `with ...` instrumentation for non-callable code (e.g. settings, semi-hardcoded config)
+  * [ ] generic typing for `instrument_decorate()`
