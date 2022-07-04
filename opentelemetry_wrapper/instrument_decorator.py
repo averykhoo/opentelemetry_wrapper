@@ -170,6 +170,7 @@ def _instrument_class(cls: type,
         cls.__new__ = instrument_decorate(cls.__new__, func_name=f'{class_name}.__new__')
     if cls.__init__ is not object.__init__:
         cls.__init__ = instrument_decorate(cls.__init__, func_name=f'{class_name}.__init__')
+    # todo: also wrap __post_init__
 
     # also wrap the call method, if it exists
     if not isinstance(cls.__call__, type(object.__call__)):
