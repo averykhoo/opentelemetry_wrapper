@@ -29,3 +29,4 @@
 * SQLAlchemy
 * See [parent README](../README.md)
   * Read k8s namespace from container path?
+* somehow mark function as do-not-instrument, for extremely spammy functions? or specify a sampling ratio?
