@@ -38,6 +38,8 @@ def instrument_decorate(func: Callable,
 
     this function is idempotent; calling it multiple times has no additional side effects
 
+    todo: don't recurse into pydantic dataclasses, those get re-initialized too often
+
     :param func: function or class
     :param func_name: if not set, makes an intelligent guess
     :return:
