@@ -35,3 +35,4 @@ testing out python logging with opentelemetry
   * [ ] instrument pydantic
   * [ ] `with ...` instrumentation for non-callable code (e.g. settings, semi-hardcoded config)
   * [ ] generic typing for `instrument_decorate()`
+  * [ ] somehow delete dependency on fastapi.FastAPI just for type checking, while still correctly checking types
