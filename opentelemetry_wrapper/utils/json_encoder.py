@@ -78,16 +78,9 @@ ENCODERS_BY_TYPE: Dict[Type[Any], Callable[[Any], Any]] = {
     UUID:                    str,
 }
 
-
-def generate_encoders_by_class_tuples(type_encoder_map: Dict[Any, Callable[[Any], Any]],
-                                      ) -> Dict[Callable[[Any], Any], Tuple[Any, ...]]:
-    encoders_by_class_tuples: Dict[Callable[[Any], Any], Tuple[Any, ...]] = defaultdict(tuple)
-    for type_, encoder in type_encoder_map.items():
-        encoders_by_class_tuples[encoder] += (type_,)
-    return encoders_by_class_tuples
-
-
-encoders_by_class_tuples = generate_encoders_by_class_tuples(ENCODERS_BY_TYPE)
+encoders_by_class_tuples: Dict[Callable[[Any], Any], Tuple[Any, ...]] = defaultdict(tuple)
+for data_type, data_encoder in ENCODERS_BY_TYPE.items():
+    encoders_by_class_tuples[data_encoder] += (data_type,)
 
 
 # flake8: noqa: C901
@@ -200,9 +193,11 @@ def jsonable_encoder(obj: Any,
     if isinstance(obj, (Coroutine, Callable)):
         return CodeInfo(obj).name
 
+    # noinspection PyBroadException
     try:
         data = dict(obj)
     except Exception:
+        # noinspection PyBroadException
         try:
             data = vars(obj)
         except Exception:
