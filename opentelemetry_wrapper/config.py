@@ -1,3 +1,4 @@
+import __main__
 import getpass
 import os
 import platform
@@ -16,8 +17,6 @@ def get_service_name() -> str:
     what makes a good service name is not really well specified
     and services are usually both clients and servers at the same time, often both in the same trace
     hence i've decided to return something that should uniquely represent the current running instance
-
-    todo: maybe include the py file that's being run as __main__ instead of the user?
 
     :return: {username}@{hostname}.{namespace or domain}
     """
@@ -53,10 +52,18 @@ def get_service_name() -> str:
             if namespace and namespace.casefold() == hostname.casefold():
                 namespace = None
 
+    #  get file path of __main__
+    main_filename = None
+    if getattr(__main__, '__file__', None):
+        main_full_path = Path(__main__.__file__)
+        if main_full_path.exists():
+            main_filename = main_full_path.name
+
     # formatting
     _username = f'{username}@' if username else ''
     _namespace = f'.{namespace}' if namespace else ''
-    return f'{_username}{hostname}{_namespace}'
+    _filename = f':<{main_filename}>' if main_filename else ''
+    return f'{_username}{hostname}{_namespace}{_filename}'
 
 
 __service_name__: Optional[str] = get_service_name()
