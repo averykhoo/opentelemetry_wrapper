@@ -32,8 +32,9 @@ testing out python logging with opentelemetry
     * https://github.com/fike/fastapi-blog
     * https://guitton.co/posts/fastapi-monitoring
 * todo:
-  * [ ] correctly handle generators!
+  * [ ] correctly handle generators and context managers (and async versions of them)
   * [ ] instrument pydantic
   * [ ] `with ...` instrumentation for non-callable code (e.g. settings, semi-hardcoded config)
   * [ ] generic typing for `instrument_decorate()`
   * [ ] somehow delete dependency on fastapi.FastAPI just for type checking, while still correctly checking types
+  * [ ] somehow require python >= 3.8 as a dependency
