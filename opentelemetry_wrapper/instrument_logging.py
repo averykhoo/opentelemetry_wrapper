@@ -136,6 +136,7 @@ class JsonFormatter(logging.Formatter):
         else:
             log_data = record.__dict__
 
+        # noinspection PyBroadException
         try:
             safe_log_data = jsonable_encoder(log_data)
 
@@ -146,6 +147,7 @@ class JsonFormatter(logging.Formatter):
 
                 # stringify key
                 if not isinstance(k, str):
+                    # noinspection PyBroadException
                     try:
                         k = repr(k)
                     except Exception:
@@ -155,6 +157,7 @@ class JsonFormatter(logging.Formatter):
                 if isinstance(v, (int, float, bool, str, type(None))):
                     safe_log_data[k] = v
                 else:
+                    # noinspection PyBroadException
                     try:
                         safe_log_data[k] = repr(v)
                     except Exception:

@@ -18,7 +18,7 @@ testing out python logging with opentelemetry
 * [x] [IBM Best Practices](https://www.ibm.com/docs/en/obi/current?topic=tracing-best-practices)
 * [x] [10 Things We Forgot to Monitor](https://word.bitly.com/post/74839060954/ten-things-to-monitor)
 * [x] `/var/run/secrets/kubernetes.io/serviceaccount/namespace`
-  * [x] or `/var/run/secrets/kubernetes.io/serviceaccount/token` which is a jwt containing the namepace
+  * [x] or `/var/run/secrets/kubernetes.io/serviceaccount/token` which is a jwt containing the namespace
   * [x] also see `/etc/hostname`
 * available instrumentation
   * [x] https://github.com/open-telemetry/opentelemetry-python

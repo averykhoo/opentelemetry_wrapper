@@ -1,3 +1,4 @@
+# noinspection PyPackageRequirements
 import __main__
 import getpass
 import os

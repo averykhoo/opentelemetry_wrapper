@@ -25,8 +25,8 @@ def instrument_dataclasses() -> None:
                 return instrument_decorate(dataclass_or_wrap)
             else:
                 @wraps(dataclass_or_wrap)
-                def double_wrap(*args, **kwargs):
-                    return instrument_decorate(dataclass_or_wrap(*args, **kwargs))
+                def double_wrap(*_args, **_kwargs):
+                    return instrument_decorate(dataclass_or_wrap(*_args, **_kwargs))
 
                 return double_wrap
 
