@@ -7,6 +7,9 @@ from starlette.types import Scope
 from opentelemetry_wrapper.instrument_decorator import instrument_decorate
 
 _HEADER_ATTRIBUTES = (
+    # 'user-agent',
+    # 'cookie',
+
     # subset of headers set in cookiecutter's OPA file
     'x-pf-number',
     'x-client-id',
@@ -17,6 +20,16 @@ _HEADER_ATTRIBUTES = (
     'x-resource-access',
     # 'x-realm-roles',
     # 'x-groups',
+
+    # headers set by Kong
+    # 'authorization',
+    # 'x-userinfo',
+    # 'x-request-id',
+
+    #  headers set by K8s
+    # 'x-real-ip',
+    # 'x-forwarded-for',
+    # 'x-original-forwarded-for',
 )
 
 
