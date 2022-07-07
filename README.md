@@ -32,6 +32,7 @@ testing out python logging with opentelemetry
     * https://github.com/fike/fastapi-blog
     * https://guitton.co/posts/fastapi-monitoring
 * todo:
+  * [ ] correctly handle generators!
   * [ ] instrument pydantic
   * [ ] `with ...` instrumentation for non-callable code (e.g. settings, semi-hardcoded config)
   * [ ] generic typing for `instrument_decorate()`
