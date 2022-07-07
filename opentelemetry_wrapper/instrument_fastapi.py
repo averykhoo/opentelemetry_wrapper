@@ -10,7 +10,7 @@ _HEADER_ATTRIBUTES = (
     # 'user-agent',
     # 'cookie',
 
-    # subset of headers set in cookiecutter's OPA file
+    # headers set in cookiecutter's OPA file
     'x-pf-number',
     'x-client-id',
     'x-preferred-username',
