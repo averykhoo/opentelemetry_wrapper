@@ -50,7 +50,7 @@ def get_service_name() -> str:
         # otherwise try to get windows userdomain
         if namespace is None:
             namespace = os.getenv('USERDOMAIN', '').strip() or None
-            if namespace.casefold() == hostname.casefold():
+            if namespace and namespace.casefold() == hostname.casefold():
                 namespace = None
 
     # formatting
