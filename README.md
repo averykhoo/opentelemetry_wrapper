@@ -38,3 +38,6 @@ testing out python logging with opentelemetry
   * [ ] generic typing for `instrument_decorate()`
   * [ ] somehow delete dependency on fastapi.FastAPI just for type checking, while still correctly checking types
   * [ ] somehow require python >= 3.8 as a dependency
+  * [ ] line-by-line code safety review
+  * [ ] type-checking decorator, with warning on unmatched types
+  * [ ] 

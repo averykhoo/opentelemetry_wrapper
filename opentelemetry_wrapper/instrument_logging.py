@@ -163,6 +163,13 @@ class JsonFormatter(logging.Formatter):
                     except Exception:
                         continue  # failed, skip key
 
+        # truncate extremely long things
+        # todo: make the length a specifiable parameter
+        # todo: handle other jsonable object types more intelligently
+        for k, v in safe_log_data:
+            if isinstance(v, str) and len(v) > 10000:
+                k[v] = f'{v[:9985]}... (truncated)'
+
         return json.dumps(safe_log_data,
                           ensure_ascii=self.ensure_ascii,
                           allow_nan=self.allow_nan,

@@ -7,6 +7,7 @@ from opentelemetry_wrapper.instrument_requests import instrument_requests
 
 @instrument_decorate
 def instrument_all():
+    # todo: accept kwargs to disable/enable some of these
     instrument_dataclasses()
     instrument_logging()
     instrument_fastapi()
