@@ -162,11 +162,10 @@ class CodeInfo:
                  hasattr(self.__unwrapped_code_object, '__self__')):
             for _attr_name in ('__class__', '__slots__'):
                 _attr = getattr(self.__unwrapped_code_object.__self__, _attr_name, None)
-                if _attr is not None:
+                if _attr is not None and hasattr(_attr, '__mro__'):
                     for _cls in inspect.getmro(_attr):
-                        if self.__unwrapped_code_object.__name__ in _cls.__dict__:
-                            if inspect.isclass(_cls):
-                                return _cls
+                        if inspect.isclass(_cls) and self.__unwrapped_code_object.__name__ in _cls.__dict__:
+                            return _cls
 
         # get class qualname
         if hasattr(self.__unwrapped_code_object, '__qualname__'):
