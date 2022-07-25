@@ -166,7 +166,7 @@ class JsonFormatter(logging.Formatter):
         # truncate extremely long things
         # todo: make the length a specifiable parameter
         # todo: handle other jsonable object types more intelligently
-        for k, v in safe_log_data:
+        for k, v in safe_log_data.items():
             if isinstance(v, str) and len(v) > 10000:
                 k[v] = f'{v[:9985]}... (truncated)'
 
