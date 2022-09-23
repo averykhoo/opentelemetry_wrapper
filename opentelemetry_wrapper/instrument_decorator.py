@@ -5,7 +5,7 @@ from functools import wraps
 from typing import Callable
 from typing import Coroutine
 from typing import Optional
-from typing import Union
+from typing import TypeVar
 
 from opentelemetry.semconv.trace import SpanAttributes
 from opentelemetry.trace import Status
@@ -19,11 +19,13 @@ _TRACER = get_tracer(__name__, __version__)
 _CACHE_INSTRUMENTED = dict()
 _CACHE_GETATTRIBUTE = dict()
 
+T = TypeVar("T", Callable, Coroutine, type)  # todo: rename this
 
-def instrument_decorate(func: Callable,
+
+def instrument_decorate(func: T,
                         /, *,
                         func_name: Optional[str] = None,
-                        ) -> Union[Callable, Coroutine, type]:
+                        ) -> T:
     """
     use as a decorator to start a new trace with any class, function, or async function
     for a class, it will instrument the new, init, and call dunders, as well as any defined methods and properties
@@ -156,9 +158,9 @@ def _instrument_class(cls: type,
     to uninstrument, replace cls.func with cls.dunder.__wrapped__ for dunder in new, init, call, and getattribute
     this function is idempotent; calling it multiple times has no additional side effects
 
-    :param cls:
-    :param class_name:
-    :param span_attributes:
+    :param cls: class to instrument
+    :param class_name: name of the class
+    :param span_attributes: additional span attributes
     :return:
     """
 
@@ -171,6 +173,7 @@ def _instrument_class(cls: type,
     if cls.__new__ is not object.__new__:
         cls.__new__ = instrument_decorate(cls.__new__, func_name=f'{class_name}.__new__')
     if cls.__init__ is not object.__init__:
+        # noinspection PyTypeChecker
         cls.__init__ = instrument_decorate(cls.__init__, func_name=f'{class_name}.__init__')
     # todo: also wrap __post_init__
 
