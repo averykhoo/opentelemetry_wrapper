@@ -73,3 +73,12 @@ todo
   * [ ] Read k8s namespace from container path?
   * [ ] somehow mark function as do-not-instrument, for extremely spammy functions? or specify a sampling ratio?
 
+## Publishing (notes for myself)
+
+* init
+  * `pip install flit`
+  * `flit init`
+  * make sure `opentelemetry_wrapper/__init__.py` contains a docstring and version
+* publish / update
+  * increment `__version__` in `nmd/__init__.py`
+  * `flit publish`
