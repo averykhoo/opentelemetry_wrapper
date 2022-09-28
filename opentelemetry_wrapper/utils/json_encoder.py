@@ -2,8 +2,6 @@
 stolen from fastapi.encoders, with a minor edit to force it to always return and never error
 ENCODERS_BY_TYPE was taken from pydantic.json
 all pydantic-specific code commented out
-
-todo: specifiable max length of value, allow truncation
 """
 import dataclasses
 import datetime
