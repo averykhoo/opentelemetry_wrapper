@@ -19,6 +19,7 @@ from typing import Optional
 from typing import Union
 
 
+# noinspection PyBroadException
 @lru_cache(maxsize=None)
 @dataclass(unsafe_hash=True, frozen=True)
 class CodeInfo:
@@ -58,28 +59,33 @@ class CodeInfo:
         """
         is the unwrapped base object a class?
         """
-        return inspect.isclass(self.__unwrapped_code_object)
+        try:
+            return inspect.isclass(self.__unwrapped_code_object)
+        except Exception:
+            return False
 
     @cached_property
     def name(self) -> str:
+        try:
+            _prefixes = ' '.join(self.__unwrapped_prefixes) + ' ' if self.__unwrapped_prefixes else ''
+            _module_name = f'<{self.module_name}>.' if self.module_name else ''
 
-        _prefixes = ' '.join(self.__unwrapped_prefixes) + ' ' if self.__unwrapped_prefixes else ''
-        _module_name = f'<{self.module_name}>.' if self.module_name else ''
+            if self.function_qualname:
+                _class_name = ''
+                _function_name = self.function_qualname
+            elif self.function_name:
+                _class_name = f'{self.class_name}.' if self.class_name else ''
+                _function_name = self.function_name
+            elif self.class_name:
+                _class_name = self.class_name
+                _function_name = '' if self.is_class else '<unknown function>'
+            else:
+                _class_name = '<unknown class>' if self.is_class else ''
+                _function_name = '' if self.is_class else '<unknown function>'
 
-        if self.function_qualname:
-            _class_name = ''
-            _function_name = self.function_qualname
-        elif self.function_name:
-            _class_name = f'{self.class_name}.' if self.class_name else ''
-            _function_name = self.function_name
-        elif self.class_name:
-            _class_name = self.class_name
-            _function_name = '' if self.is_class else '<unknown function>'
-        else:
-            _class_name = '<unknown class>' if self.is_class else ''
-            _function_name = '' if self.is_class else '<unknown function>'
-
-        return f'{_prefixes}{_module_name}{_class_name}{_function_name}'
+            return f'{_prefixes}{_module_name}{_class_name}{_function_name}'
+        except Exception:
+            return '<unknown class>' if self.is_class else '<unknown function>'
 
     @cached_property
     def __code__(self):
@@ -98,154 +104,176 @@ class CodeInfo:
 
     @cached_property
     def function_qualname(self) -> Optional[str]:
-        # a class does not have a function name
-        if self.is_class:
-            return None
+        try:
+            # a class does not have a function name
+            if self.is_class:
+                return None
 
-        # use qualname instead of name if possible, but strip out the class name
-        if hasattr(self.__unwrapped_code_object, '__qualname__'):
-            return self.__unwrapped_code_object.__qualname__
+            # use qualname instead of name if possible, but strip out the class name
+            if hasattr(self.__unwrapped_code_object, '__qualname__'):
+                return self.__unwrapped_code_object.__qualname__
+        except Exception:
+            pass
 
     @cached_property
     def function_name(self) -> Optional[str]:
-        # a class does not have a function name
-        if self.is_class:
-            return None
+        try:
+            # a class does not have a function name
+            if self.is_class:
+                return None
 
-        # use qualname instead of name if possible, but strip out the class name
-        if self.function_qualname:
-            _function_name = self.function_qualname
-            if self.class_name:
-                if _function_name.startswith(f'{self.class_name}.'):
-                    _function_name = _function_name[len(self.class_name) + 1:]
-                elif f'.{self.class_name}.' in _function_name:
-                    _function_name = _function_name.split(f'.{self.class_name}.', 1)[1]
-            return _function_name
+            # use qualname instead of name if possible, but strip out the class name
+            if self.function_qualname:
+                _function_name = self.function_qualname
+                if self.class_name:
+                    if _function_name.startswith(f'{self.class_name}.'):
+                        _function_name = _function_name[len(self.class_name) + 1:]
+                    elif f'.{self.class_name}.' in _function_name:
+                        _function_name = _function_name.split(f'.{self.class_name}.', 1)[1]
+                return _function_name
 
-        # fallback to name
-        if getattr(self.__unwrapped_code_object, '__name__', None):
-            return self.__unwrapped_code_object.__name__
+            # fallback to name
+            if getattr(self.__unwrapped_code_object, '__name__', None):
+                return self.__unwrapped_code_object.__name__
 
-        # use the code name
-        if self.__code__ is not None:
-            if getattr(self.__code__, 'co_name', None):
-                return self.__code__.co_name
+            # use the code name
+            if self.__code__ is not None:
+                if getattr(self.__code__, 'co_name', None):
+                    return self.__code__.co_name
+        except Exception:
+            pass
 
     @cached_property
     def module(self) -> Optional[ModuleType]:
-        module = inspect.getmodule(self.__unwrapped_code_object)
-        if module is not None:
-            return module
+        try:
+            return inspect.getmodule(self.__unwrapped_code_object)
+        except Exception:
+            pass
 
     @cached_property
     def module_name(self) -> Optional[str]:
-        if self.module is not None:
-            return self.module.__name__
+        try:
+            if self.module is not None:
+                return self.module.__name__
 
-        # fallback to reading from file path
-        if self.path is not None:
-            _module_name = inspect.getmodulename(str(self.path))
-            if _module_name is not None:
-                _lineno = f':{self.lineno}' if self.lineno else ''
-                return f'<{_module_name}.py{_lineno}>'
+            # fallback to reading from file path
+            if self.path is not None:
+                _module_name = inspect.getmodulename(str(self.path))
+                if _module_name is not None:
+                    _lineno = f':{self.lineno}' if self.lineno else ''
+                    return f'<{_module_name}.py{_lineno}>'
+        except Exception:
+            pass
 
     @cached_property
     # flake8: noqa: C901
     def cls(self) -> Optional[type]:
-        # if we already are a class
-        if self.is_class:
-            return self.__unwrapped_code_object
+        try:
+            # if we already are a class
+            if self.is_class:
+                return self.__unwrapped_code_object
 
-        # get class of method
-        if inspect.ismethod(self.__unwrapped_code_object) or \
-                (inspect.isbuiltin(self.__unwrapped_code_object) and
-                 hasattr(self.__unwrapped_code_object, '__self__')):
-            for _attr_name in ('__class__', '__slots__'):
-                _attr = getattr(self.__unwrapped_code_object.__self__, _attr_name, None)
-                if _attr is not None and hasattr(_attr, '__mro__'):
-                    for _cls in inspect.getmro(_attr):
-                        if inspect.isclass(_cls) and self.__unwrapped_code_object.__name__ in _cls.__dict__:
-                            return _cls
+            # get class of method
+            if inspect.ismethod(self.__unwrapped_code_object) or \
+                    (inspect.isbuiltin(self.__unwrapped_code_object) and
+                     hasattr(self.__unwrapped_code_object, '__self__')):
+                for _attr_name in ('__class__', '__slots__'):
+                    _attr = getattr(self.__unwrapped_code_object.__self__, _attr_name, None)
+                    if _attr is not None and hasattr(_attr, '__mro__'):
+                        for _cls in inspect.getmro(_attr):
+                            if inspect.isclass(_cls) and self.__unwrapped_code_object.__name__ in _cls.__dict__:
+                                return _cls
 
-        # get class qualname
-        if hasattr(self.__unwrapped_code_object, '__qualname__'):
-            _cls_qualname = self.__unwrapped_code_object.__qualname__.split('.<locals>')[0]
-            if '.' in _cls_qualname:
-                _cls_qualname = _cls_qualname.rsplit('.', 1)[0]
+            # get class qualname
+            if hasattr(self.__unwrapped_code_object, '__qualname__'):
+                _cls_qualname = self.__unwrapped_code_object.__qualname__.split('.<locals>')[0]
+                if '.' in _cls_qualname:
+                    _cls_qualname = _cls_qualname.rsplit('.', 1)[0]
+                else:
+                    _cls_qualname = ''
             else:
                 _cls_qualname = ''
-        else:
-            _cls_qualname = ''
 
-        # get class from class qualname
-        if _cls_qualname and self.module:
-            _cls: Union[ModuleType, type, None] = self.module
+            # get class from class qualname
+            if _cls_qualname and self.module:
+                _cls: Union[ModuleType, type, None] = self.module
 
-            for _cls_name in _cls_qualname.split('.'):
-                if _cls is None:
-                    break
-                _cls = getattr(_cls, _cls_name, None)
-            else:
-                if _cls is not None:
-                    if inspect.isclass(_cls):
-                        return _cls
+                for _cls_name in _cls_qualname.split('.'):
+                    if _cls is None:
+                        break
+                    _cls = getattr(_cls, _cls_name, None)
+                else:
+                    if _cls is not None:
+                        if inspect.isclass(_cls):
+                            return _cls
 
-        # one more place to try
-        _cls = getattr(self.__unwrapped_code_object, '__objclass__', None)
-        if _cls is not None:
-            if inspect.isclass(_cls):
-                return _cls
+            # one more place to try
+            _cls = getattr(self.__unwrapped_code_object, '__objclass__', None)
+            if _cls is not None:
+                if inspect.isclass(_cls):
+                    return _cls
 
-        # try harder: load module from path and search inside it to find the class qualname
-        if self._maybe_unsafe__try_very_hard_to_find_class and _cls_qualname and not self.module and self.path:
-            _temp_module_name = f'__introspected_file__.{self.path}'
-            if _temp_module_name in sys.modules:
-                _cls = sys.modules[_temp_module_name]
-            else:
-                spec = importlib.util.spec_from_file_location(_temp_module_name, self.path)
-                _cls = importlib.util.module_from_spec(spec)
-                sys.modules[_temp_module_name] = _cls
-                spec.loader.exec_module(_cls)
+            # try harder: load module from path and search inside it to find the class qualname
+            if self._maybe_unsafe__try_very_hard_to_find_class and _cls_qualname and not self.module and self.path:
+                _temp_module_name = f'__introspected_file__.{self.path}'
+                if _temp_module_name in sys.modules:
+                    _cls = sys.modules[_temp_module_name]
+                else:
+                    spec = importlib.util.spec_from_file_location(_temp_module_name, self.path)
+                    _cls = importlib.util.module_from_spec(spec)
+                    sys.modules[_temp_module_name] = _cls
+                    spec.loader.exec_module(_cls)
 
-            for _cls_name in _cls_qualname.split('.'):
-                if _cls is None:
-                    break
-                _cls = getattr(_cls, _cls_name, None)
-            else:
-                if _cls is not None:
-                    if inspect.isclass(_cls):
-                        return _cls
+                for _cls_name in _cls_qualname.split('.'):
+                    if _cls is None:
+                        break
+                    _cls = getattr(_cls, _cls_name, None)
+                else:
+                    if _cls is not None:
+                        if inspect.isclass(_cls):
+                            return _cls
+        except Exception:
+            pass
 
     @cached_property
     def class_name(self) -> Optional[str]:
-        if self.cls:
-            return self.cls.__name__
+        try:
+            if self.cls:
+                return self.cls.__name__
+        except Exception:
+            pass
 
     @cached_property
     def path(self) -> Optional[Path]:
         try:
-            _source_file = inspect.getsourcefile(self.__unwrapped_code_object)
-            if _source_file:
-                return Path(_source_file)
-        except TypeError:
-            pass
+            try:
+                _source_file = inspect.getsourcefile(self.__unwrapped_code_object)
+                if _source_file:
+                    return Path(_source_file)
+            except TypeError:
+                pass
 
-        if self.__code__ is not None:
-            if getattr(self.__code__, 'co_filename', None):
-                return Path(self.__code__.co_filename)
+            if self.__code__ is not None:
+                if getattr(self.__code__, 'co_filename', None):
+                    return Path(self.__code__.co_filename)
+        except Exception:
+            pass
 
     @cached_property
     def lineno(self) -> Optional[int]:
         try:
-            _source_lines = inspect.getsourcelines(self.__unwrapped_code_object)
-            if _source_lines:
-                return _source_lines[1]
-        except (TypeError, OSError):
-            pass
+            try:
+                _source_lines = inspect.getsourcelines(self.__unwrapped_code_object)
+                if _source_lines:
+                    return _source_lines[1]
+            except (TypeError, OSError):
+                pass
 
-        if self.__code__ is not None:
-            if getattr(self.__code__, 'co_firstlineno', None):
-                return self.__code__.co_firstlineno
+            if self.__code__ is not None:
+                if getattr(self.__code__, 'co_firstlineno', None):
+                    return self.__code__.co_firstlineno
+        except Exception:
+            pass
 
     @staticmethod
     def __is_supported_type(code_object) -> bool:
@@ -287,7 +315,7 @@ class CodeInfo:
                     _code_object = _code_object.func
                     continue
 
-                # make a best guess about the wrapper
+                # make best guess about the wrapper
                 if hasattr(_code_object, '__wrapped__'):
                     if self.__is_supported_type(_code_object.__wrapped__):
                         if all(hasattr(_code_object, _attr) for _attr in
@@ -337,6 +365,6 @@ class CodeInfo:
     def __unwrapped_code_object(self):
         """
         it is unsafe to expose this externally!
-        the potential side-effects (or lack thereof) of calling an unwrapped function are undefined
+        the potential side effects (or lack thereof) of calling an unwrapped function are undefined
         """
         return self.__unwrapped[1]
