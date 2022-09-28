@@ -25,13 +25,3 @@ todo: write stuff here
 * [OpenTelemetry](https://opentelemetry.io/docs)
 * [OpenTracing](https://opentracing.io/docs)
 * [SkyWalking](https://skywalking.apache.org/docs/skywalking-python/latest/readme/)
-
-## Publishing (notes for myself)
-
-* init
-  * `pip install flit`
-  * `flit init`
-  * make sure `opentelemetry_wrapper/__init__.py` contains a docstring and version
-* publish / update
-  * increment `__version__` in `nmd/__init__.py`
-  * `flit publish`
