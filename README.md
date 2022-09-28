@@ -4,13 +4,13 @@ a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make l
 
 ## what this does (or is supposed to do)
 
-* Makes instrumentation idempotent
-* Makes re-instrumentation of logging actually work with different format strings
-* Logging can (and will by default) print as a one-line JSON dict
-* Provides support for decorating functions and classes
-* Add global instrumentation of dataclasses
-  * But it needs to be run *before* any dataclasses are initialized
-  * Otherwise, use the decorator as usual (it's idempotent anyway)
+* Make instrumentation (more) idempotent
+* Make re-instrumentation of logging actually work with different format strings
+* Make `logging` print as a one-line JSON dict by default
+* Provide support for decorating functions and classes
+* Provide support for instrumentation of dataclasses
+  * Global instrumentation needs to be run *before* any dataclasses are initialized
+  * Otherwise, use the decorator on each class as usual (it's idempotent anyway)
 * Add global instrumentation of FastAPI
   * sometimes works even after apps are created for some reason, likely due to how Uvicorn runs in a new process
   * but somehow sometimes doesn't work in prod, for equally unknown reasons
@@ -18,60 +18,13 @@ a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make l
 
 ## usage
 
-todo
+todo: write stuff here
 
 ## read the original docs
 
 * [OpenTelemetry](https://opentelemetry.io/docs)
 * [OpenTracing](https://opentracing.io/docs)
 * [SkyWalking](https://skywalking.apache.org/docs/skywalking-python/latest/readme/)
-
-## references / best practices to consider
-
-* [ ] [Implementing health checks](https://aws.amazon.com/builders-library/implementing-health-checks/)
-* [ ] [Instrumenting distributed systems for operational visibility](https://aws.amazon.com/builders-library/instrumenting-distributed-systems-for-operational-visibility/)
-* [ ] https://tersesystems.com/blog/2019/07/22/targeted-diagnostic-logging-in-production/
-* [ ] https://www.honeycomb.io/blog/so-you-want-to-build-an-observability-tool/
-* [x] [Instana ASGI Middleware](https://github.com/instana/python-sensor/blob/master/instana/middleware.py)
-* [x] [IBM Best Practices](https://www.ibm.com/docs/en/obi/current?topic=tracing-best-practices)
-* [x] [10 Things We Forgot to Monitor](https://word.bitly.com/post/74839060954/ten-things-to-monitor)
-* [x] `/var/run/secrets/kubernetes.io/serviceaccount/namespace`
-  * [x] or `/var/run/secrets/kubernetes.io/serviceaccount/token` which is a jwt containing the namespace
-  * [x] also see `/etc/hostname`
-* available instrumentation
-  * [x] https://github.com/open-telemetry/opentelemetry-python
-  * [x] [`pip install opentelemetry-instrumentation-fastapi`](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/fastapi/fastapi.html)
-  * [ ] [`pip install opentelemetry-instrumentation-sqlalchemy`](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/sqlalchemy/sqlalchemy.html)
-  * [x] [`pip install opentelemetry-instrumentation-requests`](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/requests/requests.html)
-  * [x] [`pip install opentelemetry-instrumentation-logging`](https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/logging/logging.html)
-* examples
-  * jaeger
-    * https://github.com/Blueswen/fastapi-jaeger
-    * https://github.com/fike/fastapi-blog
-    * https://guitton.co/posts/fastapi-monitoring
-* todo:
-  * [ ] correctly handle generators and context managers (and async versions of them)
-  * [ ] instrument pydantic
-  * [ ] `with ...` instrumentation for non-callable code (e.g. settings, semi-hardcoded config)
-  * [ ] generic typing for `instrument_decorate()`
-  * [ ] somehow delete dependency on fastapi.FastAPI just for type checking, while still correctly checking types
-  * [ ] somehow require python >= 3.8 as a dependency
-  * [ ] line-by-line code safety review
-  * [ ] type-checking decorator, with warning on unmatched types
-  * [ ] add [usage](#usage)
-  * [ ] add deployment instructions using flit
-  * [ ] Add support for pushing logs to a real logging platform (Zipkin, Jaeger, etc)
-  * [ ] Read through the best practices
-  * [ ] Metrics? Actual telemetry?
-    * [ ] https://github.com/instana/python-sensor/blob/master/instana/autoprofile/samplers
-      * [ ] memory profiling
-      * [ ] reading frames to make a statistical guess how much time is spent in each function
-    * [ ] https://psutil.readthedocs.io/en/latest/
-    * [ ] Request Error Duration metrics can be calculated from spans
-  * [ ] builtin `tracemalloc` can be used locate the source file and line number of a function, if started early enough
-  * [ ] SQLAlchemy
-  * [ ] Read k8s namespace from container path?
-  * [ ] somehow mark function as do-not-instrument, for extremely spammy functions? or specify a sampling ratio?
 
 ## Publishing (notes for myself)
 
