@@ -33,27 +33,27 @@ SetIntStr = Set[Union[int, str]]
 DictIntStrAny = Dict[Union[int, str], Any]
 
 
-def parse_datetime(o):
+def parse_datetime(o: datetime.date) -> str:
     return o.isoformat()
 
 
-def parse_bytes(o):
+def parse_bytes(o: bytes) -> str:
     return o.decode()
 
 
-def parse_timedelta(o):
+def parse_timedelta(o: datetime.timedelta) -> float:
     return o.total_seconds()
 
 
-def parse_decimal(o):
+def parse_decimal(o: Decimal) -> Union[int, float]:
     return int(o) if o.as_tuple().exponent >= 0 else float(o)
 
 
-def parse_enum(o):
+def parse_enum(o: Enum) -> Any:
     return o.value
 
 
-def parse_pattern(o):
+def parse_pattern(o: Pattern) -> str:
     return o.pattern
 
 
