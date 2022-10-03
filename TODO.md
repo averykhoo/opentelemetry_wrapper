@@ -34,26 +34,29 @@
 
 ## todo
 
-* [ ] metrics
-* [ ] correctly handle generators and context managers (and async versions of them)
-* [ ] instrument pydantic?
-* [ ] `with ...` instrumentation for non-callable code (e.g. settings, semi-hardcoded config)
-* [ ] generic typing for `instrument_decorate()`
-* [ ] somehow delete dependency on fastapi.FastAPI just for type checking, while still correctly checking types
-* [ ] somehow require python >= 3.8 as a dependency
-* [ ] line-by-line code safety review
-* [ ] type-checking decorator, with warning on unmatched types
-* [ ] add [usage](./README.md#usage)
-* [ ] add deployment instructions using flit
-* [ ] Add support for pushing logs to a real logging platform (Zipkin, Jaeger, etc)
-* [ ] Read through the best practices
-* [ ] Metrics? Actual telemetry?
-  * [ ] https://github.com/instana/python-sensor/blob/master/instana/autoprofile/samplers
-    * [ ] memory profiling
-    * [ ] reading frames to make a statistical guess how much time is spent in each function
-  * [ ] https://psutil.readthedocs.io/en/latest/
-  * [ ] Request Error Duration metrics can be calculated from spans
-* [ ] builtin `tracemalloc` can be used locate the source file and line number of a function, if started early enough
-* [ ] SQLAlchemy
-* [ ] Read k8s namespace from container path?
-* [ ] somehow mark function as do-not-instrument, for extremely spammy functions? or specify a sampling ratio?
+* `with ...` instrumentation for non-callable code (e.g. settings, semi-hardcoded config)
+* type-checking decorator, with warning on unmatched types
+  * https://github.com/prechelt/typecheck-decorator/blob/master/README.md
+  * https://stackoverflow.com/questions/36879932/python-type-checking-decorator
+  * https://towardsdatascience.com/the-power-of-decorators-fef4dc97020e
+  * https://typeguard.readthedocs.io/en/latest/userguide.html
+* correctly handle generators and context managers (and async versions of them)
+* instrument pydantic?
+* support metrics somehow
+  * the asgi/fastapi already supports some metrics 
+  * https://github.com/instana/python-sensor/blob/master/instana/autoprofile/samplers
+    * memory profiling
+    * reading frames to make a statistical guess how much time is spent in each function
+  * https://psutil.readthedocs.io/en/latest/
+  * Request Error Duration metrics can be calculated from spans
+* somehow delete dependency on fastapi.FastAPI just for type checking, while still correctly checking types
+* somehow require python >= 3.8 as a dependency
+* line-by-line code safety review
+* add [usage](./README.md#usage)
+* add deployment instructions using flit
+* Add support for pushing logs to a real logging platform (Zipkin, Jaeger, etc)
+* Read through the best practices
+* builtin `tracemalloc` can be used locate the source file and line number of a function, if started early enough
+* SQLAlchemy
+* Read k8s namespace from container path?
+* somehow mark function as do-not-instrument, for extremely spammy functions? or specify a sampling ratio?
