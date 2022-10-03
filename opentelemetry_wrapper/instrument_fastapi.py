@@ -1,10 +1,14 @@
-import fastapi
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.sdk.trace import Span
 from starlette.datastructures import Headers
 from starlette.types import Scope
 
 from opentelemetry_wrapper.instrument_decorator import instrument_decorate
+
+try:
+    from fastapi import FastAPI
+except ImportError:
+    from typing import Any as FastAPI
 
 _HEADER_ATTRIBUTES = (
     # 'user-agent',
@@ -46,7 +50,7 @@ def request_hook(span: Span, scope: Scope) -> None:
 
 
 @instrument_decorate
-def instrument_fastapi_app(app: fastapi.FastAPI) -> fastapi.FastAPI:
+def instrument_fastapi_app(app: FastAPI) -> FastAPI:
     """
     instrument a FastAPI app
     also instruments logging and requests (if requests exists)
@@ -59,9 +63,6 @@ def instrument_fastapi_app(app: fastapi.FastAPI) -> fastapi.FastAPI:
                                            client_request_hook=request_hook,
                                            )
     return app
-
-
-_WRAPPED = None
 
 
 @instrument_decorate

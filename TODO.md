@@ -49,8 +49,6 @@
     * reading frames to make a statistical guess how much time is spent in each function
   * https://psutil.readthedocs.io/en/latest/
   * Request Error Duration metrics can be calculated from spans
-* somehow delete dependency on fastapi.FastAPI just for type checking, while still correctly checking types
-* somehow require python >= 3.8 as a dependency
 * line-by-line code safety review
 * add [usage](./README.md#usage)
 * add deployment instructions using flit
