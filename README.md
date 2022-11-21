@@ -15,6 +15,7 @@ a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make l
   * sometimes works even after apps are created for some reason, likely due to how Uvicorn runs in a new process
   * but somehow sometimes doesn't work in prod, for equally unknown reasons
   * probably best to instrument each app instance
+* logs some http headers received by fastapi as span attributes
 
 ## usage
 
