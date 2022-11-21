@@ -19,13 +19,13 @@ _TRACER = get_tracer(__name__, __version__)
 _CACHE_INSTRUMENTED = dict()
 _CACHE_GETATTRIBUTE = dict()
 
-T = TypeVar("T", Callable, Coroutine, type)  # todo: rename this
+InstrumentableThing = TypeVar("InstrumentableThing", Callable, Coroutine, type)
 
 
-def instrument_decorate(func: T,
+def instrument_decorate(func: InstrumentableThing,
                         /, *,
                         func_name: Optional[str] = None,
-                        ) -> T:
+                        ) -> InstrumentableThing:
     """
     use as a decorator to start a new trace with any class, function, or async function
     for a class, it will instrument the new, init, and call dunders, as well as any defined methods and properties
