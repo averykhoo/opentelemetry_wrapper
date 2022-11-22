@@ -10,6 +10,21 @@ license = {file = "LICENSE"}
 classifiers = ["License :: OSI Approved :: Apache Software License"]
 dynamic = ["version", "description"]
 requires-python = ">3.8.0"
+dependencies = [
+    "asgiref",
+    "fastapi",
+    "itsdangerous",
+    "opentelemetry-api",
+    "opentelemetry-instrumentation-fastapi",
+    "opentelemetry-instrumentation-logging",
+    "opentelemetry-instrumentation-requests",
+#    "opentelemetry-instrumentation-sqlalchemy",
+    "opentelemetry-sdk",
+    "requests",
+#    "sqlalchemy",
+    "starlette",
+    "uvicorn",
+]
 
 [project.urls]
 Home = "https://github.com/averykhoo/opentelemetry_wrapper"
