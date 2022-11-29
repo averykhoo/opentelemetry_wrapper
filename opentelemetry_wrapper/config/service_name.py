@@ -22,16 +22,34 @@ def get_username() -> str:
 @lru_cache
 def get_hostname() -> str:
     out = ''
+
+    # os-specific hostname env vars
     if not out:
         out = os.getenv('HOSTNAME', '').strip()  # linux
     if not out:
         out = os.getenv('COMPUTERNAME', '').strip()  # windows
+
+    # k8s-specific hostname path
+    if not out:
+        k8s_hostname_path = Path('/etc/hostname')
+        if k8s_hostname_path.is_file():
+            # noinspection PyBroadException
+            try:
+                hostname = k8s_hostname_path.read_text().strip()
+                if hostname.count('-') >= 2:
+                    return hostname.rsplit('-', 2)[0]
+            except Exception:
+                pass
+
+    # linux-specific, based on uname
     if not out:
         # noinspection PyBroadException
         try:
             out = platform.node().strip()
         except Exception:
             pass
+
+    # something network related
     if not out:
         # noinspection PyBroadException
         try:
@@ -42,8 +60,7 @@ def get_hostname() -> str:
 
 
 @lru_cache
-def get_namespace() -> str:
-    # get k8s namespace
+def get_k8s_namespace() -> str:
     # https://kubernetes.io/docs/tasks/run-application/access-api-from-pod/#directly-accessing-the-rest-api
     namespace_path = Path('/var/run/secrets/kubernetes.io/serviceaccount/namespace')
     if namespace_path.is_file():
@@ -54,9 +71,31 @@ def get_namespace() -> str:
                 return namespace
         except Exception:
             pass
+    return ''
 
-    # not in k8s, try to get domain by removing hostname from fqdn
+
+@lru_cache
+def get_k8s_pod_name() -> str:
+    # does the file exist
+    k8s_hostname_path = Path('/etc/hostname')
+    if not k8s_hostname_path.is_file():
+        return ''
+
+    # noinspection PyBroadException
+    try:
+        hostname = k8s_hostname_path.read_text().strip()
+        if hostname.count('-') >= 2:
+            return hostname.rsplit('-', 2)[0]
+    except Exception:
+        pass
+    return ''
+
+
+@lru_cache
+def get_domain() -> str:
+    # try to get domain by removing hostname from fqdn
     hostname = get_hostname()
+
     # noinspection PyBroadException
     try:
         fqdn = socket.getfqdn()
@@ -78,6 +117,16 @@ def get_namespace() -> str:
 
     # everything failed, return nothing
     return ''
+
+
+@lru_cache
+def get_namespace() -> str:
+    # get k8s namespace
+    if get_k8s_namespace():
+        return get_k8s_namespace()
+
+    # not in k8s, try to get domain instead
+    return get_domain()
 
 
 @lru_cache
@@ -107,6 +156,10 @@ def get_default_service_name() -> str:
     :return: {username}@{hostname}.{namespace or domain}:<{filename of main}> or an empty string
     """
 
+    # try return just namespace/pod by default
+    if get_k8s_namespace():
+        return f'{get_k8s_namespace()}/{get_k8s_pod_name()}'
+
     # formatting
     _username = f'{get_username()}@' if get_username() else ''
     _hostname = get_hostname()
@@ -125,11 +178,11 @@ def get_default_service_name() -> str:
 
 def getenv_otel_service_name() -> str:
     """
-    tries these 3 things, in order:
+    tries these 2 things, in order:
     1. `OTEL_SERVICE_NAME` env var
     2. `service.name` property from `OTEL_RESOURCE_ATTRIBUTES` env var
-    3. `get_default_service_name()` (which technically breaks OpenTelemetry spec)
-    if all the above fails, falls back to 'unknown_service'
+
+    otherwise, returns an empty string
     """
     otel_detected_service_name = OTELResourceDetector().detect().attributes.get('service.name', '') or ''
     return str(otel_detected_service_name).strip()

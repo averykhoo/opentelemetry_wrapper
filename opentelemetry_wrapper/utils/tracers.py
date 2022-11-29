@@ -5,6 +5,7 @@ from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.resources import SERVICE_NAME
+from opentelemetry.sdk.resources import SERVICE_NAMESPACE
 from opentelemetry.sdk.trace import ReadableSpan
 from opentelemetry.sdk.trace import Tracer
 from opentelemetry.sdk.trace import TracerProvider
@@ -13,14 +14,16 @@ from opentelemetry.sdk.trace.export import ConsoleSpanExporter
 
 from opentelemetry_wrapper.config.config import OTEL_EXPORTER_OTLP_ENDPOINT
 from opentelemetry_wrapper.config.config import OTEL_SERVICE_NAME
+from opentelemetry_wrapper.config.config import OTEL_SERVICE_NAMESPACE
 
 
 @lru_cache  # only run once
 def init_tracer():
-    if OTEL_SERVICE_NAME:
-        tp = TracerProvider(resource=Resource.create({SERVICE_NAME: OTEL_SERVICE_NAME}))
+    if OTEL_SERVICE_NAMESPACE:
+        tp = TracerProvider(resource=Resource.create({SERVICE_NAME:      OTEL_SERVICE_NAME,
+                                                      SERVICE_NAMESPACE: OTEL_SERVICE_NAMESPACE}))
     else:
-        tp = TracerProvider()
+        tp = TracerProvider(resource=Resource.create({SERVICE_NAME: OTEL_SERVICE_NAME}))
 
     # noinspection PyProtectedMember
     trace._set_tracer_provider(tp, log=False)  # try to set, but don't warn otherwise
