@@ -9,8 +9,6 @@ from pathlib import Path
 
 from opentelemetry.sdk.resources import OTELResourceDetector
 
-__version__: str = '0.0.6'
-
 
 @lru_cache
 def get_default_service_name() -> str:

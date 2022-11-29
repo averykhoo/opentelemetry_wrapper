@@ -2,7 +2,7 @@
 a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make life a bit easier
 """
 
-__version__ = '0.0.6'
+__version__ = '0.0.7'
 
 from opentelemetry_wrapper.instrument_dataclasses import instrument_dataclasses
 from opentelemetry_wrapper.instrument_decorator import instrument_decorate

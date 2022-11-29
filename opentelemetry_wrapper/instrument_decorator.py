@@ -11,7 +11,7 @@ from opentelemetry.semconv.trace import SpanAttributes
 from opentelemetry.trace import Status
 from opentelemetry.trace import StatusCode
 
-from opentelemetry_wrapper.config import __version__
+from opentelemetry_wrapper import __version__  # don't worry, this does not create an infinite import loop
 from opentelemetry_wrapper.utils.introspect import CodeInfo
 from opentelemetry_wrapper.utils.tracers import get_tracer
 
