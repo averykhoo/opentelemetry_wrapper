@@ -21,6 +21,15 @@ a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make l
 
 todo: write stuff here
 
+## env vars
+
+| Variable Name              | Description                                              | Default (if not set)                                                |
+|----------------------------|----------------------------------------------------------|---------------------------------------------------------------------|
+| `OTEL_SERVICE_NAME`        | Sets the value of the `service.name` resource attribute. | f'{username}@{hostname}.{namespace or domain}:<{filename of main}>' |
+| `OTEL_RESOURCE_ATTRIBUTES` | Key-value pairs to be used as resource attributes.       | *NA*                                                                |
+| TODO: `OTEL_LOG_LEVEL`     | Log level used by this logging instrumentor              | `NOTSET`                                                            |
+
+
 ## read the original docs
 
 * [OpenTelemetry](https://opentelemetry.io/docs)

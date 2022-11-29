@@ -55,7 +55,7 @@ def get_json_handler(*,
 
 @instrument_decorate
 def instrument_logging(*,
-                       level: int = logging.NOTSET,
+                       level: int = logging.NOTSET,  # todo: support env var
                        print_json: bool = True,
                        verbose: bool = True,
                        force_reinstrumentation: bool = False,

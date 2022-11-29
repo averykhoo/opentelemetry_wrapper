@@ -6,20 +6,21 @@ import platform
 import socket
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional
 
-__version__: str = '0.3'
+from opentelemetry.sdk.resources import OTELResourceDetector
+
+__version__: str = '0.0.6'
 
 
 @lru_cache
-def get_service_name() -> str:
+def get_default_service_name() -> str:
     """
     get something useful as a service name of whatever's currently running
     what makes a good service name is not really well specified
     and services are usually both clients and servers at the same time, often both in the same trace
     hence i've decided to return something that should uniquely represent the current running instance
 
-    :return: {username}@{hostname}.{namespace or domain}
+    :return: {username}@{hostname}.{namespace or domain}:<{filename of main}>
     """
 
     # get username
@@ -69,4 +70,15 @@ def get_service_name() -> str:
     return f'{_username}{hostname}{_namespace}{_filename}'
 
 
-__service_name__: Optional[str] = get_service_name()
+def get_service_name() -> str:
+    """
+    tries these 3 things, in order:
+    1. if `OTEL_SERVICE_NAME` env var is set, returns that value
+    2. if `OTEL_RESOURCE_ATTRIBUTES` contains `service.name`, returns that value
+    3. otherwise, returns the output of `get_default_service_name()` above
+    """
+    otel_detected_service_name = OTELResourceDetector().detect().attributes.get('service.name', '').strip()
+    return otel_detected_service_name or get_default_service_name()
+
+
+__service_name__: str = get_service_name()
