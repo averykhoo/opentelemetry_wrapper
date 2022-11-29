@@ -1,6 +1,7 @@
 import os
 from typing import Optional
 
+from opentelemetry_wrapper.config.log_level import get_log_level
 from opentelemetry_wrapper.config.service_name import get_default_service_name
 from opentelemetry_wrapper.config.service_name import get_k8s_namespace
 from opentelemetry_wrapper.config.service_name import getenv_otel_service_name
@@ -22,3 +23,5 @@ OTEL_SERVICE_NAMESPACE: Optional[str] = get_k8s_namespace() or None
 
 # enable exporting to tempo for visualization in grafana
 OTEL_EXPORTER_OTLP_ENDPOINT: str = os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT', '').strip()
+
+OTEL_LOG_LEVEL: int = get_log_level()
