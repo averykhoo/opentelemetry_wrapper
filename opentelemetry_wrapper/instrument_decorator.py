@@ -12,6 +12,7 @@ from opentelemetry.trace import Status
 from opentelemetry.trace import StatusCode
 
 from opentelemetry_wrapper import __version__  # don't worry, this does not create an infinite import loop
+from opentelemetry_wrapper.config.config import OTEL_WRAPPER_DISABLED
 from opentelemetry_wrapper.utils.introspect import CodeInfo
 from opentelemetry_wrapper.utils.tracers import get_tracer
 
@@ -46,6 +47,11 @@ def instrument_decorate(func: InstrumentableThing,
     :param func_name: if not set, makes an intelligent guess
     :return:
     """
+
+    # no-op
+    if OTEL_WRAPPER_DISABLED:
+        return func
+
     # avoid re-instrumenting (or double-instrumenting) things
     # this requires slightly more complex logic than lru_cache provides
     if func in _CACHE_INSTRUMENTED:
@@ -101,6 +107,10 @@ def _instrument_coroutine(coro: Callable,
     :return:
     """
 
+    # no-op
+    if OTEL_WRAPPER_DISABLED:
+        return coro
+
     # sanity checks
     assert isinstance(coro, Callable)
     assert not isinstance(coro, type)
@@ -130,6 +140,10 @@ def _instrument_routine(func: Callable,
     :param span_attributes:
     :return:
     """
+
+    # no-op
+    if OTEL_WRAPPER_DISABLED:
+        return func
 
     # sanity checks
     assert isinstance(func, Callable)
@@ -163,6 +177,10 @@ def _instrument_class(cls: type,
     :param span_attributes: additional span attributes
     :return:
     """
+
+    # no-op
+    if OTEL_WRAPPER_DISABLED:
+        return cls
 
     # sanity checks
     assert isinstance(cls, type)

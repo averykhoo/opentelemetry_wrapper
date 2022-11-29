@@ -2,6 +2,7 @@ import dataclasses
 import inspect
 from functools import wraps
 
+from opentelemetry_wrapper.config.config import OTEL_WRAPPER_DISABLED
 from opentelemetry_wrapper.instrument_decorator import instrument_decorate
 
 _ORIGINAL = None
@@ -14,6 +15,11 @@ def instrument_dataclasses() -> None:
     note that this MUST be called **before** any code imports dataclasses.dataclass
     this function is idempotent; calling it multiple times has no additional side effects
     """
+
+    # no-op
+    if OTEL_WRAPPER_DISABLED:
+        return
+
     global _ORIGINAL
     if _ORIGINAL is None:
         _ORIGINAL = dataclasses.dataclass

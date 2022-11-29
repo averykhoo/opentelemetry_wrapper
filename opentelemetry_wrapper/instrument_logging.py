@@ -9,6 +9,7 @@ from typing import TextIO
 
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 
+from opentelemetry_wrapper.config.config import OTEL_WRAPPER_DISABLED
 from opentelemetry_wrapper.instrument_decorator import instrument_decorate
 from opentelemetry_wrapper.utils.logging_json_formatter import JsonFormatter
 
@@ -69,6 +70,11 @@ def instrument_logging(*,
     :param level:
     :return:
     """
+
+    # no-op
+    if OTEL_WRAPPER_DISABLED:
+        return
+
     _instrumentor = LoggingInstrumentor()
     if _instrumentor.is_instrumented_by_opentelemetry:
         if force_reinstrumentation:

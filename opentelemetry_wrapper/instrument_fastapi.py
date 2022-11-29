@@ -3,6 +3,7 @@ from opentelemetry.sdk.trace import Span
 from starlette.datastructures import Headers
 from starlette.types import Scope
 
+from opentelemetry_wrapper.config.config import OTEL_WRAPPER_DISABLED
 from opentelemetry_wrapper.instrument_decorator import instrument_decorate
 
 try:
@@ -57,6 +58,10 @@ def instrument_fastapi_app(app: FastAPI) -> FastAPI:
     this function is idempotent; calling it multiple times has no additional side effects
     """
 
+    # no-op
+    if OTEL_WRAPPER_DISABLED:
+        return app
+
     if not getattr(app, '_is_instrumented_by_opentelemetry', None):
         FastAPIInstrumentor.instrument_app(app,
                                            server_request_hook=request_hook,
@@ -70,6 +75,11 @@ def instrument_fastapi() -> None:
     """
     this function is idempotent; calling it multiple times has no additional side effects
     """
+
+    # no-op
+    if OTEL_WRAPPER_DISABLED:
+        return
+
     _instrumentor = FastAPIInstrumentor()
     if not _instrumentor.is_instrumented_by_opentelemetry:
         _instrumentor.instrument(server_request_hook=request_hook,

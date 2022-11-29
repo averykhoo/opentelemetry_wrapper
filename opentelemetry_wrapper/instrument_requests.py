@@ -1,5 +1,6 @@
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 
+from opentelemetry_wrapper.config.config import OTEL_WRAPPER_DISABLED
 from opentelemetry_wrapper.instrument_decorator import instrument_decorate
 
 
@@ -10,6 +11,11 @@ def instrument_requests():
 
     :return:
     """
+
+    # no-op
+    if OTEL_WRAPPER_DISABLED:
+        return
+
     _instrumentor = RequestsInstrumentor()
     if not _instrumentor.is_instrumented_by_opentelemetry:
         _instrumentor.instrument()
