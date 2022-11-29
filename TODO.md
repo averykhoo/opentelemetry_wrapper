@@ -34,6 +34,8 @@
 
 ## todo
 
+* a way to disable opentelemetry in testing, e.g. an env var
+* respect `OTEL_SERVICE_NAME`, `OTEL_EXPORTER_OTLP_*`
 * `with ...` instrumentation for non-callable code (e.g. settings, semi-hardcoded config)
 * type-checking decorator, with warning on unmatched types
   * https://github.com/prechelt/typecheck-decorator/blob/master/README.md

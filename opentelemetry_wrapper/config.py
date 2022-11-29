@@ -23,13 +23,13 @@ def get_service_name() -> str:
     """
 
     # get username
-    username = getpass.getuser().strip() or None
+    username = getpass.getuser().strip() or None  # todo: this can raise an exception
 
     # get hostname
-    hostname: str = (os.getenv('HOSTNAME', '').strip() or
-                     os.getenv('COMPUTERNAME', '').strip() or
-                     (socket.gethostname() or '').strip() or
+    hostname: str = (os.getenv('HOSTNAME', '').strip() or  # linux
+                     os.getenv('COMPUTERNAME', '').strip() or  # windows
                      (platform.node() or '').strip() or
+                     (socket.gethostname() or '').strip() or  # todo: raises AttributeError on WASI platforms
                      '<UNKNOWN>')
 
     # get k8s namespace
@@ -52,6 +52,8 @@ def get_service_name() -> str:
             namespace = os.getenv('USERDOMAIN', '').strip() or None
             if namespace and namespace.casefold() == hostname.casefold():
                 namespace = None
+
+        # maybe try getting the primary dns suffix from the dns suffix search list
 
     #  get file path of __main__
     main_filename = None
