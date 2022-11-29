@@ -2,6 +2,7 @@ from functools import lru_cache
 from typing import Optional
 
 from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.resources import SERVICE_NAME
 from opentelemetry.sdk.trace import ReadableSpan
@@ -10,13 +11,14 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter
 
-from opentelemetry_wrapper.config import __service_name__
+from opentelemetry_wrapper.config.config import OTEL_EXPORTER_OTLP_ENDPOINT
+from opentelemetry_wrapper.config.config import OTEL_SERVICE_NAME
 
 
 @lru_cache  # only run once
 def init_tracer():
-    if __service_name__:
-        tp = TracerProvider(resource=Resource.create({SERVICE_NAME: __service_name__}))
+    if OTEL_SERVICE_NAME:
+        tp = TracerProvider(resource=Resource.create({SERVICE_NAME: OTEL_SERVICE_NAME}))
     else:
         tp = TracerProvider()
 
@@ -27,6 +29,9 @@ def init_tracer():
             return f'{span.to_json(indent=None)}\n'
 
         tp.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter(formatter=format_span)))
+
+        if OTEL_EXPORTER_OTLP_ENDPOINT:
+            tp.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(OTEL_EXPORTER_OTLP_ENDPOINT)))
 
 
 def get_tracer(instrumenting_module_name: str,

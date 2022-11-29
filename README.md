@@ -23,11 +23,13 @@ todo: write stuff here
 
 ## env vars
 
-| Variable Name              | Description                                              | Default (if not set)                                                |
-|----------------------------|----------------------------------------------------------|---------------------------------------------------------------------|
-| `OTEL_SERVICE_NAME`        | Sets the value of the `service.name` resource attribute. | f'{username}@{hostname}.{namespace or domain}:<{filename of main}>' |
-| `OTEL_RESOURCE_ATTRIBUTES` | Key-value pairs to be used as resource attributes.       | *NA*                                                                |
-| TODO: `OTEL_LOG_LEVEL`     | Log level used by this logging instrumentor              | `NOTSET`                                                            |
+| Variable Name                 | Description                                              | Default (if not set)                                                |
+|-------------------------------|----------------------------------------------------------|---------------------------------------------------------------------|
+| `OTEL_SERVICE_NAME`           | Sets the value of the `service.name` resource attribute. | f'{username}@{hostname}.{namespace or domain}:<{filename of main}>' |
+| `OTEL_RESOURCE_ATTRIBUTES`    | Key-value pairs to be used as resource attributes.       | *NA*                                                                |
+| TODO: `OTEL_LOG_LEVEL`        | Log level used by this logging instrumentor              | `NOTSET`                                                            |
+| TODO: `OTEL_WRAPPER_DISABLED` | Set to `true` to disable everything globally             | `false`                                                             |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Looks like `http://tempo.local:4317`                     | *NA*                                                                |
 
 
 ## read the original docs
