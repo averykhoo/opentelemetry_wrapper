@@ -9,6 +9,7 @@ from typing import TextIO
 
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 
+from opentelemetry_wrapper.config.config import OTEL_LOG_LEVEL
 from opentelemetry_wrapper.config.config import OTEL_WRAPPER_DISABLED
 from opentelemetry_wrapper.instrument_decorator import instrument_decorate
 from opentelemetry_wrapper.utils.logging_json_formatter import JsonFormatter
@@ -35,7 +36,7 @@ LOGGING_FORMAT_MINIMAL = (
 
 @lru_cache  # avoid creating duplicate handlers
 def get_json_handler(*,
-                     level: int = logging.NOTSET,
+                     level: int = OTEL_LOG_LEVEL,
                      path: Optional[Path] = None,
                      stream: Optional[TextIO] = None,
                      ) -> logging.Handler:
@@ -56,7 +57,7 @@ def get_json_handler(*,
 
 @instrument_decorate
 def instrument_logging(*,
-                       level: int = logging.NOTSET,  # todo: support env var
+                       level: int = OTEL_LOG_LEVEL,
                        print_json: bool = True,
                        verbose: bool = True,
                        force_reinstrumentation: bool = False,
