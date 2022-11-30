@@ -20,7 +20,7 @@ _TRACER = get_tracer(__name__, __version__)
 _CACHE_INSTRUMENTED = dict()
 _CACHE_GETATTRIBUTE = dict()
 
-InstrumentableThing = TypeVar("InstrumentableThing", Callable, Coroutine, type)
+InstrumentableThing = TypeVar('InstrumentableThing', Callable, Coroutine, type)
 
 
 def instrument_decorate(func: InstrumentableThing,

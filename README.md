@@ -23,17 +23,15 @@ todo: write stuff here
 
 ## env vars
 
-| Variable Name                 | Description                                                             | Default (if not set)                                                |
-|-------------------------------|-------------------------------------------------------------------------|---------------------------------------------------------------------|
-| `OTEL_SERVICE_NAME`           | Sets the value of the `service.name` resource attribute.                | f'{username}@{hostname}.{namespace or domain}:<{filename of main}>' |
-| `OTEL_RESOURCE_ATTRIBUTES`    | Key-value pairs to be used as resource attributes.                      | *NA*                                                                |
-| `OTEL_LOG_LEVEL`              | Log level used by this logging instrumentor                             | `NOTSET`                                                            |
-| `OTEL_WRAPPER_DISABLED`       | Set to `true` to disable everything globally (e.g. when running pytest) | `false`                                                             |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | Looks like `http://tempo.local:4317`                                    | *NA*                                                                |
+| Variable Name                     | Description                                                          | Default (if not set)                                                |
+|-----------------------------------|----------------------------------------------------------------------|---------------------------------------------------------------------|
+| `OTEL_EXPORTER_OTLP_ENDPOINT`     | Looks like `http://tempo.localhost:4317`                             | *NA* (traces are not exported to any OTLP endpoint)                 |
+| `OTEL_LOG_LEVEL`                  | Log level used by the logging instrumentor                           | `INFO`                                                              |
+| `OTEL_RESOURCE_ATTRIBUTES`        | Key-value pairs to be used as resource attributes.                   | *NA*                                                                |
+| `OTEL_SERVICE_NAME`               | Sets the value of the `service.name` resource attribute.             | f'{username}@{hostname}.{namespace or domain}:<{filename of main}>' |
+| `OTEL_WRAPPER_DISABLED`           | Set to `true` to disable tracing globally (e.g. when running pytest) | `false` (tracing is enabled)                                        |
 
 
 ## read the original docs
 
 * [OpenTelemetry](https://opentelemetry.io/docs)
-* [OpenTracing](https://opentracing.io/docs)
-* [SkyWalking](https://skywalking.apache.org/docs/skywalking-python/latest/readme/)

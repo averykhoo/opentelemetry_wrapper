@@ -18,7 +18,7 @@ from opentelemetry_wrapper.config.config import OTEL_SERVICE_NAMESPACE
 
 
 @lru_cache  # only run once
-def init_tracer():
+def init_tracer_provider():
     if OTEL_SERVICE_NAMESPACE:
         tp = TracerProvider(resource=Resource.create({SERVICE_NAME:      OTEL_SERVICE_NAME,
                                                       SERVICE_NAMESPACE: OTEL_SERVICE_NAMESPACE}))
@@ -40,6 +40,6 @@ def init_tracer():
 def get_tracer(instrumenting_module_name: str,
                instrumenting_library_version: Optional[str] = None,
                ) -> Tracer:
-    init_tracer()
+    init_tracer_provider()
     return trace.get_tracer(instrumenting_module_name=instrumenting_module_name,
                             instrumenting_library_version=instrumenting_library_version)

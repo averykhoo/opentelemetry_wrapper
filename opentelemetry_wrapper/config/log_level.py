@@ -2,8 +2,10 @@ import logging
 import os
 from functools import lru_cache
 
+DEFAULT_LOG_LEVEL = logging.INFO
+
 # see logging._nameToLevel, which is protected
-NAME_TO_LEVEL = {
+_NAME_TO_LEVEL = {
     'critical': logging.CRITICAL,
     'fatal':    logging.FATAL,
     'error':    logging.ERROR,
@@ -16,7 +18,7 @@ NAME_TO_LEVEL = {
 
 
 @lru_cache
-def get_log_level(default=logging.NOTSET) -> int:
+def get_log_level(default=DEFAULT_LOG_LEVEL) -> int:
     _level = os.getenv('OTEL_LOG_LEVEL', '').casefold().strip()
 
     # default
@@ -28,8 +30,8 @@ def get_log_level(default=logging.NOTSET) -> int:
         return int(_level)
 
     # a known level name
-    if _level in NAME_TO_LEVEL:
-        return NAME_TO_LEVEL[_level]
+    if _level in _NAME_TO_LEVEL:
+        return _NAME_TO_LEVEL[_level]
 
     # is it a user-defined level?
     if isinstance(logging.getLevelName(_level), int):

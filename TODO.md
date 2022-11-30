@@ -5,7 +5,7 @@
   * `flit init`
   * make sure `opentelemetry_wrapper/__init__.py` contains a docstring and version
 * publish / update
-  * increment `__version__` in `nmd/__init__.py`
+  * increment `__version__` in `opentelemetry_wrapper/__init__.py`
   * `flit publish`
 
 ## references / best practices to consider
@@ -34,8 +34,6 @@
 
 ## todo
 
-* a way to disable opentelemetry in testing, e.g. an env var
-* respect `OTEL_SERVICE_NAME`, `OTEL_EXPORTER_OTLP_*`
 * `with ...` instrumentation for non-callable code (e.g. settings, semi-hardcoded config)
 * type-checking decorator, with warning on unmatched types
   * https://github.com/prechelt/typecheck-decorator/blob/master/README.md
@@ -53,9 +51,6 @@
   * Request Error Duration metrics can be calculated from spans
 * line-by-line code safety review
 * add [usage](./README.md#usage)
-* add deployment instructions using flit
-* Add support for pushing logs to a real logging platform (Zipkin, Jaeger, etc)
-* Read through the best practices
 * builtin `tracemalloc` can be used locate the source file and line number of a function, if started early enough
 * SQLAlchemy
 * Read k8s namespace from container path?

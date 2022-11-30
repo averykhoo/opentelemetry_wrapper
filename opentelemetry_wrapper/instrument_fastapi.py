@@ -11,6 +11,7 @@ try:
 except ImportError:
     from typing import Any as FastAPI
 
+# todo: make it possible to specify these
 _HEADER_ATTRIBUTES = (
     # 'user-agent',
     # 'cookie',
