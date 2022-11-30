@@ -3,6 +3,7 @@ from opentelemetry.sdk.trace import Span
 from starlette.datastructures import Headers
 from starlette.types import Scope
 
+from opentelemetry_wrapper.config.config import OTEL_HEADER_ATTRIBUTES
 from opentelemetry_wrapper.config.config import OTEL_WRAPPER_DISABLED
 from opentelemetry_wrapper.instrument_decorator import instrument_decorate
 
@@ -11,33 +12,6 @@ try:
 except ImportError:
     from typing import Any as FastAPI
 
-# todo: make it possible to specify these
-_HEADER_ATTRIBUTES = (
-    # 'user-agent',
-    # 'cookie',
-
-    # headers set in cookiecutter's OPA file
-    'x-pf-number',
-    'x-client-id',
-    'x-preferred-username',
-    # 'x-full-name',
-    # 'x-given-name',
-    # 'x-family-name',
-    'x-resource-access',
-    # 'x-realm-roles',
-    # 'x-groups',
-
-    # headers set by Kong
-    # 'authorization',
-    # 'x-userinfo',
-    # 'x-request-id',
-
-    #  headers set by K8s
-    # 'x-real-ip',
-    # 'x-forwarded-for',
-    # 'x-original-forwarded-for',
-)
-
 
 def request_hook(span: Span, scope: Scope) -> None:
     """
@@ -45,7 +19,7 @@ def request_hook(span: Span, scope: Scope) -> None:
     note: RFC 7230 says header keys and values should be ASCII
     """
     headers = dict(Headers(scope=scope))  # keys are lowercase latin-1 (ascii)
-    for header_name in _HEADER_ATTRIBUTES:
+    for header_name in OTEL_HEADER_ATTRIBUTES:
         header_value = headers.get(header_name.lower())
         if isinstance(header_value, (bool, str, bytes, int, float)):
             span.set_attribute(header_name, header_value)

@@ -23,13 +23,14 @@ todo: write stuff here
 
 ## env vars
 
-| Variable Name                     | Description                                                          | Default (if not set)                                                |
-|-----------------------------------|----------------------------------------------------------------------|---------------------------------------------------------------------|
-| `OTEL_EXPORTER_OTLP_ENDPOINT`     | Looks like `http://tempo.localhost:4317`                             | *NA* (traces are not exported to any OTLP endpoint)                 |
-| `OTEL_LOG_LEVEL`                  | Log level used by the logging instrumentor                           | `INFO`                                                              |
-| `OTEL_RESOURCE_ATTRIBUTES`        | Key-value pairs to be used as resource attributes.                   | *NA*                                                                |
-| `OTEL_SERVICE_NAME`               | Sets the value of the `service.name` resource attribute.             | f'{username}@{hostname}.{namespace or domain}:<{filename of main}>' |
-| `OTEL_WRAPPER_DISABLED`           | Set to `true` to disable tracing globally (e.g. when running pytest) | `false` (tracing is enabled)                                        |
+| Variable Name                 | Description                                                          | Default (if not set)                                                |
+|-------------------------------|----------------------------------------------------------------------|---------------------------------------------------------------------|
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Looks like `http://tempo.localhost:4317`                             | *NA* (traces are not exported to any OTLP endpoint)                 |
+| `OTEL_HEADER_ATTRIBUTES`      | HTTP headers to extract as span attributes, split by whitespace      | see **header_attributes.py**                                        |
+| `OTEL_LOG_LEVEL`              | Log level used by the logging instrumentor                           | `INFO`                                                              |
+| `OTEL_RESOURCE_ATTRIBUTES`    | Key-value pairs to be used as resource attributes.                   | *NA*                                                                |
+| `OTEL_SERVICE_NAME`           | Sets the value of the `service.name` resource attribute.             | f'{username}@{hostname}.{namespace or domain}:<{filename of main}>' |
+| `OTEL_WRAPPER_DISABLED`       | Set to `true` to disable tracing globally (e.g. when running pytest) | `false` (tracing is enabled)                                        |
 
 
 ## read the original docs

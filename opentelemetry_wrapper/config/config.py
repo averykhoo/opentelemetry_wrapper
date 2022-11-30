@@ -1,6 +1,8 @@
 import os
+from typing import List
 from typing import Optional
 
+from opentelemetry_wrapper.config.header_attributes import get_header_attributes
 from opentelemetry_wrapper.config.log_level import get_log_level
 from opentelemetry_wrapper.config.service_name import get_default_service_name
 from opentelemetry_wrapper.config.service_name import get_k8s_namespace
@@ -25,3 +27,5 @@ OTEL_SERVICE_NAMESPACE: Optional[str] = get_k8s_namespace() or None
 OTEL_EXPORTER_OTLP_ENDPOINT: str = os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT', '').strip()
 
 OTEL_LOG_LEVEL: int = get_log_level()
+
+OTEL_HEADER_ATTRIBUTES: List[str] = get_header_attributes()
