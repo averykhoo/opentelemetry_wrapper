@@ -19,10 +19,10 @@ dependencies = [
     "opentelemetry-instrumentation-fastapi",
     "opentelemetry-instrumentation-logging",
     "opentelemetry-instrumentation-requests",
-#    "opentelemetry-instrumentation-sqlalchemy",
+    "opentelemetry-instrumentation-sqlalchemy",
     "opentelemetry-sdk",
     "requests",
-#    "sqlalchemy",
+    "sqlalchemy",
     "starlette",
     "uvicorn",
 ]
