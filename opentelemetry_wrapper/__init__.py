@@ -10,11 +10,11 @@ from opentelemetry_wrapper.instrument_decorator import instrument_decorate
 from opentelemetry_wrapper.instrument_fastapi import instrument_fastapi
 from opentelemetry_wrapper.instrument_logging import instrument_logging
 from opentelemetry_wrapper.instrument_requests import instrument_requests
+from opentelemetry_wrapper.instrument_sqlalchemy import instrument_sqlalchemy
 
 
 @instrument_decorate
 def instrument_all():
-
     # no-op
     if OTEL_WRAPPER_DISABLED:
         return
@@ -24,6 +24,7 @@ def instrument_all():
     instrument_logging()
     instrument_fastapi()
     instrument_requests()
+    instrument_sqlalchemy()
 
 
 __all__ = (

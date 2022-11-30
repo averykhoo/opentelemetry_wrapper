@@ -52,6 +52,4 @@
 * line-by-line code safety review
 * add [usage](./README.md#usage)
 * builtin `tracemalloc` can be used locate the source file and line number of a function, if started early enough
-* SQLAlchemy
-* Read k8s namespace from container path?
 * somehow mark function as do-not-instrument, for extremely spammy functions? or specify a sampling ratio?
