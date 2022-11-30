@@ -139,11 +139,19 @@ class JsonFormatter(logging.Formatter):
                     except Exception:
                         continue  # failed, skip key
 
-        # truncate extremely long things
-        # todo: handle other jsonable object types more intelligently
-        for k, v in safe_log_data.items():
-            if isinstance(v, str) and len(v) > self.max_string_length:
-                safe_log_data[k] = f'{v[:self.max_string_length - 15]}... (TRUNCATED)'
+        # truncate extremely long strings (values nested in dicts and lists, but not dict keys)
+        stack = [safe_log_data]
+        while stack:
+            elem = stack.pop()
+            if isinstance(elem, dict):
+                for k, v in elem.items():
+                    if isinstance(v, (dict, list)):
+                        stack.append(v)
+                    if isinstance(v, str) and len(v) > self.max_string_length:
+                        elem[k] = f'{v[:self.max_string_length - 15]}... (TRUNCATED)'[:self.max_string_length]
+            if isinstance(elem, list):
+                for i, item in enumerate(elem):
+                    elem[i] = f'{item[:self.max_string_length - 15]}... (TRUNCATED)'[:self.max_string_length]
 
         return json.dumps(safe_log_data,
                           ensure_ascii=self.ensure_ascii,
