@@ -29,6 +29,7 @@ _DEFAULT_HEADER_ATTRIBUTES = [
     # 'x-original-forwarded-for',
 ]
 
+# https://developers.cloudflare.com/rules/transform/request-header-modification/reference/header-format/
 REGEX_HEADER = re.compile(r'[a-z0-9_-]+', flags=re.I)
 
 
