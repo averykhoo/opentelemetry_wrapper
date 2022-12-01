@@ -7,7 +7,6 @@ name = "opentelemetry_wrapper"
 authors = [{name = "Avery Khoo", email = "averykhoo@gmail.com"}]
 readme = "README.md"
 license = {file = "LICENSE"}
-urls.home = "https://github.com/averykhoo/opentelemetry_wrapper"
 classifiers = ["License :: OSI Approved :: Apache Software License"]
 dynamic = ["version", "description"]
 requires-python = ">3.8.0"
