@@ -8,6 +8,7 @@ from opentelemetry_wrapper.config.config import OTEL_WRAPPER_DISABLED
 from opentelemetry_wrapper.instrument_dataclasses import instrument_dataclasses
 from opentelemetry_wrapper.instrument_decorator import instrument_decorate
 from opentelemetry_wrapper.instrument_fastapi import instrument_fastapi
+from opentelemetry_wrapper.instrument_fastapi import instrument_fastapi_app
 from opentelemetry_wrapper.instrument_logging import instrument_logging
 from opentelemetry_wrapper.instrument_requests import instrument_requests
 from opentelemetry_wrapper.instrument_sqlalchemy import instrument_sqlalchemy
@@ -29,10 +30,12 @@ def instrument_all():
 
 __all__ = (
     __version__,
+    instrument_all,
     instrument_decorate,
     instrument_dataclasses,
     instrument_logging,
     instrument_fastapi,
+    instrument_fastapi_app,
     instrument_requests,
-    instrument_all,
+    instrument_sqlalchemy,
 )
