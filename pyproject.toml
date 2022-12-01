@@ -28,4 +28,4 @@ dependencies = [
 ]
 
 [project.urls]
-source = "https://github.com/averykhoo/opentelemetry_wrapper"
+Home = "https://github.com/averykhoo/opentelemetry_wrapper"
