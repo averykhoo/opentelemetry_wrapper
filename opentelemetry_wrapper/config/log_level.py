@@ -4,6 +4,9 @@ from functools import lru_cache
 
 DEFAULT_LOG_LEVEL = logging.INFO
 
+# https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels
+# https://sematext.com/blog/logging-levels/
+# https://www.ibm.com/docs/en/cognos-analytics/10.2.2?topic=SSEP7J_10.2.2/com.ibm.swg.ba.cognos.ug_rtm_wb.10.2.2.doc/c_n30e74.html
 # see logging._nameToLevel, which is protected
 _NAME_TO_LEVEL = {
     'critical': logging.CRITICAL,
@@ -13,6 +16,7 @@ _NAME_TO_LEVEL = {
     'warning':  logging.WARNING,
     'info':     logging.INFO,
     'debug':    logging.DEBUG,
+    'trace':    logging.DEBUG,
     'notset':   logging.NOTSET,
 }
 
