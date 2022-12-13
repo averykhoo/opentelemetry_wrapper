@@ -1,5 +1,8 @@
 import os
-from typing import List
+import re
+import string
+import warnings
+from typing import List, Dict
 from typing import Optional
 
 from opentelemetry_wrapper.config.header_attributes import get_header_attributes
@@ -25,6 +28,20 @@ OTEL_SERVICE_NAMESPACE: Optional[str] = get_k8s_namespace() or None
 
 # enable exporting to tempo for visualization in grafana
 OTEL_EXPORTER_OTLP_ENDPOINT: str = os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT', '').strip()
+
+# headers to be passed to the OLTP endpoint
+_valid_http_header_chars = ''.join(string.printable.split()) + ' '
+_regex_http_header = re.compile(f'[{re.escape(_valid_http_header_chars)}]+')
+OTEL_EXPORTER_OTLP_HEADER: Dict[str, str] = dict()
+for header in _regex_http_header.findall(os.getenv('OTEL_EXPORTER_OTLP_HEADER', '')):
+    header_name, _, header_value = header.partition('=')
+    if _:
+        OTEL_EXPORTER_OTLP_HEADER[header_name] = header_value
+    else:
+        warnings.warn(f'invalid OTEL_EXPORTER_OTLP_HEADER key=value pair (missing "=" delimiter): "{header}"')
+
+# insecure
+OTEL_EXPORTER_OTLP_INSECURE: bool = os.getenv('OTEL_EXPORTER_OTLP_INSECURE', 'false').casefold().strip() == 'true'
 
 OTEL_LOG_LEVEL: int = get_log_level()
 

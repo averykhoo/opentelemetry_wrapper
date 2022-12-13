@@ -12,7 +12,8 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter
 
-from opentelemetry_wrapper.config.config import OTEL_EXPORTER_OTLP_ENDPOINT
+from opentelemetry_wrapper.config.config import OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADER, \
+    OTEL_EXPORTER_OTLP_INSECURE
 from opentelemetry_wrapper.config.config import OTEL_SERVICE_NAME
 from opentelemetry_wrapper.config.config import OTEL_SERVICE_NAMESPACE
 
@@ -20,7 +21,7 @@ from opentelemetry_wrapper.config.config import OTEL_SERVICE_NAMESPACE
 @lru_cache  # only run once
 def init_tracer_provider():
     if OTEL_SERVICE_NAMESPACE:
-        tp = TracerProvider(resource=Resource.create({SERVICE_NAME:      OTEL_SERVICE_NAME,
+        tp = TracerProvider(resource=Resource.create({SERVICE_NAME: OTEL_SERVICE_NAME,
                                                       SERVICE_NAMESPACE: OTEL_SERVICE_NAMESPACE}))
     else:
         tp = TracerProvider(resource=Resource.create({SERVICE_NAME: OTEL_SERVICE_NAME}))
@@ -34,7 +35,9 @@ def init_tracer_provider():
         tp.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter(formatter=format_span)))
 
         if OTEL_EXPORTER_OTLP_ENDPOINT:
-            tp.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(OTEL_EXPORTER_OTLP_ENDPOINT)))
+            tp.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(endpoint=OTEL_EXPORTER_OTLP_ENDPOINT,
+                                                                      headers=OTEL_EXPORTER_OTLP_HEADER,
+                                                                      insecure=OTEL_EXPORTER_OTLP_INSECURE)))
 
 
 def get_tracer(instrumenting_module_name: str,
