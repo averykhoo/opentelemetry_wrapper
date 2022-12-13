@@ -3,6 +3,7 @@ import re
 from functools import lru_cache
 from typing import List
 
+# todo: make this configurable
 _DEFAULT_HEADER_ATTRIBUTES = [
     # 'user-agent',
     # 'cookie',
