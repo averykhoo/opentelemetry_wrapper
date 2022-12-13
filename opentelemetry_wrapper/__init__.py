@@ -2,7 +2,7 @@
 a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make life a bit easier
 """
 
-__version__ = '0.0.13'
+__version__ = '0.0.14'
 
 from opentelemetry_wrapper.config.config import OTEL_WRAPPER_DISABLED
 from opentelemetry_wrapper.instrument_dataclasses import instrument_dataclasses
