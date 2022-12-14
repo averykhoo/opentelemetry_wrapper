@@ -120,16 +120,6 @@ def get_domain() -> str:
 
 
 @lru_cache
-def get_namespace() -> str:
-    # get k8s namespace
-    if get_k8s_namespace():
-        return get_k8s_namespace()
-
-    # not in k8s, try to get domain instead
-    return get_domain()
-
-
-@lru_cache
 def get_main_filename() -> str:
     if getattr(__main__, '__file__', None):
         main_full_path = Path(__main__.__file__)  # can be undefined, e.g. C modules or Jupyter notebooks
@@ -153,7 +143,7 @@ def get_default_service_name() -> str:
     it would be more correct to just return the namespace instead,
     but my preference (for now at least) is to isolate the instance for further debugging
 
-    :return: {username}@{hostname}.{namespace or domain}:<{filename of main}> or an empty string
+    :return: {k8s namespace}/{k8s pod name} or {username}@{hostname}.{domain}:<{filename of main}> or ''
     """
 
     # try return just namespace/pod by default
@@ -163,7 +153,7 @@ def get_default_service_name() -> str:
     # formatting
     _username = f'{get_username()}@' if get_username() else ''
     _hostname = get_hostname()
-    _namespace = f'.{get_namespace()}' if get_namespace() else ''
+    _namespace = f'.{get_domain()}' if get_domain() else ''
     _filename = f':<{get_main_filename()}>' if get_main_filename() else ''
 
     # if at least one of the above succeeded, then make sure hostname is not blank
@@ -186,3 +176,15 @@ def getenv_otel_service_name() -> str:
     """
     otel_detected_service_name = get_resource_attributes().get('service.name', '') or ''
     return str(otel_detected_service_name).strip()
+
+
+def getenv_otel_service_namespace() -> str:
+    """
+    tries these 2 things, in order:
+    1. `OTEL_SERVICE_NAME` env var
+    2. `service.name` property from `OTEL_RESOURCE_ATTRIBUTES` env var
+
+    otherwise, returns an empty string
+    """
+    otel_detected_service_name = get_resource_attributes().get('service.namespace', '') or ''
+    return os.getenv('OTEL_SERVICE_NAMESPACE', '').strip() or str(otel_detected_service_name).strip()
