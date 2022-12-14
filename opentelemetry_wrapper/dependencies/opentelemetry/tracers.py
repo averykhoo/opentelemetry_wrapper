@@ -11,11 +11,11 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter
 
-from opentelemetry_wrapper.config.config import OTEL_EXPORTER_OTLP_ENDPOINT
-from opentelemetry_wrapper.config.config import OTEL_EXPORTER_OTLP_HEADER
-from opentelemetry_wrapper.config.config import OTEL_EXPORTER_OTLP_INSECURE
-from opentelemetry_wrapper.config.config import OTEL_SERVICE_NAME
-from opentelemetry_wrapper.config.config import OTEL_SERVICE_NAMESPACE
+from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_ENDPOINT
+from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_HEADER
+from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_INSECURE
+from opentelemetry_wrapper.config.otel_headers import OTEL_SERVICE_NAME
+from opentelemetry_wrapper.config.otel_headers import OTEL_SERVICE_NAMESPACE
 
 
 @lru_cache  # only run once

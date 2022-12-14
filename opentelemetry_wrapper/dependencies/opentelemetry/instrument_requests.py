@@ -1,6 +1,6 @@
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 
-from opentelemetry_wrapper.config.config import OTEL_WRAPPER_DISABLED
+from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
 from opentelemetry_wrapper.dependencies.opentelemetry.instrument_decorator import instrument_decorate
 
 

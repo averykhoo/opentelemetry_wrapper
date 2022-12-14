@@ -6,11 +6,11 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-from opentelemetry_wrapper.config.header_attributes import get_header_attributes
-from opentelemetry_wrapper.config.log_level import get_log_level
-from opentelemetry_wrapper.config.service_name import get_default_service_name
-from opentelemetry_wrapper.config.service_name import get_k8s_namespace
-from opentelemetry_wrapper.config.service_name import getenv_otel_service_name
+from opentelemetry_wrapper.config.otel_header_attributes import get_header_attributes
+from opentelemetry_wrapper.config.otel_log_level import get_log_level
+from opentelemetry_wrapper.config.otel_service_name import get_default_service_name
+from opentelemetry_wrapper.config.otel_service_name import get_k8s_namespace
+from opentelemetry_wrapper.config.otel_service_name import getenv_otel_service_name
 
 # global flag to override opentelemetry and not do anything
 # because opentelemetry is too verbose in tests

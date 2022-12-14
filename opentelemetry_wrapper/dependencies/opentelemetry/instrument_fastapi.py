@@ -3,8 +3,8 @@ from opentelemetry.trace import Span
 from starlette.datastructures import Headers
 from starlette.types import Scope
 
-from opentelemetry_wrapper.config.config import OTEL_HEADER_ATTRIBUTES
-from opentelemetry_wrapper.config.config import OTEL_WRAPPER_DISABLED
+from opentelemetry_wrapper.config.otel_headers import OTEL_HEADER_ATTRIBUTES
+from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
 from opentelemetry_wrapper.dependencies.fastapi.fastapi_typedef import FastApiType
 from opentelemetry_wrapper.dependencies.opentelemetry.instrument_decorator import instrument_decorate
 

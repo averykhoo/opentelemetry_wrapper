@@ -4,7 +4,7 @@ a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make l
 
 __version__ = '0.0.15'
 
-from opentelemetry_wrapper.config.config import OTEL_WRAPPER_DISABLED
+from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
 from opentelemetry_wrapper.dependencies.opentelemetry.instrument_dataclasses import instrument_dataclasses
 from opentelemetry_wrapper.dependencies.opentelemetry.instrument_decorator import instrument_decorate
 from opentelemetry_wrapper.dependencies.opentelemetry.instrument_fastapi import instrument_fastapi

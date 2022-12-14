@@ -5,7 +5,7 @@ from opentelemetry.instrumentation.sqlalchemy import EngineTracer
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 
 from opentelemetry_wrapper import instrument_decorate
-from opentelemetry_wrapper.config.config import OTEL_WRAPPER_DISABLED
+from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
 from opentelemetry_wrapper.dependencies.sqlalchemy.engine_typedef import AnyEngine
 from opentelemetry_wrapper.dependencies.sqlalchemy.engine_typedef import AsyncEngine
 from opentelemetry_wrapper.dependencies.sqlalchemy.engine_typedef import FutureEngine

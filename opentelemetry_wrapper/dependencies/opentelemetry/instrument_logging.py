@@ -9,8 +9,8 @@ from typing import TextIO
 
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 
-from opentelemetry_wrapper.config.config import OTEL_LOG_LEVEL
-from opentelemetry_wrapper.config.config import OTEL_WRAPPER_DISABLED
+from opentelemetry_wrapper.config.otel_headers import OTEL_LOG_LEVEL
+from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
 from opentelemetry_wrapper.dependencies.opentelemetry.instrument_decorator import instrument_decorate
 from opentelemetry_wrapper.utils.logging_json_formatter import JsonFormatter
 
