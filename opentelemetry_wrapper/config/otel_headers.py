@@ -2,9 +2,9 @@ import os
 import re
 import string
 import warnings
-from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Tuple
 
 from opentelemetry_wrapper.config.otel_header_attributes import get_header_attributes
 from opentelemetry_wrapper.config.otel_log_level import get_log_level
@@ -34,11 +34,11 @@ OTEL_EXPORTER_OTLP_ENDPOINT: str = os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT', '').
 # headers to be passed to the OLTP endpoint
 _valid_http_header_chars = ''.join(string.printable.split()) + ' '
 _regex_http_header = re.compile(f'[{re.escape(_valid_http_header_chars)}]+')
-OTEL_EXPORTER_OTLP_HEADER: Dict[str, str] = dict()
+OTEL_EXPORTER_OTLP_HEADER: List[Tuple[str, str]] = []
 for header in _regex_http_header.findall(os.getenv('OTEL_EXPORTER_OTLP_HEADER', '')):
     header_name, _, header_value = header.partition('=')
     if _:
-        OTEL_EXPORTER_OTLP_HEADER[header_name] = header_value
+        OTEL_EXPORTER_OTLP_HEADER.append((header_name, header_value))
     else:
         warnings.warn(f'invalid OTEL_EXPORTER_OTLP_HEADER key=value pair (missing "=" delimiter): "{header}"')
 
