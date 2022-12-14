@@ -172,7 +172,6 @@ class CodeInfo:
         return None
 
     @cached_property
-    # flake8: noqa: C901
     def cls(self) -> Optional[type]:
         try:
             # if we already are a class
@@ -187,8 +186,9 @@ class CodeInfo:
                     _attr = getattr(self.__unwrapped_code_object.__self__, _attr_name, None)
                     if _attr is not None and hasattr(_attr, '__mro__'):
                         for _mro_cls in inspect.getmro(_attr):
-                            if inspect.isclass(_mro_cls) and self.__unwrapped_code_object.__name__ in _mro_cls.__dict__:
-                                return _mro_cls
+                            if inspect.isclass(_mro_cls):
+                                if self.__unwrapped_code_object.__name__ in _mro_cls.__dict__:
+                                    return _mro_cls
 
             # get class qualname
             if hasattr(self.__unwrapped_code_object, '__qualname__'):
