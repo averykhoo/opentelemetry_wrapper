@@ -43,6 +43,7 @@ def get_json_handler(*,
     if path is not None and stream is not None:
         raise ValueError('cannot set both path and stream')
 
+    handler: logging.Handler
     if path is not None:
         handler = logging.FileHandler(path)
     elif stream is not None:

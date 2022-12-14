@@ -1,7 +1,6 @@
 from typing import Dict
 from typing import Optional
 from typing import TypeVar
-from typing import Union
 
 from opentelemetry.instrumentation.sqlalchemy import EngineTracer
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
@@ -12,13 +11,13 @@ from sqlalchemy.future import Engine as FutureEngine
 from opentelemetry_wrapper import instrument_decorate
 from opentelemetry_wrapper.config.config import OTEL_WRAPPER_DISABLED
 
-AnyEngine = TypeVar('AnyEngine', LegacyEngine, FutureEngine)
+AnyEngine = TypeVar('AnyEngine', LegacyEngine, FutureEngine, AsyncEngine)
 
 _CACHE_INSTRUMENTED: Dict[int, EngineTracer] = dict()
 
 
 @instrument_decorate
-def instrument_sqlalchemy_engine(engine: Union[AnyEngine, AsyncEngine],
+def instrument_sqlalchemy_engine(engine: AnyEngine,
                                  enable_commenter: bool = True,
                                  commenter_options: Optional[Dict[str, bool]] = None,
                                  ) -> AnyEngine:
@@ -75,6 +74,6 @@ def instrument_sqlalchemy() -> None:
     if OTEL_WRAPPER_DISABLED:
         return
 
-    _instrumentor = _CACHE_INSTRUMENTED.get(-1, SQLAlchemyInstrumentor())
+    _instrumentor = SQLAlchemyInstrumentor()  # assume this is a singleton
     if not _instrumentor.is_instrumented_by_opentelemetry:
         _instrumentor.instrument()

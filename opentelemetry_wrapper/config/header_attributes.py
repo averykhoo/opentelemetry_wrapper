@@ -40,7 +40,7 @@ def get_header_attributes() -> List[str]:
     if os.getenv('OTEL_HEADER_ATTRIBUTES') is None:
         headers = _DEFAULT_HEADER_ATTRIBUTES
     else:
-        headers = REGEX_HEADER.findall(os.getenv('OTEL_HEADER_ATTRIBUTES').strip())
+        headers = REGEX_HEADER.findall(os.getenv('OTEL_HEADER_ATTRIBUTES', '').strip())
 
     for header in headers:
         out.add(header.lower())

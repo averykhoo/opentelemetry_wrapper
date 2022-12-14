@@ -1,5 +1,5 @@
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-from opentelemetry.sdk.trace import Span
+from opentelemetry.trace import Span
 from starlette.datastructures import Headers
 from starlette.types import Scope
 
@@ -10,7 +10,8 @@ from opentelemetry_wrapper.instrument_decorator import instrument_decorate
 try:
     from fastapi import FastAPI
 except ImportError:
-    from typing import Any as FastAPI
+    # ignore mypy here since we're only using this as a typedef
+    from typing import Any as FastAPI  # type: ignore[assignment]
 
 
 def request_hook(span: Span, scope: Scope) -> None:

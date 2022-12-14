@@ -12,3 +12,5 @@ requests
 sqlalchemy
 starlette
 uvicorn
+pydantic
+sqlalchemy2-stubs

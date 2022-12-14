@@ -4,8 +4,10 @@ from functools import cached_property
 from functools import wraps
 from typing import Callable
 from typing import Coroutine
+from typing import Dict
 from typing import Optional
 from typing import TypeVar
+from typing import Union
 
 from opentelemetry.semconv.trace import SpanAttributes
 from opentelemetry.trace import Status
@@ -13,14 +15,15 @@ from opentelemetry.trace import StatusCode
 
 from opentelemetry_wrapper import __version__  # don't worry, this does not create an infinite import loop
 from opentelemetry_wrapper.config.config import OTEL_WRAPPER_DISABLED
+from opentelemetry_wrapper.dependencies.opentelemetry.tracers import get_tracer
 from opentelemetry_wrapper.utils.introspect import CodeInfo
-from opentelemetry_wrapper.utils.tracers import get_tracer
 
 _TRACER = get_tracer(__name__, __version__)
-_CACHE_INSTRUMENTED = dict()
-_CACHE_GETATTRIBUTE = dict()
 
 InstrumentableThing = TypeVar('InstrumentableThing', Callable, Coroutine, type)
+
+_CACHE_INSTRUMENTED: Dict[InstrumentableThing, Optional[InstrumentableThing]] = dict()  # type: ignore[valid-type]
+_CACHE_GETATTRIBUTE: Dict[InstrumentableThing, InstrumentableThing] = dict()  # type: ignore[valid-type]
 
 
 def instrument_decorate(func: InstrumentableThing,
@@ -55,16 +58,17 @@ def instrument_decorate(func: InstrumentableThing,
     # avoid re-instrumenting (or double-instrumenting) things
     # this requires slightly more complex logic than lru_cache provides
     if func in _CACHE_INSTRUMENTED:
-        if _CACHE_INSTRUMENTED[func] is None:
-            return func
-        return _CACHE_INSTRUMENTED[func]
+        ret = _CACHE_INSTRUMENTED[func]
+        if ret is not None:
+            return ret
+        return func
 
     # if not provided, try to find the function name
     code_info = CodeInfo(func)
     func_name = func_name or code_info.name
 
     # build span attributes for this class / function / method / builtin / etc
-    span_attributes = dict()
+    span_attributes: Dict[str, Union[str, None, int]] = dict()
     if code_info.function_name:
         span_attributes[SpanAttributes.CODE_FUNCTION] = code_info.function_name
     if code_info.module_name:
@@ -74,15 +78,16 @@ def instrument_decorate(func: InstrumentableThing,
     if code_info.lineno:
         span_attributes[SpanAttributes.CODE_LINENO] = code_info.lineno
 
+    wrapped: InstrumentableThing
     if inspect.isclass(func):
         # noinspection PyTypeChecker
-        wrapped = _instrument_class(func, func_name, span_attributes)
+        wrapped = _instrument_class(func, func_name, span_attributes)  # type: ignore[assignment]
 
     elif asyncio.iscoroutinefunction(func):  # coroutine functions are also functions, so this must be checked first
-        wrapped = _instrument_coroutine(func, func_name, span_attributes)
+        wrapped = _instrument_coroutine(func, func_name, span_attributes)  # type: ignore[assignment]
 
     elif inspect.isroutine(func):
-        wrapped = _instrument_routine(func, func_name, span_attributes)
+        wrapped = _instrument_routine(func, func_name, span_attributes)  # type: ignore[assignment]
 
     # what is this?
     else:
@@ -112,7 +117,7 @@ def _instrument_coroutine(coro: Callable,
         return coro
 
     # sanity checks
-    assert isinstance(coro, Callable)
+    assert isinstance(coro, Callable)  # type: ignore[arg-type]
     assert not isinstance(coro, type)
     assert asyncio.iscoroutinefunction(coro)
 
@@ -146,7 +151,7 @@ def _instrument_routine(func: Callable,
         return func
 
     # sanity checks
-    assert isinstance(func, Callable)
+    assert isinstance(func, Callable)  # type: ignore[arg-type]
     assert not isinstance(func, type)
     assert inspect.isroutine(func)
     assert not asyncio.iscoroutinefunction(func)

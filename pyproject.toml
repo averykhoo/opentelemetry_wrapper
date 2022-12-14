@@ -4,9 +4,9 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "opentelemetry_wrapper"
-authors = [{name = "Avery Khoo", email = "averykhoo@gmail.com"}]
+authors = [{ name = "Avery Khoo", email = "averykhoo@gmail.com" }]
 readme = "README.md"
-license = {file = "LICENSE"}
+license = { file = "LICENSE" }
 classifiers = ["License :: OSI Approved :: Apache Software License"]
 dynamic = ["version", "description"]
 requires-python = ">3.8.0"

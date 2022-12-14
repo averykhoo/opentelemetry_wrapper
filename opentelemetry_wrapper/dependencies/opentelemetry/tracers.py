@@ -7,13 +7,13 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.resources import SERVICE_NAME
 from opentelemetry.sdk.resources import SERVICE_NAMESPACE
 from opentelemetry.sdk.trace import ReadableSpan
-from opentelemetry.sdk.trace import Tracer
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter
 
-from opentelemetry_wrapper.config.config import OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADER, \
-    OTEL_EXPORTER_OTLP_INSECURE
+from opentelemetry_wrapper.config.config import OTEL_EXPORTER_OTLP_ENDPOINT
+from opentelemetry_wrapper.config.config import OTEL_EXPORTER_OTLP_HEADER
+from opentelemetry_wrapper.config.config import OTEL_EXPORTER_OTLP_INSECURE
 from opentelemetry_wrapper.config.config import OTEL_SERVICE_NAME
 from opentelemetry_wrapper.config.config import OTEL_SERVICE_NAMESPACE
 
@@ -21,7 +21,7 @@ from opentelemetry_wrapper.config.config import OTEL_SERVICE_NAMESPACE
 @lru_cache  # only run once
 def init_tracer_provider():
     if OTEL_SERVICE_NAMESPACE:
-        tp = TracerProvider(resource=Resource.create({SERVICE_NAME: OTEL_SERVICE_NAME,
+        tp = TracerProvider(resource=Resource.create({SERVICE_NAME:      OTEL_SERVICE_NAME,
                                                       SERVICE_NAMESPACE: OTEL_SERVICE_NAMESPACE}))
     else:
         tp = TracerProvider(resource=Resource.create({SERVICE_NAME: OTEL_SERVICE_NAME}))
@@ -42,7 +42,7 @@ def init_tracer_provider():
 
 def get_tracer(instrumenting_module_name: str,
                instrumenting_library_version: Optional[str] = None,
-               ) -> Tracer:
+               ) -> trace.Tracer:
     init_tracer_provider()
     return trace.get_tracer(instrumenting_module_name=instrumenting_module_name,
                             instrumenting_library_version=instrumenting_library_version)

@@ -29,13 +29,13 @@ def instrument_all():
 
 
 __all__ = (
-    __version__,
-    instrument_all,
-    instrument_decorate,
-    instrument_dataclasses,
-    instrument_logging,
-    instrument_fastapi,
-    instrument_fastapi_app,
-    instrument_requests,
-    instrument_sqlalchemy,
+    '__version__',
+    'instrument_all',
+    'instrument_decorate',
+    'instrument_dataclasses',
+    'instrument_logging',
+    'instrument_fastapi',
+    'instrument_fastapi_app',
+    'instrument_requests',
+    'instrument_sqlalchemy',
 )

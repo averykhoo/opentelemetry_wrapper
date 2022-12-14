@@ -2,7 +2,8 @@ import os
 import re
 import string
 import warnings
-from typing import List, Dict
+from typing import Dict
+from typing import List
 from typing import Optional
 
 from opentelemetry_wrapper.config.header_attributes import get_header_attributes
