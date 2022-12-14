@@ -36,6 +36,6 @@ todo: write stuff here
 | `OTEL_WRAPPER_DISABLED`       | Set to `true` to disable tracing globally (e.g. when running pytest).                                                                             | `false` (tracing is enabled)                                                                |
 
 > **Note:** <br>
-> The servie name and namespace can also be set via `OTEL_RESOURCE_ATTRIBUTES`, but any settings there will be
-> overwritten by `OTEL_SERVICE_NAME` and `OTEL_SERVICE_NAMESPACE`. For more details, read the original
-> [OpenTelemetry docs](https://opentelemetry.io/docs)
+> The `service.name` and `service.namespace` can also be set via `OTEL_RESOURCE_ATTRIBUTES`, but any settings there 
+> will be overwritten by `OTEL_SERVICE_NAME` and `OTEL_SERVICE_NAMESPACE`. For more details, read the
+> original [OpenTelemetry docs](https://opentelemetry.io/docs)
