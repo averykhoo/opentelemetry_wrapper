@@ -1,9 +1,9 @@
 import logging
 from functools import lru_cache
 
-from opentelemetry_wrapper.instrument_dataclasses import instrument_dataclasses
-from opentelemetry_wrapper.instrument_decorator import instrument_decorate
-from opentelemetry_wrapper.instrument_logging import instrument_logging
+from opentelemetry_wrapper import instrument_dataclasses
+from opentelemetry_wrapper import instrument_decorate
+from opentelemetry_wrapper import instrument_logging
 
 if __name__ == '__main__':
     instrument_dataclasses()

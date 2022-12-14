@@ -11,7 +11,7 @@ from opentelemetry.instrumentation.logging import LoggingInstrumentor
 
 from opentelemetry_wrapper.config.config import OTEL_LOG_LEVEL
 from opentelemetry_wrapper.config.config import OTEL_WRAPPER_DISABLED
-from opentelemetry_wrapper.instrument_decorator import instrument_decorate
+from opentelemetry_wrapper.dependencies.opentelemetry.instrument_decorator import instrument_decorate
 from opentelemetry_wrapper.utils.logging_json_formatter import JsonFormatter
 
 # write IDs as 0xBEEF instead of BEEF so it matches the trace json exactly

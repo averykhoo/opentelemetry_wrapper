@@ -1,17 +1,15 @@
 from typing import Dict
 from typing import Optional
-from typing import TypeVar
 
 from opentelemetry.instrumentation.sqlalchemy import EngineTracer
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
-from sqlalchemy.engine import Engine as LegacyEngine
-from sqlalchemy.ext.asyncio import AsyncEngine
-from sqlalchemy.future import Engine as FutureEngine
 
 from opentelemetry_wrapper import instrument_decorate
 from opentelemetry_wrapper.config.config import OTEL_WRAPPER_DISABLED
-
-AnyEngine = TypeVar('AnyEngine', LegacyEngine, FutureEngine, AsyncEngine)
+from opentelemetry_wrapper.dependencies.sqlalchemy.engine_typedef import AnyEngine
+from opentelemetry_wrapper.dependencies.sqlalchemy.engine_typedef import AsyncEngine
+from opentelemetry_wrapper.dependencies.sqlalchemy.engine_typedef import FutureEngine
+from opentelemetry_wrapper.dependencies.sqlalchemy.engine_typedef import LegacyEngine
 
 _CACHE_INSTRUMENTED: Dict[int, EngineTracer] = dict()
 

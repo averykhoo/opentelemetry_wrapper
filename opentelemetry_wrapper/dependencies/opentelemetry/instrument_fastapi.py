@@ -5,13 +5,8 @@ from starlette.types import Scope
 
 from opentelemetry_wrapper.config.config import OTEL_HEADER_ATTRIBUTES
 from opentelemetry_wrapper.config.config import OTEL_WRAPPER_DISABLED
-from opentelemetry_wrapper.instrument_decorator import instrument_decorate
-
-try:
-    from fastapi import FastAPI
-except ImportError:
-    # ignore mypy here since we're only using this as a typedef
-    from typing import Any as FastAPI  # type: ignore[assignment]
+from opentelemetry_wrapper.dependencies.fastapi.fastapi_typedef import FastApiType
+from opentelemetry_wrapper.dependencies.opentelemetry.instrument_decorator import instrument_decorate
 
 
 def request_hook(span: Span, scope: Scope) -> None:
@@ -27,7 +22,7 @@ def request_hook(span: Span, scope: Scope) -> None:
 
 
 @instrument_decorate
-def instrument_fastapi_app(app: FastAPI) -> FastAPI:
+def instrument_fastapi_app(app: FastApiType) -> FastApiType:
     """
     instrument a FastAPI app
     also instruments logging and requests (if requests exists)

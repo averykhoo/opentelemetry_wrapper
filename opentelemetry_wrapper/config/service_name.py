@@ -7,7 +7,7 @@ import socket
 from functools import lru_cache
 from pathlib import Path
 
-from opentelemetry.sdk.resources import OTELResourceDetector
+from opentelemetry_wrapper.dependencies.opentelemetry.resource_detector import get_resource_attributes
 
 
 @lru_cache
@@ -184,5 +184,5 @@ def getenv_otel_service_name() -> str:
 
     otherwise, returns an empty string
     """
-    otel_detected_service_name = OTELResourceDetector().detect().attributes.get('service.name', '') or ''
+    otel_detected_service_name = get_resource_attributes().get('service.name', '') or ''
     return str(otel_detected_service_name).strip()

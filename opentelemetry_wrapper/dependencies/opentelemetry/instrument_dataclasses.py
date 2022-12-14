@@ -3,7 +3,7 @@ import inspect
 from functools import wraps
 
 from opentelemetry_wrapper.config.config import OTEL_WRAPPER_DISABLED
-from opentelemetry_wrapper.instrument_decorator import instrument_decorate
+from opentelemetry_wrapper.dependencies.opentelemetry.instrument_decorator import instrument_decorate
 
 _ORIGINAL = None
 
