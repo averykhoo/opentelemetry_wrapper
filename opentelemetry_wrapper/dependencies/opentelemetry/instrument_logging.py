@@ -33,6 +33,8 @@ LOGGING_FORMAT_MINIMAL = (
     '%(message)s'
 )
 
+_CURRENT_ROOT_JSON_HANDLERS = set()
+
 
 @lru_cache  # avoid creating duplicate handlers
 def get_json_handler(*,
@@ -59,19 +61,22 @@ def get_json_handler(*,
 @instrument_decorate
 def instrument_logging(*,
                        level: int = OTEL_LOG_LEVEL,
+                       path: Optional[Path] = None,
+                       stream: Optional[TextIO] = None,
                        print_json: bool = True,
                        verbose: bool = True,
-                       force_reinstrumentation: bool = False,
                        ) -> None:
     """
     this function is (by default) idempotent; calling it multiple times has no additional side effects
 
+    :param level:
+    :param path:
+    :param stream:
     :param print_json:
     :param verbose:
-    :param force_reinstrumentation:
-    :param level:
     :return:
     """
+    global _CURRENT_ROOT_JSON_HANDLERS
 
     # no-op
     if OTEL_WRAPPER_DISABLED:
@@ -79,10 +84,7 @@ def instrument_logging(*,
 
     _instrumentor = LoggingInstrumentor()
     if _instrumentor.is_instrumented_by_opentelemetry:
-        if force_reinstrumentation:
-            _instrumentor.uninstrument()
-        else:
-            return
+        _instrumentor.uninstrument()
     _instrumentor.instrument(set_logging_format=False)
     old_factory = logging.getLogRecordFactory()
 
@@ -106,19 +108,32 @@ def instrument_logging(*,
 
     logging.setLogRecordFactory(record_factory)
 
+    # un-instrument logging root handler
+    while _CURRENT_ROOT_JSON_HANDLERS:
+        logging.root.removeHandler(_CURRENT_ROOT_JSON_HANDLERS.pop())
+
     # output as json
     if print_json:
-        # todo: take in appropriate args to specify an output (e.g. to a path or stream)
-        # todo: re-instrument correctly if args are different
-        json_handler = get_json_handler(level=level)
-        if json_handler not in logging.root.handlers:
-            logging.root.addHandler(json_handler)
-        logging.root.setLevel(level)
+        if path is not None:
+            _CURRENT_ROOT_JSON_HANDLERS.add(get_json_handler(level=level, path=path))
+        if stream is not None or path is None:
+            _CURRENT_ROOT_JSON_HANDLERS.add(get_json_handler(level=level, stream=stream))
 
-    # output as above logging string format
+    # output as text, using the templated logging string format
     else:
-        # force overwrite of logging basic config since their instrumentor doesn't do it correctly
-        logging.basicConfig(format=LOGGING_FORMAT_VERBOSE if verbose else LOGGING_FORMAT_MINIMAL,
-                            level=level,
-                            force=True,
-                            )
+        # equivalent to logging.basicConfig(format=..., level=level)
+        _formatter = logging.Formatter(fmt=LOGGING_FORMAT_VERBOSE if verbose else LOGGING_FORMAT_MINIMAL)
+
+        if path is not None:
+            _handler = logging.FileHandler(path)
+            _handler.setFormatter(_formatter)
+            _CURRENT_ROOT_JSON_HANDLERS.add(_handler)
+        if stream is not None or path is None:
+            _handler = logging.StreamHandler(stream)
+            _handler.setFormatter(_formatter)
+            _CURRENT_ROOT_JSON_HANDLERS.add(_handler)
+
+    # set root handlers
+    for _handler in _CURRENT_ROOT_JSON_HANDLERS:
+        logging.root.addHandler(_handler)
+    logging.root.setLevel(level)
