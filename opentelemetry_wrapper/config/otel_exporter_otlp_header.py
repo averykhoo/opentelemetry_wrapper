@@ -16,4 +16,8 @@ def getenv_otel_exporter_otlp_header() -> Tuple[Tuple[str, str], ...]:
             out.append((header_name, header_value))
         else:
             warnings.warn(f'invalid OTEL_EXPORTER_OTLP_HEADER key=value pair (missing "=" delimiter): "{header}"')
+
+    # despite having a type signature of Sequence[Tuple[str, str]], opentelemetry does not accept a list of tuples
+    # if you try to feed it that, it crashes on startup
+    # hence we need to convert it into a tuple instead
     return tuple(out)
