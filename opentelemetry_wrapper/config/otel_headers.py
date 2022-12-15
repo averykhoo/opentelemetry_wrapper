@@ -3,7 +3,9 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
-from opentelemetry_wrapper.config.otel_exporter_otlp_header import getenv_otel_exporter_otlp_header
+from opentelemetry_wrapper.config.otel_exporter_otlp import getenv_otel_exporter_otlp_endpoint
+from opentelemetry_wrapper.config.otel_exporter_otlp import getenv_otel_exporter_otlp_header
+from opentelemetry_wrapper.config.otel_exporter_otlp import getenv_otel_exporter_otlp_insecure
 from opentelemetry_wrapper.config.otel_header_attributes import get_header_attributes
 from opentelemetry_wrapper.config.otel_log_level import get_log_level
 from opentelemetry_wrapper.config.otel_service_name import get_default_service_name
@@ -27,9 +29,9 @@ OTEL_SERVICE_NAME: str = getenv_otel_service_name() or get_default_service_name(
 OTEL_SERVICE_NAMESPACE: Optional[str] = getenv_otel_service_namespace() or get_k8s_namespace() or None
 
 # exporting to OTLP, e.g. tempo for visualization in grafana
-OTEL_EXPORTER_OTLP_ENDPOINT: str = os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT', '').strip()
+OTEL_EXPORTER_OTLP_ENDPOINT: str = getenv_otel_exporter_otlp_endpoint()
 OTEL_EXPORTER_OTLP_HEADER: Tuple[Tuple[str, str], ...] = getenv_otel_exporter_otlp_header()
-OTEL_EXPORTER_OTLP_INSECURE: bool = os.getenv('OTEL_EXPORTER_OTLP_INSECURE', 'false').casefold().strip() == 'true'
+OTEL_EXPORTER_OTLP_INSECURE: Optional[bool] = getenv_otel_exporter_otlp_insecure()
 
 OTEL_LOG_LEVEL: int = get_log_level()
 
