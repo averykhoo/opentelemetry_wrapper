@@ -1,11 +1,9 @@
 import os
-import re
-import string
-import warnings
 from typing import List
 from typing import Optional
 from typing import Tuple
 
+from opentelemetry_wrapper.config.otel_exporter_otlp_header import getenv_otel_exporter_otlp_header
 from opentelemetry_wrapper.config.otel_header_attributes import get_header_attributes
 from opentelemetry_wrapper.config.otel_log_level import get_log_level
 from opentelemetry_wrapper.config.otel_service_name import get_default_service_name
@@ -28,21 +26,9 @@ OTEL_WRAPPER_DISABLED: bool = os.getenv('OTEL_WRAPPER_DISABLED', 'false').casefo
 OTEL_SERVICE_NAME: str = getenv_otel_service_name() or get_default_service_name() or 'unknown_service'
 OTEL_SERVICE_NAMESPACE: Optional[str] = getenv_otel_service_namespace() or get_k8s_namespace() or None
 
-# enable exporting to tempo for visualization in grafana
+# exporting to OTLP, e.g. tempo for visualization in grafana
 OTEL_EXPORTER_OTLP_ENDPOINT: str = os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT', '').strip()
-
-# headers to be passed to the OLTP endpoint
-_valid_http_header_chars = ''.join(string.printable.split()) + ' '
-_regex_http_header = re.compile(f'[{re.escape(_valid_http_header_chars)}]+')
-OTEL_EXPORTER_OTLP_HEADER: List[Tuple[str, str]] = []
-for header in _regex_http_header.findall(os.getenv('OTEL_EXPORTER_OTLP_HEADER', '')):
-    header_name, _, header_value = header.partition('=')
-    if _:
-        OTEL_EXPORTER_OTLP_HEADER.append((header_name, header_value))
-    else:
-        warnings.warn(f'invalid OTEL_EXPORTER_OTLP_HEADER key=value pair (missing "=" delimiter): "{header}"')
-
-# insecure
+OTEL_EXPORTER_OTLP_HEADER: Tuple[Tuple[str, str], ...] = getenv_otel_exporter_otlp_header()
 OTEL_EXPORTER_OTLP_INSECURE: bool = os.getenv('OTEL_EXPORTER_OTLP_INSECURE', 'false').casefold().strip() == 'true'
 
 OTEL_LOG_LEVEL: int = get_log_level()

@@ -5,6 +5,7 @@ from functools import update_wrapper
 from functools import wraps
 from pathlib import Path
 from typing import Optional
+from typing import Set
 from typing import TextIO
 
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
@@ -33,7 +34,7 @@ LOGGING_FORMAT_MINIMAL = (
     '%(message)s'
 )
 
-_CURRENT_ROOT_JSON_HANDLERS = set()
+_CURRENT_ROOT_JSON_HANDLERS: Set[logging.Handler] = set()
 
 
 @lru_cache  # avoid creating duplicate handlers
@@ -125,13 +126,13 @@ def instrument_logging(*,
         _formatter = logging.Formatter(fmt=LOGGING_FORMAT_VERBOSE if verbose else LOGGING_FORMAT_MINIMAL)
 
         if path is not None:
-            _handler = logging.FileHandler(path)
-            _handler.setFormatter(_formatter)
-            _CURRENT_ROOT_JSON_HANDLERS.add(_handler)
+            _file_handler = logging.FileHandler(path)
+            _file_handler.setFormatter(_formatter)
+            _CURRENT_ROOT_JSON_HANDLERS.add(_file_handler)
         if stream is not None or path is None:
-            _handler = logging.StreamHandler(stream)
-            _handler.setFormatter(_formatter)
-            _CURRENT_ROOT_JSON_HANDLERS.add(_handler)
+            _stream_handler = logging.StreamHandler(stream)
+            _stream_handler.setFormatter(_formatter)
+            _CURRENT_ROOT_JSON_HANDLERS.add(_stream_handler)
 
     # set root handlers
     for _handler in _CURRENT_ROOT_JSON_HANDLERS:
