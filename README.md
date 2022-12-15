@@ -20,7 +20,7 @@ a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make l
 
 ## usage
 
-> TL;DR: <br>
+> **TL;DR:** <br>
 > 1. call `instrument_all()` to instrument logging and requests
 > 2. instrument your FastAPI app using `instrument_fastapi_app(...)`
 > 3. use `@instrument_decorate` on any function or class you want to monitor
