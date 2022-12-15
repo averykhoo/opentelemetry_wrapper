@@ -11,9 +11,12 @@ REGEX_HTTP_HEADER = re.compile(f'[{re.escape(VALID_HTTP_HEADER_CHARS)}]+')
 
 def getenv_otel_exporter_otlp_endpoint() -> str:
     out = os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT', '').strip()
-    if out and '://' not in out:
+    if '://' not in out:
         warnings.warn(f'missing scheme for `OTEL_EXPORTER_OTLP_ENDPOINT`: "{out}"')
         # out = 'https://' + out  # default to https
+    if out.casefold().startswith('http://') and getenv_otel_exporter_otlp_insecure() is False:
+        warnings.warn(f'you are requesting for a secure connection to a http service. '
+                      f'this is unlikely to succeed: {out}')
     return out
 
 
