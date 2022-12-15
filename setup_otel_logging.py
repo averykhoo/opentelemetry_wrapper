@@ -49,6 +49,10 @@ if __name__ == '__main__':
             logging.info('A.e')
             return 1
 
+        @e.setter
+        def e(self, value):
+            return
+
 
     @instrument_decorate
     @lru_cache
@@ -61,5 +65,6 @@ if __name__ == '__main__':
     A().c()()
     A()()
     A().__class__
+    A().e
     A().e
     A().x
