@@ -21,9 +21,10 @@ a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make l
 ## usage
 
 > TL;DR: <br>
-> call `instrument_all()` to instrument logging and requests,
-> instrument your FastAPI app using `instrument_fastapi_app(...)` just to be sure,
-> and use `@instrument_decorate` on any function or class you want to monitor
+> 1. call `instrument_all()` to instrument logging and requests
+> 2. instrument your FastAPI app using `instrument_fastapi_app(...)`
+> 3. use `@instrument_decorate` on any function or class you want to monitor
+> 4. set `OTEL_WRAPPER_DISABLED=true` in your CICD tests, especially if you're using `pytest`
 
 ### env vars
 
