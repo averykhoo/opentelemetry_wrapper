@@ -30,6 +30,9 @@ also run the following files:
 ## todo
 
 * `with ...` instrumentation for non-callable code (e.g. settings, semi-hardcoded config)
+* use [`typer`](https://typer.tiangolo.com) to make a cli
+  * to auto-modify code in-place to instrument requests, logging, fastapi, and sqlalchemy
+  * to auto-instrument classes, dataclasses, functions
 * type-checking decorator, with warning on unmatched types
     * https://github.com/prechelt/typecheck-decorator/blob/master/README.md
     * https://stackoverflow.com/questions/36879932/python-type-checking-decorator
