@@ -1,3 +1,4 @@
+# NOTE: also update pyproject.toml
 asgiref
 fastapi
 itsdangerous
