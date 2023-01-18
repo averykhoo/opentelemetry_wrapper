@@ -29,6 +29,7 @@ also run the following files:
 
 ## todo
 
+* allow disabling the sqlalchemy integration since that can be too logging-heavy
 * `with ...` instrumentation for non-callable code (e.g. settings, semi-hardcoded config)
 * use [`typer`](https://typer.tiangolo.com) to make a cli
   * to auto-modify code in-place to instrument requests, logging, fastapi, and sqlalchemy
