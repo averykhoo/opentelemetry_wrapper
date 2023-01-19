@@ -25,7 +25,7 @@ def instrument_all():
     instrument_logging()
     instrument_fastapi()
     instrument_requests()
-    instrument_sqlalchemy()
+    # instrument_sqlalchemy()
 
 
 __all__ = (
