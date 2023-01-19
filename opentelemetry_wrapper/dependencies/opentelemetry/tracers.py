@@ -1,3 +1,4 @@
+import json
 from functools import lru_cache
 from typing import Optional
 
@@ -30,7 +31,15 @@ def init_tracer_provider():
     trace._set_tracer_provider(tp, log=False)  # try to set, but don't warn otherwise
     if trace.get_tracer_provider() is tp:  # if we succeeded in setting it, set it up
         def format_span(span: ReadableSpan) -> str:
-            return f'{span.to_json(indent=None)}\n'
+            span_json_str = span.to_json(indent=None)
+
+            # add duration in seconds
+            if span.start_time and span.end_time:
+                span_json_obj = json.loads(span_json_str)
+                span_json_obj['duration_seconds'] = span.end_time - span.start_time
+                span_json_str = json.dumps(span_json_obj, indent=None)
+
+            return f'{span_json_str}\n'
 
         tp.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter(formatter=format_span)))
 
