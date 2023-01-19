@@ -36,7 +36,7 @@ def init_tracer_provider():
             # add duration in seconds
             if span.start_time and span.end_time:
                 span_json_obj = json.loads(span_json_str)
-                span_json_obj['duration_seconds'] = span.end_time - span.start_time
+                span_json_obj['duration_nanoseconds'] = span.end_time - span.start_time
                 span_json_str = json.dumps(span_json_obj, indent=None)
 
             return f'{span_json_str}\n'
