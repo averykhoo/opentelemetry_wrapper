@@ -4,6 +4,7 @@ import string
 import warnings
 from typing import Optional
 from typing import Tuple
+from urllib.parse import urlparse
 
 VALID_HTTP_HEADER_CHARS = ''.join(string.printable.split()) + ' '
 REGEX_HTTP_HEADER = re.compile(f'[{re.escape(VALID_HTTP_HEADER_CHARS)}]+')
@@ -17,12 +18,31 @@ def getenv_otel_exporter_otlp_endpoint() -> str:
     :return: url or empty string
     """
     out = os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT', '').strip()
-    if out and '://' not in out:
+
+    # no endpoint specified
+    if not out:
+        return ''
+
+    parsed_url = urlparse(out)
+
+    # check that the url has a scheme
+    if not parsed_url.scheme:
         warnings.warn(f'missing scheme for `OTEL_EXPORTER_OTLP_ENDPOINT`: "{out}"')
-        # out = 'https://' + out  # default to https
-    if out.casefold().startswith('http://') and getenv_otel_exporter_otlp_insecure() is False:
-        warnings.warn(f'you are requesting for a secure connection to a http service. '
-                      f'this is unlikely to succeed: {out}')
+        parsed_url = urlparse(f'scheme://{out}')
+
+    # check that the url has a domain
+    if not parsed_url.hostname:
+        warnings.warn(f'missing host for `OTEL_EXPORTER_OTLP_ENDPOINT`: "{out}"')
+
+    # validate the port
+    try:
+        _ = parsed_url.port
+    except ValueError:
+        warnings.warn(f'invalid port for `OTEL_EXPORTER_OTLP_ENDPOINT`: "{out}"')
+
+    # check that security config is valid for http
+    if parsed_url.scheme.casefold() == 'http' and getenv_otel_exporter_otlp_insecure() is False:
+        warnings.warn(f'secure connection to `OTEL_EXPORTER_OTLP_ENDPOINT` likely impossible: {out}')
     return out
 
 
