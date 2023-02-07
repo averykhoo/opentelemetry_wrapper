@@ -52,21 +52,21 @@ def getenv_otel_exporter_otlp_header() -> Tuple[Tuple[str, str], ...]:
     for header in REGEX_HTTP_HEADER.findall(os.getenv('OTEL_EXPORTER_OTLP_HEADER', '')):
         header_name, _, header_value = header.partition('=')
         if not _:
-            warnings.warn(f'invalid `OTEL_EXPORTER_OTLP_HEADER` key=value pair (missing "=" delimiter): '
-                          f'"{header[5:]}..."')  # truncate in case it's sensitive
+            _header = f'"{header[:5]}..."' if len(header) > 8 else f'"{header}"'  # truncate long header pairs
+            warnings.warn(f'invalid `OTEL_EXPORTER_OTLP_HEADER` key=value pair (missing "=" delimiter): {_header}')
         elif REGEX_HTTP_HEADER_NAME.fullmatch(header_name) is None:
-            warnings.warn(f'invalid header name: {header_name}')  # value may be sensitive
+            warnings.warn(f'invalid `OTEL_EXPORTER_OTLP_HEADER` header name: {header_name}')  # value may be sensitive
         else:
             out.append((header_name, header_value))
 
             # check for duplicates, case insensitive pure ascii
             if header_name.lower() in seen:
-                warnings.warn(f'duplicate header {header_name}')
+                warnings.warn(f'duplicate `OTEL_EXPORTER_OTLP_HEADER` header name {header_name}')
             seen.add(header_name.lower())
 
     # despite having a type signature of Sequence[Tuple[str, str]], opentelemetry does not accept a list of tuples
     # if you try to feed it that, it crashes on startup
-    # hence we need to convert it into a tuple instead
+    # hence we need to convert it into a tuple of tuples instead
     return tuple(out)
 
 
