@@ -3,7 +3,6 @@ import re
 from functools import lru_cache
 from typing import List
 
-# todo: make this configurable
 # todo: don't hardcode this because it's not nice to do that to random people trying out a published library
 _DEFAULT_HEADER_ATTRIBUTES = [
     # 'user-agent',

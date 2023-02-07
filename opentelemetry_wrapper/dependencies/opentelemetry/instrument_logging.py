@@ -25,15 +25,6 @@ LOGGING_FORMAT_VERBOSE = (
     '- %(message)s'
 )
 
-# in the short format, write it as a [traceparent header](https://www.w3.org/TR/trace-context/#traceparent-header)
-LOGGING_FORMAT_MINIMAL = (
-    '%(levelname)-8s '
-    '%(otelServiceName)s '
-    '[00-%(otelTraceID)s-%(otelSpanID)s-01] '
-    '[%(name)s:%(module)s:%(funcName)s] '
-    '%(message)s'
-)
-
 _CURRENT_ROOT_JSON_HANDLERS: Set[logging.Handler] = set()
 
 
@@ -65,7 +56,6 @@ def instrument_logging(*,
                        path: Optional[Path] = None,
                        stream: Optional[TextIO] = None,
                        print_json: bool = True,
-                       verbose: bool = True,
                        ) -> None:
     """
     this function is (by default) idempotent; calling it multiple times has no additional side effects
@@ -123,7 +113,7 @@ def instrument_logging(*,
     # output as text, using the templated logging string format
     else:
         # equivalent to logging.basicConfig(format=..., level=level)
-        _formatter = logging.Formatter(fmt=LOGGING_FORMAT_VERBOSE if verbose else LOGGING_FORMAT_MINIMAL)
+        _formatter = logging.Formatter(fmt=LOGGING_FORMAT_VERBOSE)
 
         if path is not None:
             _file_handler = logging.FileHandler(path)

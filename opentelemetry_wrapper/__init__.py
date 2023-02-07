@@ -15,17 +15,27 @@ from opentelemetry_wrapper.dependencies.opentelemetry.instrument_sqlalchemy impo
 
 
 @instrument_decorate
-def instrument_all():
+def instrument_all(dataclasses: bool = True,
+                   logging: bool = True,
+                   fastapi: bool = True,
+                   requests: bool = True,
+                   sqlalchemy: bool = False,  # too noisy for a default
+                   log_json: bool = True,
+                   ):
     # no-op
     if OTEL_WRAPPER_DISABLED:
         return
 
-    # todo: accept kwargs to disable/enable some of these
-    instrument_dataclasses()
-    instrument_logging()
-    instrument_fastapi()
-    instrument_requests()
-    # instrument_sqlalchemy()
+    if dataclasses:
+        instrument_dataclasses()
+    if logging:
+        instrument_logging(print_json=log_json)
+    if fastapi:
+        instrument_fastapi()
+    if requests:
+        instrument_requests()
+    if sqlalchemy:
+        instrument_sqlalchemy()
 
 
 __all__ = (
