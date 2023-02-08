@@ -6,6 +6,7 @@ flake8 --max-line-length 119 ./opentelemetry_wrapper/
 
 pip install sqlalchemy2-stubs
 pip install mypy
+mypy --install-types
 mypy ./opentelemetry_wrapper/
 ```
 
@@ -14,6 +15,7 @@ also run the following files:
 * experiment_otel_logging.py
 * fastapi_main.py
 * setup_otel_logging.py
+* sqlalchemy_example.py
 
 ## publishing (notes for myself)
 
