@@ -6,6 +6,7 @@ from starlette.types import Scope
 from opentelemetry_wrapper.config.otel_headers import OTEL_HEADER_ATTRIBUTES
 from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
 from opentelemetry_wrapper.dependencies.fastapi.fastapi_typedef import FastApiType
+from opentelemetry_wrapper.dependencies.fastapi.fastapi_typedef import is_fastapi_app
 from opentelemetry_wrapper.dependencies.opentelemetry.instrument_decorator import instrument_decorate
 
 
@@ -33,11 +34,19 @@ def instrument_fastapi_app(app: FastApiType) -> FastApiType:
     if OTEL_WRAPPER_DISABLED:
         return app
 
-    if not getattr(app, '_is_instrumented_by_opentelemetry', None):
-        FastAPIInstrumentor.instrument_app(app,
-                                           server_request_hook=request_hook,
-                                           client_request_hook=request_hook,
-                                           )
+    # ensure it's an actual app
+    if not is_fastapi_app(app):
+        return app
+
+    # avoid double instrumentation
+    if getattr(app, '_is_instrumented_by_opentelemetry', None):
+        return app
+
+    # instrument the app
+    FastAPIInstrumentor.instrument_app(app,
+                                       server_request_hook=request_hook,
+                                       client_request_hook=request_hook,
+                                       )
     return app
 
 

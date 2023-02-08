@@ -1,21 +1,31 @@
+from typing import Any
 from typing import TypeVar
 
 try:
     from sqlalchemy.engine import Engine as LegacyEngine
-except ImportError:
-    # ignore mypy here since we're only using this as a typedef
-    from typing import Any as LegacyEngine  # type: ignore[assignment]
-
-try:
     from sqlalchemy.ext.asyncio import AsyncEngine
-except ImportError:
-    # ignore mypy here since we're only using this as a typedef
-    from typing import Any as AsyncEngine  # type: ignore[assignment]
-
-try:
     from sqlalchemy.future import Engine as FutureEngine
+
+
+    def is_sqlalchemy_engine(item: Any) -> bool:
+        return isinstance(item, (LegacyEngine, AsyncEngine, FutureEngine))
+
+
+    def is_sqlalchemy_sync_engine(item: Any) -> bool:
+        return isinstance(item, (LegacyEngine, FutureEngine))
+
+
+    def is_sqlalchemy_async_engine(item: Any) -> bool:
+        # noinspection PyTypeHints
+        return isinstance(item, AsyncEngine)
+
 except ImportError:
-    # ignore mypy here since we're only using this as a typedef
-    from typing import Any as FutureEngine  # type: ignore[assignment]
+    def is_sqlalchemy_engine(item: Any) -> bool:
+        return False
+
+
+    LegacyEngine = Any
+    AsyncEngine = Any
+    FutureEngine = Any
 
 AnyEngine = TypeVar('AnyEngine', LegacyEngine, FutureEngine, AsyncEngine)
