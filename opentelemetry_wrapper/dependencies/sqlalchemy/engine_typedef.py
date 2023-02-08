@@ -21,6 +21,7 @@ try:
         return isinstance(item, AsyncEngine)
 
 except ImportError:
+    # noinspection PyUnusedLocal
     def is_sqlalchemy_engine(item: Any) -> bool:
         return False
 

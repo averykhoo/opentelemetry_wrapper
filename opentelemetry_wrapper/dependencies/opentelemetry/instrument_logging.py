@@ -15,7 +15,7 @@ from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
 from opentelemetry_wrapper.dependencies.opentelemetry.instrument_decorator import instrument_decorate
 from opentelemetry_wrapper.utils.logging_json_formatter import JsonFormatter
 
-# write IDs as 0xBEEF instead of BEEF so it matches the trace json exactly
+# write IDs as 0xBEEF instead of BEEF, so it matches the trace json exactly
 LOGGING_FORMAT_VERBOSE = (
     '%(asctime)s '
     '%(levelname)-8s '
@@ -64,7 +64,6 @@ def instrument_logging(*,
     :param path:
     :param stream:
     :param print_json:
-    :param verbose:
     :return:
     """
     global _CURRENT_ROOT_JSON_HANDLERS
@@ -90,7 +89,7 @@ def instrument_logging(*,
         record = old_factory(*args, **kwargs)
 
         # we want the trace-id and span-id in a log to match the span it was created in
-        # so we format it to match
+        # therefore we format it to match
         # note that logs outside a span will be assigned an invalid trace-id and span-id (all zeroes)
         record.otelTraceID = f'0x{int(record.otelTraceID, 16):032x}'
         record.otelSpanID = f'0x{int(record.otelSpanID, 16):016x}'

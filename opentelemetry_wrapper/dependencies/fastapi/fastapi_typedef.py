@@ -13,6 +13,7 @@ try:
     FastApiType = FastAPI
 
 except ImportError:
+    # noinspection PyUnusedLocal
     def is_fastapi_app(item: Any) -> bool:
         return False
 
