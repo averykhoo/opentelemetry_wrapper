@@ -16,5 +16,6 @@ if __name__ == '__main__':
 
     conn = engine.connect()
 
+    # noinspection SqlDialectInspection,SqlNoDataSourceInspection
     exe = conn.execute('SELECT * FROM sqlite_master')
     assert exe.fetchmany() == []
