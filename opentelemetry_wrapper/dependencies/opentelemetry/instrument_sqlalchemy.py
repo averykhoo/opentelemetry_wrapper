@@ -7,9 +7,9 @@ from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from opentelemetry_wrapper import instrument_decorate
 from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
 from opentelemetry_wrapper.dependencies.sqlalchemy.engine_typedef import AnyEngine
-from opentelemetry_wrapper.dependencies.sqlalchemy.engine_typedef import AsyncEngine
-from opentelemetry_wrapper.dependencies.sqlalchemy.engine_typedef import FutureEngine
-from opentelemetry_wrapper.dependencies.sqlalchemy.engine_typedef import LegacyEngine
+from opentelemetry_wrapper.dependencies.sqlalchemy.engine_typedef import is_sqlalchemy_async_engine
+from opentelemetry_wrapper.dependencies.sqlalchemy.engine_typedef import is_sqlalchemy_engine
+from opentelemetry_wrapper.dependencies.sqlalchemy.engine_typedef import is_sqlalchemy_sync_engine
 
 _CACHE_INSTRUMENTED: Dict[int, EngineTracer] = dict()
 
@@ -39,18 +39,24 @@ def instrument_sqlalchemy_engine(engine: AnyEngine,
     if OTEL_WRAPPER_DISABLED:
         return engine
 
+    # ensure it's actually an engine
+    if not is_sqlalchemy_engine(engine):
+        return engine
+
     # avoid double-instrumentation
     _id = id(engine)
     if _id in _CACHE_INSTRUMENTED:
         return engine
 
-    if isinstance(engine, (LegacyEngine, FutureEngine)):
+    # unwrap async engine
+    if is_sqlalchemy_sync_engine(engine):
         _engine = engine
-    elif isinstance(engine, AsyncEngine) or hasattr(engine, 'sync_engine'):
-        _engine = engine.sync_engine
+    elif is_sqlalchemy_async_engine(engine) or hasattr(engine, 'sync_engine'):
+        _engine = engine.sync_engine  # type: ignore[assignment,attr-defined]
     else:
         _engine = engine
 
+    # instrument engine
     if commenter_options is None:
         _CACHE_INSTRUMENTED[_id] = SQLAlchemyInstrumentor().instrument(engine=_engine,
                                                                        enable_commenter=enable_commenter)
