@@ -8,16 +8,7 @@ try:
     def is_fastapi_app(item: Any) -> bool:  # noqa: E303
         return isinstance(item, FastAPI)
 
-
-    # noqa: E303
-    FastApiType = FastAPI
-
 except ImportError:
     # noinspection PyUnusedLocal
     def is_fastapi_app(item: Any) -> bool:
         return False
-
-
-    # noqa: E303
-    # ignore mypy here since we're only using this as a typedef
-    FastApiType = Any  # type: ignore[assignment,misc]

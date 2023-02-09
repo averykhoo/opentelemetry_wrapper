@@ -1,3 +1,5 @@
+from typing import TypeVar
+
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.trace import Span
 from starlette.datastructures import Headers
@@ -5,9 +7,10 @@ from starlette.types import Scope
 
 from opentelemetry_wrapper.config.otel_headers import OTEL_HEADER_ATTRIBUTES
 from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
-from opentelemetry_wrapper.dependencies.fastapi.fastapi_typedef import FastApiType
 from opentelemetry_wrapper.dependencies.fastapi.fastapi_typedef import is_fastapi_app
 from opentelemetry_wrapper.dependencies.opentelemetry.instrument_decorator import instrument_decorate
+
+FastApiType = TypeVar('FastApiType', bound=type)
 
 
 def request_hook(span: Span, scope: Scope) -> None:
@@ -23,7 +26,7 @@ def request_hook(span: Span, scope: Scope) -> None:
 
 
 @instrument_decorate
-def instrument_fastapi_app(app: FastApiType) -> FastApiType:
+def instrument_fastapi_app(app):
     """
     instrument a FastAPI app
     also instruments logging and requests (if requests exists)

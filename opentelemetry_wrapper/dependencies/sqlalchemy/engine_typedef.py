@@ -1,5 +1,4 @@
 from typing import Any
-from typing import TypeVar
 
 # note: ignore E303 too many blank lines since flak8 disagrees with pycharm
 try:
@@ -30,5 +29,3 @@ except ImportError:
     LegacyEngine = Any  # type: ignore[assignment,misc]
     AsyncEngine = Any  # type: ignore[assignment,misc]
     FutureEngine = Any  # type: ignore[assignment,misc]
-
-AnyEngine = TypeVar('AnyEngine', LegacyEngine, FutureEngine, AsyncEngine)

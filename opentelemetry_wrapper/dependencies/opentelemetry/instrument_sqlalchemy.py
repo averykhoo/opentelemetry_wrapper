@@ -1,24 +1,26 @@
 from typing import Dict
 from typing import Optional
+from typing import TypeVar
 
 from opentelemetry.instrumentation.sqlalchemy import EngineTracer
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 
 from opentelemetry_wrapper import instrument_decorate
 from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
-from opentelemetry_wrapper.dependencies.sqlalchemy.engine_typedef import AnyEngine
 from opentelemetry_wrapper.dependencies.sqlalchemy.engine_typedef import is_sqlalchemy_async_engine
 from opentelemetry_wrapper.dependencies.sqlalchemy.engine_typedef import is_sqlalchemy_engine
 from opentelemetry_wrapper.dependencies.sqlalchemy.engine_typedef import is_sqlalchemy_sync_engine
+
+SqlAlchemyEngineType = TypeVar('SqlAlchemyEngineType', bound=type)
 
 _CACHE_INSTRUMENTED: Dict[int, EngineTracer] = dict()
 
 
 @instrument_decorate
-def instrument_sqlalchemy_engine(engine: AnyEngine,
+def instrument_sqlalchemy_engine(engine: SqlAlchemyEngineType,
                                  enable_commenter: bool = True,
                                  commenter_options: Optional[Dict[str, bool]] = None,
-                                 ) -> AnyEngine:
+                                 ) -> SqlAlchemyEngineType:
     """
     instrument an SQLAlchemy engine or async engine
     see: https://opentelemetry-python-contrib.readthedocs.io/en/latest/instrumentation/sqlalchemy/sqlalchemy.html
