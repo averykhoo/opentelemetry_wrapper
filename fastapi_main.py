@@ -1,6 +1,8 @@
 import datetime
 import inspect
 import logging
+from typing import Callable
+
 import requests
 import uvicorn
 from fastapi import FastAPI
@@ -10,7 +12,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
-from typing import Callable
 
 from opentelemetry_wrapper import instrument_all
 
