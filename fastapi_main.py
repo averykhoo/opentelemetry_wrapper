@@ -68,9 +68,9 @@ if __name__ == '__main__':
     uvicorn.run(f'{inspect.getmodulename(__file__)}:app',
                 host='localhost',
                 port=8000,
-                reload=True,
+                # reload=True,
                 access_log=True,
-                # workers=2,  # not valid with reload=True
+                workers=2,  # not valid with reload=True
                 # proxy_headers=True,  # github.com/encode/uvicorn/blob/master/uvicorn/middleware/proxy_headers.py
                 limit_concurrency=128,
                 )
