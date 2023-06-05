@@ -28,9 +28,10 @@ also run the following files:
     * `flit publish`
     * update `~/.pypirc` with additional line `password = <...>`
 
-
 ## todo
 
+* `OTEL_HEADER_ATTRIBUTES` behaves too much like `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`
+    * consider removing it?
 * `with ...` instrumentation for non-callable code (e.g. settings, semi-hardcoded config)
 * type-checking decorator, with warning on unmatched types
     * https://github.com/prechelt/typecheck-decorator/blob/master/README.md
@@ -48,3 +49,4 @@ also run the following files:
     * Request Error Duration metrics can be calculated from spans
 * builtin `tracemalloc` can be used locate the source file and line number of a function, if started early enough
 * somehow mark function as do-not-instrument, for extremely spammy functions? or specify a sampling ratio?
+* add a (regex-based?) sanitizer to erase strings/patterns from log output
