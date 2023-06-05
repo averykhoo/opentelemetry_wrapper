@@ -8,6 +8,8 @@ from urllib.parse import urlparse
 
 VALID_HTTP_HEADER_CHARS = ''.join(string.printable.split()) + ' '
 REGEX_HTTP_HEADER = re.compile(f'[{re.escape(VALID_HTTP_HEADER_CHARS)}]+')
+
+# https://developers.cloudflare.com/rules/transform/request-header-modification/reference/header-format/
 VALID_HTTP_HEADER_NAME_CHARS = string.digits + string.ascii_letters + '-_'
 REGEX_HTTP_HEADER_NAME = re.compile(f'[{re.escape(VALID_HTTP_HEADER_NAME_CHARS)}]+')
 
