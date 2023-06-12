@@ -48,5 +48,8 @@ also run the following files:
     * https://psutil.readthedocs.io/en/latest/
     * Request Error Duration metrics can be calculated from spans
 * builtin `tracemalloc` can be used locate the source file and line number of a function, if started early enough
+  * check for the [`PYTHONTRACEMALLOC`](https://docs.python.org/3/using/cmdline.html#envvar-PYTHONTRACEMALLOC) var?
 * somehow mark function as do-not-instrument, for extremely spammy functions? or specify a sampling ratio?
 * add a (regex-based?) sanitizer to erase strings/patterns from log output
+* print config at startup? at least print the version?
+  * or maybe print a json string with all the (non-sensitive) config?
