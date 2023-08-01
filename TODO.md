@@ -30,6 +30,10 @@ also run the following files:
 
 ## todo
 
+* update [introspect.py](./opentelemetry_wrapper/utils/introspect.py) for pep 626
+    * The f_lineno attribute of frame objects will always contain the expected line number.
+    * The co_lnotab attribute of code objects is deprecated and will be removed in 3.12. 
+    * Code that needs to convert from offset to line number should use the new co_lines() method instead.
 * `OTEL_HEADER_ATTRIBUTES` behaves too much like `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`
     * consider removing it?
 * `with ...` instrumentation for non-callable code (e.g. settings, semi-hardcoded config)
@@ -48,8 +52,8 @@ also run the following files:
     * https://psutil.readthedocs.io/en/latest/
     * Request Error Duration metrics can be calculated from spans
 * builtin `tracemalloc` can be used locate the source file and line number of a function, if started early enough
-  * check for the [`PYTHONTRACEMALLOC`](https://docs.python.org/3/using/cmdline.html#envvar-PYTHONTRACEMALLOC) var?
+    * check for the [`PYTHONTRACEMALLOC`](https://docs.python.org/3/using/cmdline.html#envvar-PYTHONTRACEMALLOC) var?
 * somehow mark function as do-not-instrument, for extremely spammy functions? or specify a sampling ratio?
 * add a (regex-based?) sanitizer to erase strings/patterns from log output
 * print config at startup? at least print the version?
-  * or maybe print a json string with all the (non-sensitive) config?
+    * or maybe print a json string with all the (non-sensitive) config?
