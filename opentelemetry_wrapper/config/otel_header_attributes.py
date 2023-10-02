@@ -5,11 +5,11 @@ from typing import List
 
 # todo: don't hardcode this because it's not nice to do that to random people trying out a published library
 _DEFAULT_HEADER_ATTRIBUTES = [
+    # headers set by the user's browser
     # 'user-agent',
     # 'cookie',
 
-    # headers set in cookiecutter's OPA file
-    'x-pf-number',
+    # headers set by OPA policy
     'x-client-id',
     'x-preferred-username',
     # 'x-full-name',
@@ -21,7 +21,7 @@ _DEFAULT_HEADER_ATTRIBUTES = [
 
     # headers set by Kong
     # 'authorization',
-    # 'x-userinfo',
+    'x-userinfo',
     # 'x-request-id',
 
     #  headers set by K8s
