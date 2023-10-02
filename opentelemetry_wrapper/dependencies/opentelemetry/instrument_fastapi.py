@@ -40,7 +40,7 @@ def request_hook(span: Span, scope: Scope) -> None:
                 if isinstance(v, (bool, str, bytes, int, float)):
                     span.set_attribute(f'{header_name}:{k}', v)
                 else:
-                    span.set_attribute(f'{header_name}:{k}', json.dumps(v, ensure_ascii=False))
+                    span.set_attribute(f'{header_name}:{k}', json.dumps(v, ensure_ascii=True))
 
             # if we extracted this header's data then we don't need to add the actual header anymore
             if _header_data:
