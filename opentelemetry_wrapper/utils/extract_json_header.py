@@ -41,7 +41,7 @@ def extract_json_header(header_value: str) -> Optional[Dict[str, Union[bool, str
     return None
 
 
-@lru_cache(maxsize=0xFF)
+@lru_cache(maxsize=0x1000)
 def _extract_userinfo(header_value: str) -> Optional[Dict[str, Union[bool, str, bytes, int, float]]]:
     # cache userinfo tokens since they usually don't change
     try:
