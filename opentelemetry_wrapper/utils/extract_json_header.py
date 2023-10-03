@@ -25,6 +25,8 @@ def extract_json_header(header_value: str) -> Optional[Dict[str, Union[bool, str
         # json handling
         if header_value.startswith('{') and header_value.endswith('}'):
             return _extract_json(header_value)
+        if header_value.startswith('[') and header_value.endswith(']'):
+            return _extract_json(header_value)
 
     except Exception:
         pass
@@ -50,15 +52,21 @@ def _extract_json(header_value: Union[str, bytes]) -> Optional[Dict[str, Union[b
     stack = [(None, json.loads(header_value))]
     while stack:
         node_name, node = stack.pop()
-        for k, v in node.items():
-            child_node_name = f'{node_name}.{k}' if node_name else k
-            if isinstance(v, (bool, str, bytes, int, float)):  # exclude None
-                out[child_node_name] = v
-            elif isinstance(v, dict):
-                stack.append((child_node_name, v))
-            elif isinstance(v, list):
-                # todo: consider expanding the list using "list[n]" notation for the keys?
-                out[k] = json.dumps(v, ensure_ascii=True)
+        if isinstance(node, dict):
+            for k, v in node.items():
+                child_node_name = f'{node_name}.{k}' if node_name else k
+                if isinstance(v, (bool, str, bytes, int, float)):  # exclude None
+                    out[child_node_name] = v
+                elif isinstance(v, (dict, list)):
+                    stack.append((child_node_name, v))
+        elif isinstance(node, list):
+            for k, v in enumerate(node):
+                child_node_name = f'{node_name}.[{k}]' if node_name else f'[{k}]'
+                if isinstance(v, (bool, str, bytes, int, float)):  # exclude None
+                    out[child_node_name] = v
+                elif isinstance(v, (dict, list)):
+                    stack.append((child_node_name, v))
+
     return out
 
 
