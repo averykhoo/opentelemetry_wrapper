@@ -16,6 +16,11 @@ def extract_json_header(header_value: str) -> Optional[Dict[str, Union[bool, str
 
         # userinfo detection and handling
         if header_value.startswith('ey'):  # likely base-64 encoded json, decoded string starts with "{
+            # todo: test other fast filters for JWT-like content
+            # '.ey' in header_value
+            # '.' in set(header_value)
+            # [use a predefined set] set('.').issubset(set(header_value))
+            # [use a precompiled regex] re.compile(r'\.').match(header_value)
             if '.' in header_value:
                 return None  # probably a JWT
             _header_value = header_value.rstrip('=')
