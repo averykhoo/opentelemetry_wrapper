@@ -20,6 +20,7 @@ def extract_json_header(header_value: str) -> Optional[Dict[str, Union[bool, str
             # '.ey' in header_value
             # '.' in set(header_value)
             # [use a predefined set] set('.').issubset(set(header_value))
+            # [use a predefined set] set(header_value).issubset(set(base64_chars))
             # [use a precompiled regex] re.compile(r'\.').match(header_value)
             if '.' in header_value:
                 return None  # probably a JWT
