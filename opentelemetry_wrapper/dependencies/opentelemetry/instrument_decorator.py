@@ -20,7 +20,7 @@ from opentelemetry_wrapper.utils.introspect import CodeInfo
 
 _TRACER = get_tracer(__name__, __version__)
 
-InstrumentableThing = TypeVar('InstrumentableThing', Callable, Coroutine, type, 'class')
+InstrumentableThing = TypeVar('InstrumentableThing', Callable, Coroutine, type)
 
 _CACHE_INSTRUMENTED: Dict[InstrumentableThing, Optional[InstrumentableThing]] = dict()  # type: ignore[valid-type]
 _CACHE_GETATTRIBUTE: Dict[InstrumentableThing, InstrumentableThing] = dict()  # type: ignore[valid-type]
