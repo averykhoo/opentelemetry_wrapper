@@ -31,6 +31,7 @@ def init_tracer_provider():
     trace._set_tracer_provider(tp, log=False)  # try to set, but don't warn otherwise
     if trace.get_tracer_provider() is tp:  # if we succeeded in setting it, set it up
         def format_span(span: ReadableSpan) -> str:
+            # noinspection PyTypeChecker
             span_json_str = span.to_json(indent=None)
 
             # add duration in seconds
