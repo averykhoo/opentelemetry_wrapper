@@ -2,8 +2,12 @@ import json
 from functools import lru_cache
 from typing import Optional
 
+from opentelemetry import metrics
 from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.resources import SERVICE_NAME
 from opentelemetry.sdk.resources import SERVICE_NAMESPACE
@@ -20,12 +24,18 @@ from opentelemetry_wrapper.config.otel_headers import OTEL_SERVICE_NAMESPACE
 
 
 @lru_cache  # only run once
-def init_tracer_provider():
+def get_otel_resource():
     if OTEL_SERVICE_NAMESPACE:
-        tp = TracerProvider(resource=Resource.create({SERVICE_NAME:      OTEL_SERVICE_NAME,
-                                                      SERVICE_NAMESPACE: OTEL_SERVICE_NAMESPACE}))
+        return Resource.create({SERVICE_NAME:      OTEL_SERVICE_NAME,
+                                SERVICE_NAMESPACE: OTEL_SERVICE_NAMESPACE})
     else:
-        tp = TracerProvider(resource=Resource.create({SERVICE_NAME: OTEL_SERVICE_NAME}))
+        return Resource.create({SERVICE_NAME: OTEL_SERVICE_NAME})
+
+
+@lru_cache  # only run once
+def init_tracer_provider():
+    # based on https://opentelemetry.io/docs/languages/python/exporters/#usage
+    tp = TracerProvider(resource=get_otel_resource())
 
     # noinspection PyProtectedMember
     trace._set_tracer_provider(tp, log=False)  # try to set, but don't warn otherwise
@@ -56,3 +66,18 @@ def get_tracer(instrumenting_module_name: str,
     init_tracer_provider()
     return trace.get_tracer(instrumenting_module_name=instrumenting_module_name,
                             instrumenting_library_version=instrumenting_library_version)
+
+
+@lru_cache  # only run once
+def init_meter_provider():
+    # based on https://opentelemetry.io/docs/languages/python/exporters/#usage
+
+    if OTEL_EXPORTER_OTLP_ENDPOINT:
+        reader = PeriodicExportingMetricReader(OTLPMetricExporter(endpoint=OTEL_EXPORTER_OTLP_ENDPOINT,
+                                                                  headers=OTEL_EXPORTER_OTLP_HEADER,
+                                                                  insecure=OTEL_EXPORTER_OTLP_INSECURE))
+        mp = MeterProvider(resource=get_otel_resource(),
+                           metric_readers=[reader])
+
+        # noinspection PyUnresolvedReferences,PyProtectedMember
+        metrics._set_meter_provider(mp, log=False)  # try to set, but don't warn otherwise

@@ -7,6 +7,7 @@ from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 
 from opentelemetry_wrapper import instrument_decorate
 from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
+from opentelemetry_wrapper.dependencies.opentelemetry.tracers import init_meter_provider
 from opentelemetry_wrapper.dependencies.sqlalchemy.engine_typedef import is_sqlalchemy_async_engine
 from opentelemetry_wrapper.dependencies.sqlalchemy.engine_typedef import is_sqlalchemy_engine
 from opentelemetry_wrapper.dependencies.sqlalchemy.engine_typedef import is_sqlalchemy_sync_engine
@@ -79,6 +80,9 @@ def instrument_sqlalchemy() -> None:
     # no-op
     if OTEL_WRAPPER_DISABLED:
         return
+
+    # init metrics
+    init_meter_provider()
 
     _instrumentor = SQLAlchemyInstrumentor()  # assume this is a singleton
     if not _instrumentor.is_instrumented_by_opentelemetry:

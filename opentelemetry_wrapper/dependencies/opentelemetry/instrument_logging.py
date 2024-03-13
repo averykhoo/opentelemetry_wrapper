@@ -13,18 +13,14 @@ from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.sdk._logs import LoggerProvider
 from opentelemetry.sdk._logs import LoggingHandler
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
-from opentelemetry.sdk.resources import Resource
-from opentelemetry.sdk.resources import SERVICE_NAME
-from opentelemetry.sdk.resources import SERVICE_NAMESPACE
 
 from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_ENDPOINT
 from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_HEADER
 from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_INSECURE
 from opentelemetry_wrapper.config.otel_headers import OTEL_LOG_LEVEL
-from opentelemetry_wrapper.config.otel_headers import OTEL_SERVICE_NAME
-from opentelemetry_wrapper.config.otel_headers import OTEL_SERVICE_NAMESPACE
 from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
 from opentelemetry_wrapper.dependencies.opentelemetry.instrument_decorator import instrument_decorate
+from opentelemetry_wrapper.dependencies.opentelemetry.tracers import get_otel_resource
 from opentelemetry_wrapper.utils.logging_json_formatter import JsonFormatter
 
 # write IDs as 0xBEEF instead of BEEF, so it matches the trace json exactly
@@ -44,17 +40,12 @@ _CURRENT_ROOT_JSON_HANDLERS: Set[logging.Handler] = set()
 def get_otel_log_handler(*,
                          level: int = OTEL_LOG_LEVEL,
                          ) -> LoggingHandler:
-    if OTEL_SERVICE_NAMESPACE:
-        lp = LoggerProvider(resource=Resource.create({SERVICE_NAME:      OTEL_SERVICE_NAME,
-                                                      SERVICE_NAMESPACE: OTEL_SERVICE_NAMESPACE}))
-    else:
-        lp = LoggerProvider(resource=Resource.create({SERVICE_NAME: OTEL_SERVICE_NAME}))
-
+    # based on https://github.com/mhausenblas/ref.otel.help/blob/main/how-to/logs-collection/yoda/main.py
+    lp = LoggerProvider(resource=get_otel_resource())
     if OTEL_EXPORTER_OTLP_ENDPOINT:
         lp.add_log_record_processor(BatchLogRecordProcessor(OTLPLogExporter(endpoint=OTEL_EXPORTER_OTLP_ENDPOINT,
                                                                             headers=OTEL_EXPORTER_OTLP_HEADER,
                                                                             insecure=OTEL_EXPORTER_OTLP_INSECURE)))
-
     return LoggingHandler(level=level, logger_provider=lp)
 
 
