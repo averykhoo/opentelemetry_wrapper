@@ -15,7 +15,7 @@ from opentelemetry.trace import StatusCode
 
 from opentelemetry_wrapper import __version__  # don't worry, this does not create an infinite import loop
 from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
-from opentelemetry_wrapper.dependencies.opentelemetry.tracers import get_tracer
+from opentelemetry_wrapper.dependencies.opentelemetry.otel_providers import get_tracer
 from opentelemetry_wrapper.utils.introspect import CodeInfo
 
 _TRACER = get_tracer(__name__, __version__)

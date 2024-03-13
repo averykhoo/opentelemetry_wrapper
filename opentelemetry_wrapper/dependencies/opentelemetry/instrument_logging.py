@@ -8,19 +8,13 @@ from typing import Optional
 from typing import Set
 from typing import TextIO
 
-from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
-from opentelemetry.sdk._logs import LoggerProvider
-from opentelemetry.sdk._logs import LoggingHandler
-from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 
 from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_ENDPOINT
-from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_HEADER
-from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_INSECURE
 from opentelemetry_wrapper.config.otel_headers import OTEL_LOG_LEVEL
 from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
 from opentelemetry_wrapper.dependencies.opentelemetry.instrument_decorator import instrument_decorate
-from opentelemetry_wrapper.dependencies.opentelemetry.tracers import get_otel_resource
+from opentelemetry_wrapper.dependencies.opentelemetry.otel_providers import get_otel_log_handler
 from opentelemetry_wrapper.utils.logging_json_formatter import JsonFormatter
 
 # write IDs as 0xBEEF instead of BEEF, so it matches the trace json exactly
@@ -34,19 +28,6 @@ LOGGING_FORMAT_VERBOSE = (
 )
 
 _CURRENT_ROOT_JSON_HANDLERS: Set[logging.Handler] = set()
-
-
-@lru_cache  # only run once
-def get_otel_log_handler(*,
-                         level: int = OTEL_LOG_LEVEL,
-                         ) -> LoggingHandler:
-    # based on https://github.com/mhausenblas/ref.otel.help/blob/main/how-to/logs-collection/yoda/main.py
-    lp = LoggerProvider(resource=get_otel_resource())
-    if OTEL_EXPORTER_OTLP_ENDPOINT:
-        lp.add_log_record_processor(BatchLogRecordProcessor(OTLPLogExporter(endpoint=OTEL_EXPORTER_OTLP_ENDPOINT,
-                                                                            headers=OTEL_EXPORTER_OTLP_HEADER,
-                                                                            insecure=OTEL_EXPORTER_OTLP_INSECURE)))
-    return LoggingHandler(level=level, logger_provider=lp)
 
 
 @lru_cache  # avoid creating duplicate handlers

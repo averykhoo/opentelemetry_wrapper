@@ -6,7 +6,7 @@ from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
 from opentelemetry_wrapper.dependencies.fastapi.fastapi_typedef import is_fastapi_app
 from opentelemetry_wrapper.dependencies.fastapi.starlette_request_hook import request_hook
 from opentelemetry_wrapper.dependencies.opentelemetry.instrument_decorator import instrument_decorate
-from opentelemetry_wrapper.dependencies.opentelemetry.tracers import init_meter_provider
+from opentelemetry_wrapper.dependencies.opentelemetry.otel_providers import init_meter_provider
 
 FastApiType = TypeVar('FastApiType', bound=type)
 

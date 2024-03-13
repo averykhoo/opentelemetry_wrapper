@@ -1,11 +1,17 @@
 import json
+import logging
 from functools import lru_cache
 from typing import Optional
+from typing import Set
 
 from opentelemetry import metrics
 from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk._logs import LoggerProvider
+from opentelemetry.sdk._logs import LoggingHandler
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
@@ -19,6 +25,7 @@ from opentelemetry.sdk.trace.export import ConsoleSpanExporter
 from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_ENDPOINT
 from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_HEADER
 from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_INSECURE
+from opentelemetry_wrapper.config.otel_headers import OTEL_LOG_LEVEL
 from opentelemetry_wrapper.config.otel_headers import OTEL_SERVICE_NAME
 from opentelemetry_wrapper.config.otel_headers import OTEL_SERVICE_NAMESPACE
 
@@ -81,3 +88,29 @@ def init_meter_provider():
 
         # noinspection PyUnresolvedReferences,PyProtectedMember
         metrics._set_meter_provider(mp, log=False)  # try to set, but don't warn otherwise
+
+
+# write IDs as 0xBEEF instead of BEEF, so it matches the trace json exactly
+LOGGING_FORMAT_VERBOSE = (
+    '%(asctime)s '
+    '%(levelname)-8s '
+    '[%(name)s] '
+    '[%(filename)s:%(funcName)s:%(lineno)d] '
+    '[trace_id=0x%(otelTraceID)s span_id=0x%(otelSpanID)s resource.service.name=%(otelServiceName)s] '
+    '- %(message)s'
+)
+
+_CURRENT_ROOT_JSON_HANDLERS: Set[logging.Handler] = set()
+
+
+@lru_cache  # only run once
+def get_otel_log_handler(*,
+                         level: int = OTEL_LOG_LEVEL,
+                         ) -> LoggingHandler:
+    # based on https://github.com/mhausenblas/ref.otel.help/blob/main/how-to/logs-collection/yoda/main.py
+    lp = LoggerProvider(resource=get_otel_resource())
+    if OTEL_EXPORTER_OTLP_ENDPOINT:
+        lp.add_log_record_processor(BatchLogRecordProcessor(OTLPLogExporter(endpoint=OTEL_EXPORTER_OTLP_ENDPOINT,
+                                                                            headers=OTEL_EXPORTER_OTLP_HEADER,
+                                                                            insecure=OTEL_EXPORTER_OTLP_INSECURE)))
+    return LoggingHandler(level=level, logger_provider=lp)

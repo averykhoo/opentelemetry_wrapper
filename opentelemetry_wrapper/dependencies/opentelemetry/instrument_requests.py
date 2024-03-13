@@ -2,7 +2,7 @@ from opentelemetry.instrumentation.requests import RequestsInstrumentor
 
 from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
 from opentelemetry_wrapper.dependencies.opentelemetry.instrument_decorator import instrument_decorate
-from opentelemetry_wrapper.dependencies.opentelemetry.tracers import init_meter_provider
+from opentelemetry_wrapper.dependencies.opentelemetry.otel_providers import init_meter_provider
 
 
 @instrument_decorate
