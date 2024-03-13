@@ -28,9 +28,18 @@ except ImportError:
     fastapi_jsonable_encoder = None
 
 try:
+    pydantic_jsonable_encoder: Optional[Callable]
+    from pydantic.v1.json import pydantic_encoder as pydantic_jsonable_encoder
+except ImportError:
+    try:
+        from pydantic_core import to_jsonable_python as pydantic_jsonable_encoder
+    except ImportError:
+        pydantic_jsonable_encoder = None
+
+try:
     PYDANTIC_ENCODERS: Dict[Type, Callable]
     # noinspection PyProtectedMember
-    from pydantic.json import ENCODERS_BY_TYPE as PYDANTIC_ENCODERS
+    from pydantic.v1.json import ENCODERS_BY_TYPE as PYDANTIC_ENCODERS
 except ImportError:
     PYDANTIC_ENCODERS = dict()
 
@@ -99,6 +108,14 @@ def jsonable_encoder(obj: Any) -> Any:
     # hand off to the fastapi encoder if we have it
     if fastapi_jsonable_encoder is not None:
         return fastapi_jsonable_encoder(obj, custom_encoder=ENCODERS_BY_TYPE)
+
+    # hand off to the pydantic encoder if we have it
+    if pydantic_jsonable_encoder is not None:
+        # noinspection PyBroadException
+        try:
+            return pydantic_jsonable_encoder(obj)
+        except Exception:
+            pass
 
     # extremely simplified version of the fastapi jsonable_encoder
     if dataclasses.is_dataclass(obj):
