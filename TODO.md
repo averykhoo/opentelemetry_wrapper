@@ -16,6 +16,7 @@ also run the following files:
 * fastapi_main.py
 * setup_otel_logging.py
 * sqlalchemy_example.py
+* log_weird_things.py
 
 ## publishing (notes for myself)
 

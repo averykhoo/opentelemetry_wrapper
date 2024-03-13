@@ -142,15 +142,22 @@ class JsonFormatter(logging.Formatter):
         stack = [safe_log_data]
         while stack:
             elem = stack.pop()
+
+            # create an iterator through the dict or list
             if isinstance(elem, dict):
-                for k, v in elem.items():
-                    if isinstance(v, (dict, list)):
-                        stack.append(v)
-                    if isinstance(v, str) and len(v) > self.max_string_length:
-                        elem[k] = f'{v[:self.max_string_length - 15]}... (TRUNCATED)'[:self.max_string_length]
-            if isinstance(elem, list):
-                for i, item in enumerate(elem):
-                    elem[i] = f'{item[:self.max_string_length - 15]}... (TRUNCATED)'[:self.max_string_length]
+                _items = elem.items()
+            elif isinstance(elem, list):
+                _items = enumerate(elem)
+            else:
+                continue
+
+            # modify it in-place to truncate long strings, and add nested containers to the stack
+            for k, v in _items:
+                if isinstance(v, (dict, list)):
+                    stack.append(v)
+                if isinstance(v, str) and len(v) > self.max_string_length:
+                    # this works for both lists and dicts
+                    elem[k] = f'{v[:self.max_string_length - 15]}... (TRUNCATED)'[:self.max_string_length]
 
         return json.dumps(safe_log_data,
                           ensure_ascii=self.ensure_ascii,
