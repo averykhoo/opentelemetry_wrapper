@@ -13,6 +13,7 @@ from opentelemetry.sdk._logs import LoggerProvider
 from opentelemetry.sdk._logs import LoggingHandler
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics._internal.export import ConsoleMetricExporter
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.resources import SERVICE_NAME
@@ -76,18 +77,27 @@ def get_tracer(instrumenting_module_name: str,
 
 
 @lru_cache  # only run once
-def init_meter_provider():
+def init_meter_provider(*, print_to_console: bool = False):
+    """
+
+    :param print_to_console: WARNING THIS IS A BAD IDEA USE ONLY FOR DEBUGGING
+    :return:
+    """
     # based on https://opentelemetry.io/docs/languages/python/exporters/#usage
 
-    if OTEL_EXPORTER_OTLP_ENDPOINT:
-        reader = PeriodicExportingMetricReader(OTLPMetricExporter(endpoint=OTEL_EXPORTER_OTLP_ENDPOINT,
-                                                                  headers=OTEL_EXPORTER_OTLP_HEADER,
-                                                                  insecure=OTEL_EXPORTER_OTLP_INSECURE))
-        mp = MeterProvider(resource=get_otel_resource(),
-                           metric_readers=[reader])
+    metric_readers = []
+    if print_to_console:
+        metric_readers.append(PeriodicExportingMetricReader(ConsoleMetricExporter()))
 
-        # noinspection PyUnresolvedReferences,PyProtectedMember
-        metrics._set_meter_provider(mp, log=False)  # try to set, but don't warn otherwise
+    if OTEL_EXPORTER_OTLP_ENDPOINT:
+        metric_readers.append(PeriodicExportingMetricReader(OTLPMetricExporter(endpoint=OTEL_EXPORTER_OTLP_ENDPOINT,
+                                                                               headers=OTEL_EXPORTER_OTLP_HEADER,
+                                                                               insecure=OTEL_EXPORTER_OTLP_INSECURE)))
+    mp = MeterProvider(resource=get_otel_resource(),
+                       metric_readers=metric_readers)
+
+    # noinspection PyUnresolvedReferences,PyProtectedMember
+    metrics._internal._set_meter_provider(mp, log=False)  # try to set, but don't warn otherwise
 
 
 # write IDs as 0xBEEF instead of BEEF, so it matches the trace json exactly

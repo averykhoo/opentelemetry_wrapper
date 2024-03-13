@@ -24,9 +24,9 @@ from typing import Union
 @dataclass(unsafe_hash=True, frozen=True)
 class CodeInfo:
     code_object: Union[Coroutine, Callable,
-                       partial, partialmethod, singledispatchmethod, cached_property,
-                       asyncio.Task,
-                       type, property]
+    partial, partialmethod, singledispatchmethod, cached_property,
+    asyncio.Task,
+    type, property]
 
     unwrap_partial: bool = True
     unwrap_async: bool = True

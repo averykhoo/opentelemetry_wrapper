@@ -21,6 +21,7 @@ def instrument_all(dataclasses: bool = True,
                    requests: bool = True,
                    sqlalchemy: bool = False,  # too noisy for a default
                    log_json: bool = True,
+                   clobber_other_log_handlers: bool = True,
                    ):
     # no-op
     if OTEL_WRAPPER_DISABLED:
@@ -29,7 +30,7 @@ def instrument_all(dataclasses: bool = True,
     if dataclasses:
         instrument_dataclasses()
     if logging:
-        instrument_logging(print_json=log_json)
+        instrument_logging(print_json=log_json, clobber_other_log_handlers=clobber_other_log_handlers)
     if fastapi:
         instrument_fastapi()
     if requests:

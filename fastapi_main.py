@@ -74,4 +74,5 @@ if __name__ == '__main__':
                 workers=2,  # not valid with reload=True
                 # proxy_headers=True,  # github.com/encode/uvicorn/blob/master/uvicorn/middleware/proxy_headers.py
                 limit_concurrency=128,
+                # log_config=None, # this tells uvicorn not to set up its own logger
                 )

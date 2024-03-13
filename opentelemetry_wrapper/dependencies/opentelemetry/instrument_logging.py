@@ -4,9 +4,12 @@ from functools import lru_cache
 from functools import update_wrapper
 from functools import wraps
 from pathlib import Path
+from typing import Dict
+from typing import List
 from typing import Optional
 from typing import Set
 from typing import TextIO
+from typing import Tuple
 
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 
@@ -28,6 +31,7 @@ LOGGING_FORMAT_VERBOSE = (
 )
 
 _CURRENT_ROOT_JSON_HANDLERS: Set[logging.Handler] = set()
+_CLOBBERED_ROOT_HANDLERS: Dict[str, Tuple[List[logging.Handler], bool]] = dict()
 
 
 @lru_cache  # avoid creating duplicate handlers
@@ -58,6 +62,7 @@ def instrument_logging(*,
                        path: Optional[Path] = None,
                        stream: Optional[TextIO] = None,
                        print_json: bool = True,
+                       clobber_other_log_handlers: bool = False,
                        ) -> None:
     """
     this function is (by default) idempotent; calling it multiple times has no additional side effects
@@ -66,6 +71,7 @@ def instrument_logging(*,
     :param path:
     :param stream:
     :param print_json:
+    :param clobber_other_log_handlers: drop all other log handlers created by anyone else
     :return:
     """
     global _CURRENT_ROOT_JSON_HANDLERS
@@ -90,8 +96,8 @@ def instrument_logging(*,
     def record_factory(*args, **kwargs):
         record = old_factory(*args, **kwargs)
 
-        # we want the trace-id and span-id in a log to match the span it was created in
-        # therefore we format it to match
+        # we want the trace-id and span-id in a log to match the span it was created in;
+        # therefore, we format it to match
         # note that logs outside a span will be assigned an invalid trace-id and span-id (all zeroes)
         record.otelTraceID = f'0x{int(record.otelTraceID, 16):032x}'
         record.otelSpanID = f'0x{int(record.otelSpanID, 16):016x}'
@@ -99,6 +105,12 @@ def instrument_logging(*,
         return record
 
     logging.setLogRecordFactory(record_factory)
+
+    # un-clobber the handlers
+    for logger_name, (handlers, propagate) in _CLOBBERED_ROOT_HANDLERS.items():
+        logging.getLogger(logger_name).handlers = handlers
+        logging.getLogger(logger_name).propagate = propagate
+    _CLOBBERED_ROOT_HANDLERS.clear()
 
     # un-instrument logging root handler
     while _CURRENT_ROOT_JSON_HANDLERS:
@@ -133,3 +145,11 @@ def instrument_logging(*,
     for _handler in _CURRENT_ROOT_JSON_HANDLERS:
         logging.root.addHandler(_handler)
     logging.root.setLevel(level)
+
+    # clobber all other handlers
+    if clobber_other_log_handlers:
+        for logger_name, logger in logging.root.manager.loggerDict.items():
+            if not isinstance(logger, logging.PlaceHolder):
+                _CLOBBERED_ROOT_HANDLERS[logger_name] = (logger.handlers, logger.propagate)
+                logger.handlers = []
+                logger.propagate = True
