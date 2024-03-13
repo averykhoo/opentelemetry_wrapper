@@ -1,4 +1,5 @@
 from sqlalchemy import create_engine
+from sqlalchemy import text
 
 from opentelemetry_wrapper.dependencies.opentelemetry.instrument_sqlalchemy import instrument_sqlalchemy_engine
 from opentelemetry_wrapper.dependencies.sqlalchemy.engine_typedef import is_sqlalchemy_async_engine
@@ -17,5 +18,5 @@ if __name__ == '__main__':
     conn = engine.connect()
 
     # noinspection SqlDialectInspection,SqlNoDataSourceInspection
-    exe = conn.execute('SELECT * FROM sqlite_master')
+    exe = conn.execute(text('SELECT * FROM sqlite_master'))
     assert exe.fetchmany() == []
