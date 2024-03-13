@@ -21,7 +21,7 @@ try:
 
 except ImportError:
     # noinspection PyUnusedLocal
-    def is_sqlalchemy_engine(item: Any) -> bool:
+    def is_sqlalchemy_engine(_) -> bool:
         return False
 
 

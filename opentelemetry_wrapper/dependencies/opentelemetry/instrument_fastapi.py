@@ -1,50 +1,20 @@
 from typing import TypeVar
 
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-from opentelemetry.trace import Span
 
-from opentelemetry_wrapper.config.otel_headers import OTEL_HEADER_ATTRIBUTES
 from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
 from opentelemetry_wrapper.dependencies.fastapi.fastapi_typedef import is_fastapi_app
+from opentelemetry_wrapper.dependencies.fastapi.starlette_request_hook import request_hook
 from opentelemetry_wrapper.dependencies.opentelemetry.instrument_decorator import instrument_decorate
-from opentelemetry_wrapper.utils.extract_json_header import extract_json_header
 
 FastApiType = TypeVar('FastApiType', bound=type)
-
-try:
-    from starlette.datastructures import Headers
-    from starlette.types import Scope
-
-
-    def request_hook(span: Span, scope: Scope) -> None:
-        """
-        add span attributes from headers
-        note: RFC 7230 says header keys and values should be ASCII
-        """
-        headers = dict(Headers(scope=scope))  # keys are lowercase latin-1 (ascii)
-        for header_name in OTEL_HEADER_ATTRIBUTES:
-            header_value = headers.get(header_name.lower())
-
-            # special case: handle the userinfo header (and other similar json headers)
-            _header_data = extract_json_header(header_value)
-            if _header_data:
-                for k, v in _header_data.items():
-                    span.set_attribute(f'{header_name}.{k}', v)
-                continue
-
-            # all other headers
-            if isinstance(header_value, (bool, str, bytes, int, float)):
-                span.set_attribute(header_name, header_value)
-except ImportError:
-    def request_hook(*args, **kwargs) -> None:
-        return
 
 
 @instrument_decorate
 def instrument_fastapi_app(app):
     """
     instrument a FastAPI app
-    also instruments logging and requests (if requests exists)
+    also instruments logging and requests (if `requests` exists)
     this function is idempotent; calling it multiple times has no additional side effects
     """
 
