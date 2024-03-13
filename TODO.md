@@ -21,13 +21,21 @@ also run the following files:
 ## publishing (notes for myself)
 
 * init
-    * `pip install flit`
+    * create `~/.pypirc` file with the following contents:
+      ```ini
+      [pypi]
+      username = __token__
+      password = <insert pypi token here> 
+      ```
     * `flit init`
+    * `pip install flit`
     * make sure `opentelemetry_wrapper/__init__.py` contains a docstring and version
 * publish / update
     * increment `__version__` in `opentelemetry_wrapper/__init__.py`
     * `flit publish`
-    * update `~/.pypirc` with additional line `password = <...>`
+* check that it can be downloaded/installed
+    * `cd tmp`
+    * `pip download opentelemetry_wrapper==X.Y.Z` <- replace with latest `__version__`
 
 ## todo
 
@@ -35,7 +43,7 @@ also run the following files:
 * set `__tracebackhide__=True` (pytest) and `__traceback_hide__=True` (a few others like sentry) in the functions
 * update [introspect.py](./opentelemetry_wrapper/utils/introspect.py) for pep 626
     * The f_lineno attribute of frame objects will always contain the expected line number.
-    * The co_lnotab attribute of code objects is deprecated and will be removed in 3.12. 
+    * The co_lnotab attribute of code objects is deprecated and will be removed in 3.12.
     * Code that needs to convert from offset to line number should use the new co_lines() method instead.
 * `OTEL_HEADER_ATTRIBUTES` behaves too much like `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`
     * consider removing it?
