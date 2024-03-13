@@ -30,6 +30,7 @@ also run the following files:
 
 ## todo
 
+* documentation pls, including design decisions
 * set `__tracebackhide__=True` (pytest) and `__traceback_hide__=True` (a few others like sentry) in the functions
 * update [introspect.py](./opentelemetry_wrapper/utils/introspect.py) for pep 626
     * The f_lineno attribute of frame objects will always contain the expected line number.
