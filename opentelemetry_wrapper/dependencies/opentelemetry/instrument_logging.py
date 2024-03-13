@@ -8,9 +8,21 @@ from typing import Optional
 from typing import Set
 from typing import TextIO
 
+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
+from opentelemetry.sdk._logs import LoggerProvider
+from opentelemetry.sdk._logs import LoggingHandler
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.resources import SERVICE_NAME
+from opentelemetry.sdk.resources import SERVICE_NAMESPACE
 
+from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_ENDPOINT
+from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_HEADER
+from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_INSECURE
 from opentelemetry_wrapper.config.otel_headers import OTEL_LOG_LEVEL
+from opentelemetry_wrapper.config.otel_headers import OTEL_SERVICE_NAME
+from opentelemetry_wrapper.config.otel_headers import OTEL_SERVICE_NAMESPACE
 from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
 from opentelemetry_wrapper.dependencies.opentelemetry.instrument_decorator import instrument_decorate
 from opentelemetry_wrapper.utils.logging_json_formatter import JsonFormatter
@@ -26,6 +38,24 @@ LOGGING_FORMAT_VERBOSE = (
 )
 
 _CURRENT_ROOT_JSON_HANDLERS: Set[logging.Handler] = set()
+
+
+@lru_cache  # only run once
+def get_otel_log_handler(*,
+                         level: int = OTEL_LOG_LEVEL,
+                         ) -> LoggingHandler:
+    if OTEL_SERVICE_NAMESPACE:
+        lp = LoggerProvider(resource=Resource.create({SERVICE_NAME:      OTEL_SERVICE_NAME,
+                                                      SERVICE_NAMESPACE: OTEL_SERVICE_NAMESPACE}))
+    else:
+        lp = LoggerProvider(resource=Resource.create({SERVICE_NAME: OTEL_SERVICE_NAME}))
+
+    if OTEL_EXPORTER_OTLP_ENDPOINT:
+        lp.add_log_record_processor(BatchLogRecordProcessor(OTLPLogExporter(endpoint=OTEL_EXPORTER_OTLP_ENDPOINT,
+                                                                            headers=OTEL_EXPORTER_OTLP_HEADER,
+                                                                            insecure=OTEL_EXPORTER_OTLP_INSECURE)))
+
+    return LoggingHandler(level=level, logger_provider=lp)
 
 
 @lru_cache  # avoid creating duplicate handlers
@@ -122,6 +152,10 @@ def instrument_logging(*,
             _stream_handler = logging.StreamHandler(stream)
             _stream_handler.setFormatter(_formatter)
             _CURRENT_ROOT_JSON_HANDLERS.add(_stream_handler)
+
+    # add an otel log exporter too
+    if OTEL_EXPORTER_OTLP_ENDPOINT:
+        _CURRENT_ROOT_JSON_HANDLERS.add(get_otel_log_handler(level=level))
 
     # set root handlers
     for _handler in _CURRENT_ROOT_JSON_HANDLERS:
