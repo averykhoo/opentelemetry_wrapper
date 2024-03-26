@@ -4,7 +4,7 @@ a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make l
 
 ## what this does (or is supposed to do)
 
-* Make instrumentation (more) idempotent
+* Make instrumentation (more) idempotent: you can call the instrument functions unlimited times, and it'll work the same
 * Make re-instrumentation of logging actually work with different format strings
 * Make `logging` print as a one-line JSON dict by default
 * Provide support for decorating functions and classes
@@ -15,8 +15,10 @@ a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make l
     * sometimes works even after apps are created for some reason, likely due to how Uvicorn runs in a new process
     * but somehow sometimes doesn't work in prod, for equally unknown reasons
     * probably best to instrument each app instance
-* Logs (some) http headers received by fastapi as span attributes
+* Logs OIDC http headers as span attributes
 * Creates OTLP exporter if specific env vars (below) are set
+* Auto-instrumentation will push logs, metrics, and traces to the OTEL endpoint, if configured
+    * Note: only logs and traces are printed, metrics are too noisy
 
 ## usage
 
