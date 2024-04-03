@@ -2,13 +2,21 @@
 
 a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make life a bit easier
 
+## design
+
+* never crash or log additional errors - always prefer to fail silently
+* extract all the context we can about what's going on and where
+* json all the things
+* use decorators to instrument things, not context managers
+* magic may be hard to understand, but it is better than being irritating
+
 ## what this does (or is supposed to do)
 
 * Make instrumentation (more) idempotent: you can call the instrument functions unlimited times, and it'll work the same
 * Make re-instrumentation of `logging` actually work when passing in a new format string
 * Make `logging` print as a one-line JSON dict by default, with a lot of magic to convert stuff to valid json
 * logs and spans contain info about which thread / process and which file / function / line of code it came from
-  * and the k8s namespace and pod, if applicable, otherwise the local pc name
+    * and the k8s namespace and pod, if applicable, otherwise the local pc name
 * Provide support for decorating functions and classes
 * Provide support for instrumentation of dataclasses
     * NOTE: Global instrumentation needs to be run *before* any dataclasses are initialized
