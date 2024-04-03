@@ -40,6 +40,9 @@ also run the following files:
 ## todo
 
 * documentation pls, including design decisions
+* rename `OTEL_EXPORTER_*` to `OTEL_COLLECTOR_*`
+  * and have separate metric, log, and trace collectors
+* env var to enable/disable console printing for logs, metrics (off by default), and traces
 * set `__tracebackhide__=True` (pytest) and `__traceback_hide__=True` (a few others like sentry) in the functions
 * update [introspect.py](./opentelemetry_wrapper/utils/introspect.py) for pep 626
     * The f_lineno attribute of frame objects will always contain the expected line number.
@@ -48,23 +51,27 @@ also run the following files:
 * `OTEL_HEADER_ATTRIBUTES` behaves too much like `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`
     * consider removing it?
 * `with ...` instrumentation for non-callable code (e.g. settings, semi-hardcoded config)
+  * see [next_version_intended_usage.py](./next_version_intended_usage.py)
 * type-checking decorator, with warning on unmatched types
     * https://github.com/prechelt/typecheck-decorator/blob/master/README.md
     * https://stackoverflow.com/questions/36879932/python-type-checking-decorator
     * https://towardsdatascience.com/the-power-of-decorators-fef4dc97020e
     * https://typeguard.readthedocs.io/en/latest/userguide.html
+    * or use `pydantic.TypeAdaptor` to manually check
 * correctly handle generators and context managers (and async versions of them)
 * instrument pydantic?
-* support metrics somehow
+* validate support for metrics
     * the asgi/fastapi already supports some metrics
     * https://github.com/instana/python-sensor/blob/master/instana/autoprofile/samplers
         * memory profiling
         * reading frames to make a statistical guess how much time is spent in each function
     * https://psutil.readthedocs.io/en/latest/
     * Request Error Duration metrics can be calculated from spans
+* also add a prometheus endpoint for scraping?
 * builtin `tracemalloc` can be used locate the source file and line number of a function, if started early enough
     * check for the [`PYTHONTRACEMALLOC`](https://docs.python.org/3/using/cmdline.html#envvar-PYTHONTRACEMALLOC) var?
-* somehow mark function as do-not-instrument, for extremely spammy functions? or specify a sampling ratio?
+* somehow mark functions/endpoints as do-not-instrument, for extremely spammy functions? or specify a sampling ratio?
+  * the nearest sampling ratio should overwrite, but idk how to do that
 * add a (regex-based?) sanitizer to erase strings/patterns from log output
 * print config at startup? at least print the version?
     * or maybe print a json string with all the (non-sensitive) config?

@@ -5,20 +5,22 @@ a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make l
 ## what this does (or is supposed to do)
 
 * Make instrumentation (more) idempotent: you can call the instrument functions unlimited times, and it'll work the same
-* Make re-instrumentation of logging actually work with different format strings
-* Make `logging` print as a one-line JSON dict by default
+* Make re-instrumentation of `logging` actually work when passing in a new format string
+* Make `logging` print as a one-line JSON dict by default, with a lot of magic to convert stuff to valid json
+* logs and spans contain info about which thread / process and which file / function / line of code it came from
+  * and the k8s namespace and pod, if applicable, otherwise the local pc name
 * Provide support for decorating functions and classes
 * Provide support for instrumentation of dataclasses
-    * Global instrumentation needs to be run *before* any dataclasses are initialized
-    * Otherwise, use the decorator on each class as usual (it's idempotent anyway)
+    * NOTE: Global instrumentation needs to be run *before* any dataclasses are initialized
+    * Otherwise, use the decorator on each class as usual (since it is idempotent anyway)
 * Add global instrumentation of FastAPI
     * sometimes works even after apps are created for some reason, likely due to how Uvicorn runs in a new process
     * but somehow sometimes doesn't work in prod, for equally unknown reasons
     * probably best to instrument each app instance
-* Logs OIDC http headers as span attributes
-* Creates OTLP exporter if specific env vars (below) are set
-* Auto-instrumentation will push logs, metrics, and traces to the OTEL endpoint, if configured
-    * Note: only logs and traces are printed, metrics are too noisy
+* Logs OIDC http headers as span attributes for FastAPI
+* Creates OTLP exporters if specific env vars (below) are set
+    * Pushes logs, metrics, and traces to the OTEL endpoint, if configured
+    * Note: only logs and traces are printed to console, metrics are too noisy
 
 ## usage
 

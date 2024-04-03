@@ -6,6 +6,10 @@ from opentelemetry_wrapper.dependencies.opentelemetry.instrument_logging import 
 
 instrument_logging()
 
+logging.info(logging)
+logging.info(logging.info)
+logging.info(BaseModel)
+logging.info(instrument_logging)
 logging.warning('')
 logging.warning(None)
 logging.warning([1, 2, 3])
@@ -18,4 +22,5 @@ class Something(BaseModel):
     key: str = 'value'
 
 
-logging.warning(Something())
+logging.error(Something)
+logging.error(Something())
