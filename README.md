@@ -4,15 +4,40 @@ a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make l
 
 ## design principles
 
-* never crash the running application: ignore input over raising an exception 
-* emit as few logs as possible: failing silently over flailing noisily (which drowns out real logs)
-* extract and log application context: we want to know all we can about what's going on and where
-* json all the things
-* make instrumentation simple and readable: decorators over context managers over writing code
-* opinionated but reasonable defaults: magic may be hard to understand, but it is better than being irritating
-* hard to get wrong: idempotent, even when you instrument the same thing in different ways from different places
+### safe
 
-## what this does (or is supposed to do)
+* **never crash the application**
+  * fallback to non-`opentelemetry` if necessary
+  * ignore input over raising an exception
+  * possible exception: it may be better to fail at startup than to run with known bad config
+* **hard to get wrong**
+  * idempotent, even when you instrument the same thing in different ways from different places
+  * "be conservative in what you send, be liberal in what you accept"
+  * note: easy and simple mean different things
+
+### friendly
+
+* **simple, idiomatic, succinct, and pretty**
+  * decorators over wrappers
+  * wrappers over context managers
+  * context mangers over ~~manually managing spans~~ anything else *(note: this is still a todo)*
+* **reasonable documented defaults**
+  * magic may be hard to understand, but it's better than being irritating
+
+### actually useful
+
+* **machine-readable first, human-readable a close second**
+  * no newlines in logs or spans
+  * no whitespace-delimited ambiguity
+  * json all the things (within reason)
+* **provide any available application context**
+  * we want to know all we can about what's going on and where
+  * code introspection and runtime analysis if we can make it fast enough
+* **emit little to no logs**
+  * fail silently over flailing noisily
+  * drowning out real logs can be worse than being useless (e.g., you could crash `fluentd` - ask me how I know)
+
+## features
 
 * Make instrumentation (more) idempotent:
   * you can call the instrument functions unlimited times from multiple places in your codebase, and it'll work the same
