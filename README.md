@@ -7,63 +7,41 @@ a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make l
 ### safe
 
 * **never crash the application**
-  * fallback to non-`opentelemetry` if necessary
-  * ignore input over raising an exception
-  * possible exception: it may be better to fail at startup than to run with known bad config
+    * fallback to non-`opentelemetry` if necessary
+    * ignore input over raising an exception
+    * possible exception: it may be better to fail at startup than to run with known bad config
 * **hard to get wrong**
-  * idempotent, even when you instrument the same thing in different ways from different places
-  * "be conservative in what you send, be liberal in what you accept"
-  * note: easy and simple mean different things
+    * idempotent, even when you instrument the same thing in different ways from different places
+    * "be conservative in what you send, be liberal in what you accept"
+    * note: easy and simple mean different things
 
-### friendly
+### easy
 
 * **simple, idiomatic, succinct, and pretty**
-  * decorators over wrappers
-  * wrappers over context managers
-  * context mangers over ~~manually managing spans~~ anything else *(note: this is still a todo)*
+    * decorators over wrappers
+    * wrappers over context managers
+    * context mangers over ~~manually managing spans~~ anything else *(note: this is still a todo)*
 * **reasonable documented defaults**
-  * magic may be hard to understand, but it's better than being irritating
+    * magic may be hard to understand, but it's better than being irritating
 
-### actually useful
+### helpful
 
 * **machine-readable first, human-readable a close second**
-  * no newlines in logs or spans
-  * no whitespace-delimited ambiguity
-  * json all the things (within reason)
+    * no newlines in logs or spans
+    * no whitespace-delimited ambiguity
+    * json all the things (within reason)
 * **provide any available application context**
-  * we want to know all we can about what's going on and where
-  * code introspection and runtime analysis if we can make it fast enough
+    * we want to know all we can about what's going on and where
+    * code introspection and runtime analysis if we can make it fast enough
 * **emit little to no logs**
-  * fail silently over flailing noisily
-  * drowning out real logs can be worse than being useless (e.g., you could crash `fluentd` - ask me how I know)
-
-## features
-
-* Make instrumentation (more) idempotent:
-  * you can call the instrument functions unlimited times from multiple places in your codebase, and it'll work the same
-  * e.g., a class definition, a defined method of the class, a class instance, and a method from the instance 
-* Make re-instrumentation of `logging` actually work when passing in a new format string
-* Make `logging` print as a one-line JSON dict by default, with a lot of magic to convert stuff to valid json
-* logs and spans contain info about which thread / process and which file / function / line of code it came from
-    * and the k8s namespace and pod, if applicable, otherwise the local pc name
-* Provide support for decorating functions and classes
-* Provide support for instrumentation of dataclasses
-    * NOTE: Global instrumentation needs to be run *before* any dataclasses are initialized
-    * Otherwise, use the decorator on each class as usual (since it is idempotent anyway)
-* Add global instrumentation of FastAPI
-    * sometimes works even after apps are created for some reason, likely due to how Uvicorn runs in a new process
-    * but somehow sometimes doesn't work in prod, for equally unknown reasons
-    * probably best to instrument each app instance
-* Logs OIDC http headers as span attributes for FastAPI
-* Creates OTLP exporters if specific env vars (below) are set
-    * Pushes logs, metrics, and traces to the OTEL endpoint, if configured
-    * Note: only logs and traces are printed to console, metrics are too noisy
+    * fail silently over flailing noisily
+    * drowning out real logs can be worse than being useless (e.g., you could crash `fluentd` - ask me how I know)
 
 ## usage
 
 > **TL;DR:** <br>
-> 1. call `instrument_all()` to instrument logging and requests
-> 2. instrument your FastAPI app using `instrument_fastapi_app(...)`
+> 1. call `instrument_all()` to instrument `logging` and `requests`
+> 2. instrument your FastAPI app using `instrument_fastapi_app(FastAPI(...))`
 > 3. use `@instrument_decorate` on any function or class you want to monitor
 > 4. set `OTEL_WRAPPER_DISABLED=true` in your CICD tests, especially if you're using `pytest`
 
@@ -147,3 +125,26 @@ from opentelemetry_wrapper import instrument_fastapi_app
 
 app = instrument_fastapi_app(FastAPI(...))
 ```
+
+## features
+
+* Make instrumentation (more) idempotent:
+    * you can call the instrument functions unlimited times from multiple places in your codebase, and it'll work the
+      same
+    * e.g., a class definition, a defined method of the class, a class instance, and a method from the instance
+* Make re-instrumentation of `logging` actually work when passing in a new format string
+* Make `logging` print as a one-line JSON dict by default, with a lot of magic to convert stuff to valid json
+* logs and spans contain info about which thread / process and which file / function / line of code it came from
+    * and the k8s namespace and pod, if applicable, otherwise the local pc name
+* Provide support for decorating functions and classes
+* Provide support for instrumentation of dataclasses
+    * NOTE: Global instrumentation needs to be run *before* any dataclasses are initialized
+    * Otherwise, use the decorator on each class as usual (since it is idempotent anyway)
+* Add global instrumentation of FastAPI
+    * sometimes works even after apps are created for some reason, likely due to how Uvicorn runs in a new process
+    * but somehow sometimes doesn't work in prod, for equally unknown reasons
+    * probably best to instrument each app instance
+* Logs OIDC http headers as span attributes for FastAPI
+* Creates OTLP exporters if specific env vars (below) are set
+    * Pushes logs, metrics, and traces to the OTEL endpoint, if configured
+    * Note: only logs and traces are printed to console, metrics are too noisy
