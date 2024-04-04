@@ -2,17 +2,21 @@
 
 a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make life a bit easier
 
-## design
+## design principles
 
-* never crash or log additional errors - always prefer to fail silently
-* extract all the context we can about what's going on and where
+* never crash the running application: ignore input over raising an exception 
+* emit as few logs as possible: failing silently over flailing noisily (which drowns out real logs)
+* extract and log application context: we want to know all we can about what's going on and where
 * json all the things
-* use decorators to instrument things, not context managers
-* magic may be hard to understand, but it is better than being irritating
+* make instrumentation simple and readable: decorators over context managers over writing code
+* opinionated but reasonable defaults: magic may be hard to understand, but it is better than being irritating
+* hard to get wrong: idempotent, even when you instrument the same thing in different ways from different places
 
 ## what this does (or is supposed to do)
 
-* Make instrumentation (more) idempotent: you can call the instrument functions unlimited times, and it'll work the same
+* Make instrumentation (more) idempotent:
+  * you can call the instrument functions unlimited times from multiple places in your codebase, and it'll work the same
+  * e.g., a class definition, a defined method of the class, a class instance, and a method from the instance 
 * Make re-instrumentation of `logging` actually work when passing in a new format string
 * Make `logging` print as a one-line JSON dict by default, with a lot of magic to convert stuff to valid json
 * logs and spans contain info about which thread / process and which file / function / line of code it came from

@@ -68,3 +68,8 @@ if __name__ == '__main__':
     A().e
     A().e
     A().x
+
+    a = instrument_decorate(A)()
+    a_c = instrument_decorate(a.c)
+    a_c_d = instrument_decorate(a_c())
+    a_c_d()

@@ -16,6 +16,7 @@ class PrototypeAutoInstrument:
             self.blocked = self.kwargs.pop('')
 
     def __call__(self, thing=_MISSING, /, **kwargs):
+        # TODO: consider using `@functools.singledispatch` to split up this function
         if thing is _MISSING and not kwargs:
             print('WARNING!!! empty call pls stop')
             return self
