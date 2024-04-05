@@ -15,7 +15,7 @@ a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make l
     * "be conservative in what you send, be liberal in what you accept"
     * note: easy and simple mean different things
 
-### easy
+### unsurprising
 
 * **simple, idiomatic, succinct, and pretty**
     * decorators over wrappers
@@ -23,6 +23,9 @@ a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make l
     * context mangers over ~~manually managing spans~~ anything else *(note: this is still a todo)*
 * **reasonable documented defaults**
     * magic may be hard to understand, but it's better than being irritating
+* **emits zero logs/spans (of its own) at runtime**
+    * fail silently over flailing noisily
+    * drowning out real logs can be worse than being useless (e.g., you could crash `fluentd` - ask me how I know)
 
 ### helpful
 
@@ -33,9 +36,6 @@ a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make l
 * **provide any available application context**
     * we want to know all we can about what's going on and where
     * code introspection and runtime analysis if we can make it fast enough
-* **emit little to no logs**
-    * fail silently over flailing noisily
-    * drowning out real logs can be worse than being useless (e.g., you could crash `fluentd` - ask me how I know)
 
 ## usage
 

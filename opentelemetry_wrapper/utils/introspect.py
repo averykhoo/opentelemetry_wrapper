@@ -60,7 +60,7 @@ class CodeInfo:
         is the unwrapped base object a class?
         """
         try:
-            return inspect.isclass(self.__unwrapped_code_object)
+            return inspect.isclass(self._unwrapped_code_object)
         except Exception:
             return False
 
@@ -90,15 +90,15 @@ class CodeInfo:
     @cached_property
     def __code__(self):
         # get the code stuff
-        _code = getattr(self.__unwrapped_code_object, '__code__', None)
+        _code = getattr(self._unwrapped_code_object, '__code__', None)
 
         # asyncio.Task stores it here
         if _code is None:
-            _code = getattr(self.__unwrapped_code_object, 'cr_code', None)
+            _code = getattr(self._unwrapped_code_object, 'cr_code', None)
 
         # sometimes it's in __func__.__code__
         if _code is None:
-            _code = getattr(getattr(self.__unwrapped_code_object, '__func__', None), '__code__', None)
+            _code = getattr(getattr(self._unwrapped_code_object, '__func__', None), '__code__', None)
 
         return _code
 
@@ -110,8 +110,8 @@ class CodeInfo:
                 return None
 
             # use qualname instead of name if possible, but strip out the class name
-            if hasattr(self.__unwrapped_code_object, '__qualname__'):
-                return self.__unwrapped_code_object.__qualname__
+            if hasattr(self._unwrapped_code_object, '__qualname__'):
+                return self._unwrapped_code_object.__qualname__
         except Exception:
             pass
 
@@ -135,8 +135,8 @@ class CodeInfo:
                 return _function_name
 
             # fallback to name
-            if getattr(self.__unwrapped_code_object, '__name__', None):
-                return self.__unwrapped_code_object.__name__
+            if getattr(self._unwrapped_code_object, '__name__', None):
+                return self._unwrapped_code_object.__name__
 
             # use the code name
             if self.__code__ is not None:
@@ -150,7 +150,7 @@ class CodeInfo:
     @cached_property
     def module(self) -> Optional[ModuleType]:
         try:
-            return inspect.getmodule(self.__unwrapped_code_object)
+            return inspect.getmodule(self._unwrapped_code_object)
         except Exception:
             return None
 
@@ -176,23 +176,23 @@ class CodeInfo:
         try:
             # if we already are a class
             if self.is_class:
-                return self.__unwrapped_code_object
+                return self._unwrapped_code_object
 
             # get class of method
-            if inspect.ismethod(self.__unwrapped_code_object) or \
-                    (inspect.isbuiltin(self.__unwrapped_code_object) and
-                     hasattr(self.__unwrapped_code_object, '__self__')):
+            if inspect.ismethod(self._unwrapped_code_object) or \
+                    (inspect.isbuiltin(self._unwrapped_code_object) and
+                     hasattr(self._unwrapped_code_object, '__self__')):
                 for _attr_name in ('__class__', '__slots__'):
-                    _attr = getattr(self.__unwrapped_code_object.__self__, _attr_name, None)
+                    _attr = getattr(self._unwrapped_code_object.__self__, _attr_name, None)
                     if _attr is not None and hasattr(_attr, '__mro__'):
                         for _mro_cls in inspect.getmro(_attr):
                             if inspect.isclass(_mro_cls):
-                                if self.__unwrapped_code_object.__name__ in _mro_cls.__dict__:
+                                if self._unwrapped_code_object.__name__ in _mro_cls.__dict__:
                                     return _mro_cls
 
             # get class qualname
-            if hasattr(self.__unwrapped_code_object, '__qualname__'):
-                _cls_qualname = self.__unwrapped_code_object.__qualname__.split('.<locals>')[0]
+            if hasattr(self._unwrapped_code_object, '__qualname__'):
+                _cls_qualname = self._unwrapped_code_object.__qualname__.split('.<locals>')[0]
                 if '.' in _cls_qualname:
                     _cls_qualname = _cls_qualname.rsplit('.', 1)[0]
                 else:
@@ -214,7 +214,7 @@ class CodeInfo:
                             return _cls
 
             # one more place to try
-            _cls = getattr(self.__unwrapped_code_object, '__objclass__', None)
+            _cls = getattr(self._unwrapped_code_object, '__objclass__', None)
             if _cls is not None:
                 if inspect.isclass(_cls):
                     return _cls
@@ -259,7 +259,7 @@ class CodeInfo:
     def path(self) -> Optional[Path]:
         try:
             try:
-                _source_file = inspect.getsourcefile(self.__unwrapped_code_object)
+                _source_file = inspect.getsourcefile(self._unwrapped_code_object)
                 if _source_file:
                     return Path(_source_file)
             except TypeError:
@@ -277,7 +277,7 @@ class CodeInfo:
     def lineno(self) -> Optional[int]:
         try:
             try:
-                _source_lines = inspect.getsourcelines(self.__unwrapped_code_object)
+                _source_lines = inspect.getsourcelines(self._unwrapped_code_object)
                 if _source_lines:
                     return _source_lines[1]
             except (TypeError, OSError):
@@ -378,7 +378,7 @@ class CodeInfo:
         return self.__unwrapped[0]
 
     @property
-    def __unwrapped_code_object(self):
+    def _unwrapped_code_object(self):
         """
         it is unsafe to expose this externally!
         the potential side effects (or lack thereof) of calling an unwrapped function are undefined

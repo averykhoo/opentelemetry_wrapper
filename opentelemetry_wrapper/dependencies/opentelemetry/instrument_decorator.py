@@ -67,6 +67,15 @@ def instrument_decorate(func: InstrumentableThing,
     code_info = CodeInfo(func)
     func_name = func_name or code_info.name
 
+    # avoid re-instrumenting functions with wrappers (e.g., lru_cache)
+    # noinspection PyBroadException
+    try:
+        # noinspection PyProtectedMember
+        if code_info._unwrapped_code_object in _CACHE_INSTRUMENTED:
+            return func
+    except Exception:
+        pass
+
     # build span attributes for this class / function / method / builtin / etc
     span_attributes: Dict[str, Union[str, None, int]] = dict()
     if code_info.function_name:
