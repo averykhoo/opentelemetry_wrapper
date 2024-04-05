@@ -72,7 +72,7 @@ if __name__ == '__main__':
 
     @otel(asdf=1)
     def some_function():
-        pass
+        return SomeClass()
 
 
     app = otel(FastAPI())
