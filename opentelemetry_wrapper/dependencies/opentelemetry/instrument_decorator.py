@@ -68,6 +68,8 @@ def instrument_decorate(func: InstrumentableThing,
     func_name = func_name or code_info.name
 
     # avoid re-instrumenting functions with wrappers (e.g., lru_cache)
+    # note: this only works if the base function is instrumented
+    # todo: peel back one layer at a time and check if its instrumented
     # noinspection PyBroadException
     try:
         # noinspection PyProtectedMember
