@@ -305,6 +305,7 @@ class CodeInfo:
     @cached_property
     def __unwrapped(self):
         # todo: provide a way to get at all the layers, so that i can check whether any of them are instrumented
+        # this should probably be externalized and yield all the layers one at a time
         _code_object = self.code_object
         _prefixes = []
 
