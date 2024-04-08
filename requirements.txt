@@ -4,14 +4,15 @@ fastapi
 itsdangerous
 opentelemetry-api
 opentelemetry-exporter-otlp
+opentelemetry-exporter-prometheus
 opentelemetry-instrumentation-fastapi
 opentelemetry-instrumentation-logging
 opentelemetry-instrumentation-requests
 opentelemetry-instrumentation-sqlalchemy
 opentelemetry-sdk
+pydantic
 requests
 sqlalchemy
+sqlalchemy2-stubs
 starlette
 uvicorn
-pydantic
-sqlalchemy2-stubs
