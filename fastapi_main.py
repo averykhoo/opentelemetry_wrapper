@@ -1,6 +1,7 @@
 import datetime
 import inspect
 import logging
+import os
 from typing import Callable
 
 import requests
@@ -67,6 +68,7 @@ def hello_hello() -> str:
 
 
 if __name__ == '__main__':
+    os.environ['OTEL_EXPORTER_PROMETHEUS_PORT'] = '9464'
     uvicorn.run(f'{inspect.getmodulename(__file__)}:app',
                 host='localhost',
                 port=8000,
