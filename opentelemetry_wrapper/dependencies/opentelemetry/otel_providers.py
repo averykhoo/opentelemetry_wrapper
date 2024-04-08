@@ -104,10 +104,7 @@ def init_meter_provider(*, print_to_console: bool = False):
 
     # https://opentelemetry.io/docs/languages/python/exporters/#prometheus-dependencies
     if OTEL_EXPORTER_PROMETHEUS_PORT is not None:
-        start_http_server(port=OTEL_EXPORTER_PROMETHEUS_PORT, addr="localhost")  # TODO: make this an env var
-        metric_readers.append(PrometheusMetricReader())
-    else:
-        start_http_server(port=9464, addr="localhost")
+        start_http_server(port=OTEL_EXPORTER_PROMETHEUS_PORT, addr="localhost")
         metric_readers.append(PrometheusMetricReader())
 
     mp = MeterProvider(resource=get_otel_resource(), metric_readers=metric_readers)
