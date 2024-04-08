@@ -110,7 +110,7 @@ LOGGING_FORMAT_VERBOSE = (
     '- %(message)s'
 )
 
-_CURRENT_ROOT_JSON_HANDLERS: Set[logging.Handler] = set()
+_OUR_ROOT_HANDLERS: Set[logging.Handler] = set()
 
 
 @lru_cache  # only run once

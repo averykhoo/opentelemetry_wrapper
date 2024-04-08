@@ -10,6 +10,7 @@ a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make l
     * fallback to non-`opentelemetry` if necessary
     * ignore input over raising an exception
     * possible exception: it may be better to fail at startup than to run with known bad config
+        * https://opentelemetry.io/docs/specs/otel/error-handling/#basic-error-handling-principles
 * **hard to get wrong**
     * idempotent, even when you instrument the same thing in different ways from different places
     * "be conservative in what you send, be liberal in what you accept"
@@ -33,7 +34,7 @@ a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make l
     * no newlines in logs or spans
     * no whitespace-delimited ambiguity
     * json all the things (within reason)
-* **provide any available application context**
+* **provide all available application context**
     * we want to know all we can about what's going on and where
     * code introspection and runtime analysis if we can make it fast enough
 
