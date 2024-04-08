@@ -1,11 +1,20 @@
 from opentelemetry.instrumentation.system_metrics import SystemMetricsInstrumentor
 
+from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
 from opentelemetry_wrapper.dependencies.opentelemetry.instrument_decorator import instrument_decorate
+from opentelemetry_wrapper.dependencies.opentelemetry.otel_providers import init_meter_provider
 
 
 @instrument_decorate
 def instrument_system_metrics():
-    # to configure custom metrics
+    # no-op
+    if OTEL_WRAPPER_DISABLED:
+        return
+
+    # init metrics
+    init_meter_provider()
+
+    # configure all available metrics
     SystemMetricsInstrumentor(config={
         "system.cpu.time":                ["idle", "user", "system", "irq"],
         "system.cpu.utilization":         ["idle", "user", "system", "irq"],
