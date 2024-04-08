@@ -12,6 +12,7 @@ from opentelemetry_wrapper.config.otel_service_name import get_default_service_n
 from opentelemetry_wrapper.config.otel_service_name import get_k8s_namespace
 from opentelemetry_wrapper.config.otel_service_name import getenv_otel_service_name
 from opentelemetry_wrapper.config.otel_service_name import getenv_otel_service_namespace
+from opentelemetry_wrapper.config.otel_wrapper_prometheus_exporter import get_prometheus_port
 
 # global flag to override opentelemetry and not do anything
 # because opentelemetry is too verbose in tests
@@ -36,3 +37,5 @@ OTEL_EXPORTER_OTLP_INSECURE: Optional[bool] = getenv_otel_exporter_otlp_insecure
 OTEL_LOG_LEVEL: int = get_log_level()
 
 OTEL_HEADER_ATTRIBUTES: List[str] = get_header_attributes()
+
+OTEL_EXPORTER_PROMETHEUS_PORT: Optional[int] = get_prometheus_port()

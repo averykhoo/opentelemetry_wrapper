@@ -6,13 +6,19 @@ from typing import Set
 
 from opentelemetry import metrics
 from opentelemetry import trace
+# noinspection PyProtectedMember
 from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.exporter.prometheus import PrometheusMetricReader
+# noinspection PyProtectedMember
 from opentelemetry.sdk._logs import LoggerProvider
+# noinspection PyProtectedMember
 from opentelemetry.sdk._logs import LoggingHandler
+# noinspection PyProtectedMember
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.metrics import MeterProvider
+# noinspection PyProtectedMember
 from opentelemetry.sdk.metrics._internal.export import ConsoleMetricExporter
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
@@ -22,10 +28,12 @@ from opentelemetry.sdk.trace import ReadableSpan
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter
+from prometheus_client import start_http_server
 
 from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_ENDPOINT
 from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_HEADER
 from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_INSECURE
+from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_PROMETHEUS_PORT
 from opentelemetry_wrapper.config.otel_headers import OTEL_LOG_LEVEL
 from opentelemetry_wrapper.config.otel_headers import OTEL_SERVICE_NAME
 from opentelemetry_wrapper.config.otel_headers import OTEL_SERVICE_NAMESPACE
@@ -98,6 +106,14 @@ def init_meter_provider(*, print_to_console: bool = False):
 
     # noinspection PyUnresolvedReferences,PyProtectedMember
     metrics._internal._set_meter_provider(mp, log=False)  # try to set, but don't warn otherwise
+
+    # https://opentelemetry.io/docs/languages/python/exporters/#prometheus-dependencies
+    if OTEL_EXPORTER_PROMETHEUS_PORT is not None:
+        resource = Resource(attributes={SERVICE_NAME: OTEL_SERVICE_NAME})
+        start_http_server(port=OTEL_EXPORTER_PROMETHEUS_PORT, addr="localhost")  # TODO: make this an env var
+        reader = PrometheusMetricReader()
+        provider = MeterProvider(resource=resource, metric_readers=[reader])
+        metrics.set_meter_provider(provider)
 
 
 # write IDs as 0xBEEF instead of BEEF, so it matches the trace json exactly
