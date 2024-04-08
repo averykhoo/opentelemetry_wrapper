@@ -12,6 +12,7 @@ from opentelemetry_wrapper.dependencies.opentelemetry.instrument_fastapi import 
 from opentelemetry_wrapper.dependencies.opentelemetry.instrument_logging import instrument_logging
 from opentelemetry_wrapper.dependencies.opentelemetry.instrument_requests import instrument_requests
 from opentelemetry_wrapper.dependencies.opentelemetry.instrument_sqlalchemy import instrument_sqlalchemy
+from opentelemetry_wrapper.dependencies.opentelemetry.instrument_system_metrics import instrument_system_metrics
 
 
 @instrument_decorate
@@ -21,6 +22,7 @@ def instrument_all(dataclasses: bool = True,
                    requests: bool = True,
                    sqlalchemy: bool = False,  # too noisy for a default
                    log_json: bool = True,
+                   system_metrics: bool = True
                    ):
     # no-op
     if OTEL_WRAPPER_DISABLED:
@@ -36,6 +38,8 @@ def instrument_all(dataclasses: bool = True,
         instrument_requests()
     if sqlalchemy:
         instrument_sqlalchemy()
+    if system_metrics:
+        instrument_system_metrics()
 
 
 __all__ = (

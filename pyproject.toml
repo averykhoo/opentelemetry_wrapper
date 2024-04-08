@@ -23,6 +23,7 @@ dependencies = [
     "opentelemetry-instrumentation-logging",
     "opentelemetry-instrumentation-requests",
     "opentelemetry-instrumentation-sqlalchemy",
+    "opentelemetry-instrumentation-system-metrics",
     "opentelemetry-sdk",
     "pydantic",
     "requests",

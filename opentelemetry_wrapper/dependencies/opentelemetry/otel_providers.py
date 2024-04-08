@@ -101,19 +101,20 @@ def init_meter_provider(*, print_to_console: bool = False):
         metric_readers.append(PeriodicExportingMetricReader(OTLPMetricExporter(endpoint=OTEL_EXPORTER_OTLP_ENDPOINT,
                                                                                headers=OTEL_EXPORTER_OTLP_HEADER,
                                                                                insecure=OTEL_EXPORTER_OTLP_INSECURE)))
-    mp = MeterProvider(resource=get_otel_resource(),
-                       metric_readers=metric_readers)
-
-    # noinspection PyUnresolvedReferences,PyProtectedMember
-    metrics._internal._set_meter_provider(mp, log=False)  # try to set, but don't warn otherwise
 
     # https://opentelemetry.io/docs/languages/python/exporters/#prometheus-dependencies
     if OTEL_EXPORTER_PROMETHEUS_PORT is not None:
-        resource = Resource(attributes={SERVICE_NAME: OTEL_SERVICE_NAME})
         start_http_server(port=OTEL_EXPORTER_PROMETHEUS_PORT, addr="localhost")  # TODO: make this an env var
-        reader = PrometheusMetricReader()
-        provider = MeterProvider(resource=resource, metric_readers=[reader])
-        metrics.set_meter_provider(provider)
+        metric_readers.append(PrometheusMetricReader())
+    else:
+        start_http_server(port=9464, addr="localhost")
+        metric_readers.append(PrometheusMetricReader())
+
+    mp = MeterProvider(resource=get_otel_resource(), metric_readers=metric_readers)
+
+    # metrics.set_meter_provider(provider)
+    # noinspection PyUnresolvedReferences,PyProtectedMember
+    metrics._internal._set_meter_provider(mp, log=False)  # try to set, but don't warn otherwise
 
 
 # write IDs as 0xBEEF instead of BEEF, so it matches the trace json exactly
