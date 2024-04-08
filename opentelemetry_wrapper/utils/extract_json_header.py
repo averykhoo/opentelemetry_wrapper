@@ -9,7 +9,7 @@ from typing import Tuple
 from typing import Union
 
 
-def extract_json_header(header_value: str) -> Optional[Dict[str, Union[bool, str, bytes, int, float]]]:
+def extract_json_header(header_value: Optional[str]) -> Optional[Dict[str, Union[bool, str, int, float]]]:
     """
     extract JSON as a flat dict from a (possibly base64-encoded) string
 
@@ -50,7 +50,7 @@ def extract_json_header(header_value: str) -> Optional[Dict[str, Union[bool, str
 
 
 @lru_cache(maxsize=0x10000)
-def _extract_userinfo(header_value: str) -> Optional[Dict[str, Union[bool, str, bytes, int, float]]]:
+def _extract_userinfo(header_value: str) -> Optional[Dict[str, Union[bool, str, int, float]]]:
     """
     extract the oauth userinfo token into a flat dict
     if the provided value is not base64-encoded json, returns None
@@ -75,8 +75,8 @@ def _extract_userinfo(header_value: str) -> Optional[Dict[str, Union[bool, str, 
     return _flatten_json(_header_value)
 
 
-def _flatten_json(header_value: Union[Dict, List, bool, str, int, float],
-                  ) -> Optional[Dict[str, Union[bool, str, int, float]]]:
+def _flatten_json(header_value: Union[Dict, List, bool, str, int, float, None],
+                  ) -> Dict[str, Union[bool, str, int, float]]:
     """
         parses a json string and flattens it into an un-nested dictionary, dropping null values
         >>> _flatten_json({'a': {'aa': {'aaa': 'AAA'}, 'x': None}, 'b': [1, 2, 3]})

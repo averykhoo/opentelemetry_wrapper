@@ -57,7 +57,11 @@ def parse_timedelta(o: datetime.timedelta) -> float:
 
 
 def parse_decimal(o: Decimal) -> Union[int, float]:
-    return int(o) if o.as_tuple().exponent >= 0 else float(o)
+    _exp = o.as_tuple().exponent  # can be an int or Literal["n", "N", "F"]
+    if isinstance(_exp, int):
+        return int(o) if _exp >= 0 else float(o)
+    else:
+        return float(o)
 
 
 def parse_enum(o: Enum) -> Any:

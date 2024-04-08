@@ -39,6 +39,8 @@ also run the following files:
 
 ## todo
 
+* why is the fastapi instrumentor not outputting metrics? does it need to call observable metrics?
+  * consider doing whatever `prometheus-fastapi-instrumentator` is doing instead
 * documentation pls, including design decisions
 * rename `OTEL_EXPORTER_*` to `OTEL_COLLECTOR_*`
   * and have separate metric, log, and trace collectors

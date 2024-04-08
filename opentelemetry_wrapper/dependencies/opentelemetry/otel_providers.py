@@ -1,6 +1,7 @@
 import json
 import logging
 from functools import lru_cache
+from typing import List
 from typing import Optional
 from typing import Set
 
@@ -20,6 +21,8 @@ from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.metrics import MeterProvider
 # noinspection PyProtectedMember
 from opentelemetry.sdk.metrics._internal.export import ConsoleMetricExporter
+# noinspection PyProtectedMember
+from opentelemetry.sdk.metrics._internal.export import MetricReader
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.resources import SERVICE_NAME
@@ -93,7 +96,7 @@ def init_meter_provider(*, print_to_console: bool = False):
     """
     # based on https://opentelemetry.io/docs/languages/python/exporters/#usage
 
-    metric_readers = []
+    metric_readers: List[MetricReader] = []
     if print_to_console:
         metric_readers.append(PeriodicExportingMetricReader(ConsoleMetricExporter()))
 

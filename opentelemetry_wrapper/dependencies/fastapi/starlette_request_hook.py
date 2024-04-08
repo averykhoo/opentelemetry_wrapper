@@ -28,5 +28,5 @@ try:
             if isinstance(header_value, (bool, str, bytes, int, float)):
                 span.set_attribute(header_name, header_value)
 except ImportError:
-    def request_hook(_, __) -> None:
+    def request_hook(_: Span, __: Scope) -> None:
         return
