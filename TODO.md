@@ -39,12 +39,14 @@ also run the following files:
 
 ## todo
 
-* why is the fastapi instrumentor not outputting metrics? does it need to call observable metrics?
-  * consider doing whatever `prometheus-fastapi-instrumentator` is doing instead
+* allow exposing prometheus via fastapi endpoint in an instrumented app
+  * probably create an asgi app and mount it to /metrics or something
+* consider RED metrics, e.g. whatever `prometheus-fastapi-instrumentator` is doing
 * documentation pls, including design decisions
 * rename `OTEL_EXPORTER_*` to `OTEL_COLLECTOR_*`
   * and have separate metric, log, and trace collectors
   * separate for http and grpc exporters too
+  * maybe allow multiple urls (delimited by whitespace)?
 * env var to enable/disable console printing for logs, metrics (off by default), and traces
 * set `__tracebackhide__=True` (pytest) and `__traceback_hide__=True` (a few others like sentry) in the functions
 * update [introspect.py](./opentelemetry_wrapper/utils/introspect.py) for pep 626

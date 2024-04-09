@@ -1,0 +1,275 @@
+# HELP python_gc_objects_collected_total Objects collected during gc
+# TYPE python_gc_objects_collected_total counter
+python_gc_objects_collected_total{generation="0"} 5135.0
+python_gc_objects_collected_total{generation="1"} 10676.0
+python_gc_objects_collected_total{generation="2"} 1712.0
+# HELP python_gc_objects_uncollectable_total Uncollectable objects found during GC
+# TYPE python_gc_objects_uncollectable_total counter
+python_gc_objects_uncollectable_total{generation="0"} 0.0
+python_gc_objects_uncollectable_total{generation="1"} 0.0
+python_gc_objects_uncollectable_total{generation="2"} 0.0
+# HELP python_gc_collections_total Number of times this generation was collected
+# TYPE python_gc_collections_total counter
+python_gc_collections_total{generation="0"} 300.0
+python_gc_collections_total{generation="1"} 27.0
+python_gc_collections_total{generation="2"} 2.0
+# HELP python_info Python platform information
+# TYPE python_info gauge
+python_info{implementation="CPython",major="3",minor="8",patchlevel="18",version="3.8.18"} 1.0
+# HELP target_info Target metadata
+# TYPE target_info gauge
+target_info{service_name="user@computername.networkdomain",telemetry_sdk_language="python",telemetry_sdk_name="opentelemetry",telemetry_sdk_version="1.24.0"} 1.0
+# HELP system_cpu_time_seconds_total System CPU time
+# TYPE system_cpu_time_seconds_total counter
+system_cpu_time_seconds_total{cpu="1",state="idle"} 676304.90625
+system_cpu_time_seconds_total{cpu="1",state="user"} 16352.15625
+system_cpu_time_seconds_total{cpu="1",state="system"} 8883.234375
+system_cpu_time_seconds_total{cpu="2",state="idle"} 685315.015625
+system_cpu_time_seconds_total{cpu="2",state="user"} 12203.03125
+system_cpu_time_seconds_total{cpu="2",state="system"} 4022.0625
+system_cpu_time_seconds_total{cpu="3",state="idle"} 660549.5
+system_cpu_time_seconds_total{cpu="3",state="user"} 31380.921874999996
+system_cpu_time_seconds_total{cpu="3",state="system"} 9609.6875
+system_cpu_time_seconds_total{cpu="4",state="idle"} 683365.359375
+system_cpu_time_seconds_total{cpu="4",state="user"} 14037.65625
+system_cpu_time_seconds_total{cpu="4",state="system"} 4137.093749999884
+system_cpu_time_seconds_total{cpu="5",state="idle"} 674804.8125
+system_cpu_time_seconds_total{cpu="5",state="user"} 17939.171875
+system_cpu_time_seconds_total{cpu="5",state="system"} 8796.125
+system_cpu_time_seconds_total{cpu="6",state="idle"} 675655.265625
+system_cpu_time_seconds_total{cpu="6",state="user"} 18888.093749999996
+system_cpu_time_seconds_total{cpu="6",state="system"} 6996.749999999884
+system_cpu_time_seconds_total{cpu="7",state="idle"} 677612.5937499999
+system_cpu_time_seconds_total{cpu="7",state="user"} 17876.546875
+system_cpu_time_seconds_total{cpu="7",state="system"} 6050.968750000116
+system_cpu_time_seconds_total{cpu="8",state="idle"} 683237.8125
+system_cpu_time_seconds_total{cpu="8",state="user"} 13878.359375
+system_cpu_time_seconds_total{cpu="8",state="system"} 4423.921875
+# HELP system_cpu_utilization_1 System CPU utilization
+# TYPE system_cpu_utilization_1 gauge
+system_cpu_utilization_1{cpu="1",state="idle"} 0.0
+system_cpu_utilization_1{cpu="1",state="user"} 0.0
+system_cpu_utilization_1{cpu="1",state="system"} 0.0
+system_cpu_utilization_1{cpu="2",state="idle"} 0.0
+system_cpu_utilization_1{cpu="2",state="user"} 0.0
+system_cpu_utilization_1{cpu="2",state="system"} 0.0
+system_cpu_utilization_1{cpu="3",state="idle"} 0.0
+system_cpu_utilization_1{cpu="3",state="user"} 0.0
+system_cpu_utilization_1{cpu="3",state="system"} 0.0
+system_cpu_utilization_1{cpu="4",state="idle"} 0.0
+system_cpu_utilization_1{cpu="4",state="user"} 0.0
+system_cpu_utilization_1{cpu="4",state="system"} 0.0
+system_cpu_utilization_1{cpu="5",state="idle"} 0.0
+system_cpu_utilization_1{cpu="5",state="user"} 0.0
+system_cpu_utilization_1{cpu="5",state="system"} 0.0
+system_cpu_utilization_1{cpu="6",state="idle"} 0.0
+system_cpu_utilization_1{cpu="6",state="user"} 0.0
+system_cpu_utilization_1{cpu="6",state="system"} 0.0
+system_cpu_utilization_1{cpu="7",state="idle"} 0.0
+system_cpu_utilization_1{cpu="7",state="user"} 0.0
+system_cpu_utilization_1{cpu="7",state="system"} 0.0
+system_cpu_utilization_1{cpu="8",state="idle"} 0.0
+system_cpu_utilization_1{cpu="8",state="user"} 0.0
+system_cpu_utilization_1{cpu="8",state="system"} 0.0
+# HELP system_memory_usage_bytes System memory usage
+# TYPE system_memory_usage_bytes gauge
+system_memory_usage_bytes{state="used"} 1.4318874624e+010
+system_memory_usage_bytes{state="free"} 2.751107072e+09
+# HELP system_memory_utilization_1 System memory utilization
+# TYPE system_memory_utilization_1 gauge
+system_memory_utilization_1{state="used"} 0.8388336249566885
+system_memory_utilization_1{state="free"} 0.16116637504331158
+# HELP system_swap_usage_pages System swap usage
+# TYPE system_swap_usage_pages gauge
+system_swap_usage_pages{state="used"} 1.8074624e+09
+system_swap_usage_pages{state="free"} 9.880375296e+09
+# HELP system_swap_utilization_1 System swap utilization
+# TYPE system_swap_utilization_1 gauge
+system_swap_utilization_1{state="used"} 0.15464472103497628
+system_swap_utilization_1{state="free"} 0.8453552789650237
+# HELP system_disk_io_bytes_total System disk IO
+# TYPE system_disk_io_bytes_total counter
+system_disk_io_bytes_total{device="PhysicalDrive0",direction="read"} 1.25791785472e+011
+system_disk_io_bytes_total{device="PhysicalDrive0",direction="write"} 1.88241272832e+011
+system_disk_io_bytes_total{device="PhysicalDrive1",direction="read"} 2.0318208e+07
+system_disk_io_bytes_total{device="PhysicalDrive1",direction="write"} 253952.0
+# HELP system_disk_operations_total System disk operations
+# TYPE system_disk_operations_total counter
+system_disk_operations_total{device="PhysicalDrive0",direction="read"} 4.356159e+06
+system_disk_operations_total{device="PhysicalDrive0",direction="write"} 8.682508e+06
+system_disk_operations_total{device="PhysicalDrive1",direction="read"} 4004.0
+system_disk_operations_total{device="PhysicalDrive1",direction="write"} 61.0
+# HELP system_disk_time_seconds_total System disk time
+# TYPE system_disk_time_seconds_total counter
+system_disk_time_seconds_total{device="PhysicalDrive0",direction="read"} 4.283
+system_disk_time_seconds_total{device="PhysicalDrive0",direction="write"} 10.938
+system_disk_time_seconds_total{device="PhysicalDrive1",direction="read"} 0.01
+system_disk_time_seconds_total{device="PhysicalDrive1",direction="write"} 0.003
+# HELP system_network_dropped_packets_total System network dropped_packets
+# TYPE system_network_dropped_packets_total counter
+system_network_dropped_packets_total{device="Ethernet",direction="transmit"} 0.0
+system_network_dropped_packets_total{device="Ethernet",direction="receive"} 0.0
+system_network_dropped_packets_total{device="Ethernet 3",direction="transmit"} 0.0
+system_network_dropped_packets_total{device="Ethernet 3",direction="receive"} 0.0
+system_network_dropped_packets_total{device="Loopback Pseudo-Interface 1",direction="transmit"} 0.0
+system_network_dropped_packets_total{device="Loopback Pseudo-Interface 1",direction="receive"} 0.0
+# HELP system_network_packets_total System network packets
+# TYPE system_network_packets_total counter
+system_network_packets_total{device="Ethernet",direction="transmit"} 9.6249e+06
+system_network_packets_total{device="Ethernet",direction="receive"} 1.5775434e+07
+system_network_packets_total{device="Ethernet 3",direction="transmit"} 116763.0
+system_network_packets_total{device="Ethernet 3",direction="receive"} 0.0
+system_network_packets_total{device="Loopback Pseudo-Interface 1",direction="transmit"} 0.0
+system_network_packets_total{device="Loopback Pseudo-Interface 1",direction="receive"} 0.0
+# HELP system_network_errors_total System network errors
+# TYPE system_network_errors_total counter
+system_network_errors_total{device="Ethernet",direction="transmit"} 0.0
+system_network_errors_total{device="Ethernet",direction="receive"} 0.0
+system_network_errors_total{device="Ethernet 3",direction="transmit"} 0.0
+system_network_errors_total{device="Ethernet 3",direction="receive"} 0.0
+system_network_errors_total{device="Loopback Pseudo-Interface 1",direction="transmit"} 0.0
+system_network_errors_total{device="Loopback Pseudo-Interface 1",direction="receive"} 0.0
+# HELP system_network_io_bytes_total System network io
+# TYPE system_network_io_bytes_total counter
+system_network_io_bytes_total{device="Ethernet",direction="transmit"} 2.022278744e+09
+system_network_io_bytes_total{device="Ethernet",direction="receive"} 1.548159911e+010
+system_network_io_bytes_total{device="Ethernet 3",direction="transmit"} 1.6885244e+07
+system_network_io_bytes_total{device="Ethernet 3",direction="receive"} 0.0
+system_network_io_bytes_total{device="Loopback Pseudo-Interface 1",direction="transmit"} 0.0
+system_network_io_bytes_total{device="Loopback Pseudo-Interface 1",direction="receive"} 0.0
+# HELP system_network_connections System network connections
+# TYPE system_network_connections gauge
+system_network_connections{family="23",protocol="udp",state="NONE",type="2"} 18.0
+system_network_connections{family="23",protocol="tcp",state="LISTEN",type="1"} 15.0
+system_network_connections{family="2",protocol="tcp",state="ESTABLISHED",type="1"} 38.0
+system_network_connections{family="2",protocol="tcp",state="TIME_WAIT",type="1"} 24.0
+system_network_connections{family="2",protocol="tcp",state="LISTEN",type="1"} 32.0
+system_network_connections{family="2",protocol="udp",state="NONE",type="2"} 33.0
+system_network_connections{family="2",protocol="tcp",state="CLOSE_WAIT",type="1"} 4.0
+system_network_connections{family="23",protocol="tcp",state="ESTABLISHED",type="1"} 2.0
+system_network_connections{family="23",protocol="tcp",state="TIME_WAIT",type="1"} 4.0
+# HELP system_thread_count System active threads count
+# TYPE system_thread_count gauge
+system_thread_count 6.0
+# HELP process_runtime_cpython_memory_bytes Runtime cpython memory
+# TYPE process_runtime_cpython_memory_bytes gauge
+process_runtime_cpython_memory_bytes{type="rss"} 8.9751552e+07
+process_runtime_cpython_memory_bytes{type="vms"} 7.5644928e+07
+# HELP process_runtime_cpython_cpu_time_seconds_total Runtime cpython CPU time
+# TYPE process_runtime_cpython_cpu_time_seconds_total counter
+process_runtime_cpython_cpu_time_seconds_total{type="user"} 1.796875
+process_runtime_cpython_cpu_time_seconds_total{type="system"} 0.9375
+# HELP process_runtime_cpython_gc_count_bytes_total Runtime cpython GC count
+# TYPE process_runtime_cpython_gc_count_bytes_total counter
+process_runtime_cpython_gc_count_bytes_total{count="0"} 3.0
+process_runtime_cpython_gc_count_bytes_total{count="1"} 4.0
+process_runtime_cpython_gc_count_bytes_total{count="2"} 5.0
+# HELP process_runtime_cpython_thread_count Runtime active threads count
+# TYPE process_runtime_cpython_thread_count gauge
+process_runtime_cpython_thread_count 10.0
+# HELP process_runtime_cpython_cpu_utilization_1 Runtime CPU utilization
+# TYPE process_runtime_cpython_cpu_utilization_1 gauge
+process_runtime_cpython_cpu_utilization_1 1.0
+# HELP process_runtime_cpython_context_switches_total Runtime context switches
+# TYPE process_runtime_cpython_context_switches_total counter
+process_runtime_cpython_context_switches_total{type="involuntary"} 0.0
+process_runtime_cpython_context_switches_total{type="voluntary"} 2700.0
+# HELP http_server_active_requests measures the number of concurrent HTTP requests that are currently in-flight
+# TYPE http_server_active_requests gauge
+http_server_active_requests{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000"} 0.0
+# HELP http_server_duration_ms measures the duration of the inbound HTTP request
+# TYPE http_server_duration_ms histogram
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="0.0",net_host_port="8000"} 0.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="5.0",net_host_port="8000"} 0.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="10.0",net_host_port="8000"} 1.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="25.0",net_host_port="8000"} 1.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="50.0",net_host_port="8000"} 1.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="75.0",net_host_port="8000"} 1.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="100.0",net_host_port="8000"} 1.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="250.0",net_host_port="8000"} 1.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="500.0",net_host_port="8000"} 1.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="750.0",net_host_port="8000"} 1.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="1000.0",net_host_port="8000"} 1.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="2500.0",net_host_port="8000"} 1.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="5000.0",net_host_port="8000"} 1.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="7500.0",net_host_port="8000"} 1.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="10000.0",net_host_port="8000"} 1.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="+Inf",net_host_port="8000"} 1.0
+http_server_duration_ms_count{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",net_host_port="8000"} 1.0
+http_server_duration_ms_sum{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",net_host_port="8000"} 6.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="0.0",net_host_port="8000"} 0.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="5.0",net_host_port="8000"} 0.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="10.0",net_host_port="8000"} 0.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="25.0",net_host_port="8000"} 0.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="50.0",net_host_port="8000"} 0.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="75.0",net_host_port="8000"} 0.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="100.0",net_host_port="8000"} 0.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="250.0",net_host_port="8000"} 0.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="500.0",net_host_port="8000"} 0.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="750.0",net_host_port="8000"} 0.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="1000.0",net_host_port="8000"} 0.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="2500.0",net_host_port="8000"} 3.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="5000.0",net_host_port="8000"} 3.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="7500.0",net_host_port="8000"} 3.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="10000.0",net_host_port="8000"} 3.0
+http_server_duration_ms_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="+Inf",net_host_port="8000"} 3.0
+http_server_duration_ms_count{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",net_host_port="8000"} 3.0
+http_server_duration_ms_sum{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",net_host_port="8000"} 6153.0
+# HELP http_server_response_size_By measures the size of HTTP response messages (compressed).
+# TYPE http_server_response_size_By histogram
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="0.0",net_host_port="8000"} 0.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="5.0",net_host_port="8000"} 0.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="10.0",net_host_port="8000"} 1.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="25.0",net_host_port="8000"} 1.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="50.0",net_host_port="8000"} 1.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="75.0",net_host_port="8000"} 1.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="100.0",net_host_port="8000"} 1.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="250.0",net_host_port="8000"} 1.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="500.0",net_host_port="8000"} 1.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="750.0",net_host_port="8000"} 1.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="1000.0",net_host_port="8000"} 1.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="2500.0",net_host_port="8000"} 1.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="5000.0",net_host_port="8000"} 1.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="7500.0",net_host_port="8000"} 1.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="10000.0",net_host_port="8000"} 1.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",le="+Inf",net_host_port="8000"} 1.0
+http_server_response_size_By_count{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",net_host_port="8000"} 1.0
+http_server_response_size_By_sum{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello/{name}",net_host_port="8000"} 7.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="0.0",net_host_port="8000"} 0.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="5.0",net_host_port="8000"} 0.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="10.0",net_host_port="8000"} 0.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="25.0",net_host_port="8000"} 3.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="50.0",net_host_port="8000"} 3.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="75.0",net_host_port="8000"} 3.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="100.0",net_host_port="8000"} 3.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="250.0",net_host_port="8000"} 3.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="500.0",net_host_port="8000"} 3.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="750.0",net_host_port="8000"} 3.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="1000.0",net_host_port="8000"} 3.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="2500.0",net_host_port="8000"} 3.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="5000.0",net_host_port="8000"} 3.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="7500.0",net_host_port="8000"} 3.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="10000.0",net_host_port="8000"} 3.0
+http_server_response_size_By_bucket{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",le="+Inf",net_host_port="8000"} 3.0
+http_server_response_size_By_count{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",net_host_port="8000"} 3.0
+http_server_response_size_By_sum{http_flavor="1.1",http_host="127.0.0.1:8000",http_method="GET",http_scheme="http",http_server_name="localhost:8000",http_status_code="200",http_target="/hello-hello",net_host_port="8000"} 33.0
+# HELP http_client_duration_ms measures the duration of the outbound HTTP request
+# TYPE http_client_duration_ms histogram
+http_client_duration_ms_bucket{http_flavor="1.1",http_host="localhost",http_method="GET",http_scheme="http",http_status_code="200",le="0.0",net_peer_name="localhost",net_peer_port="8000"} 0.0
+http_client_duration_ms_bucket{http_flavor="1.1",http_host="localhost",http_method="GET",http_scheme="http",http_status_code="200",le="5.0",net_peer_name="localhost",net_peer_port="8000"} 0.0
+http_client_duration_ms_bucket{http_flavor="1.1",http_host="localhost",http_method="GET",http_scheme="http",http_status_code="200",le="10.0",net_peer_name="localhost",net_peer_port="8000"} 0.0
+http_client_duration_ms_bucket{http_flavor="1.1",http_host="localhost",http_method="GET",http_scheme="http",http_status_code="200",le="25.0",net_peer_name="localhost",net_peer_port="8000"} 0.0
+http_client_duration_ms_bucket{http_flavor="1.1",http_host="localhost",http_method="GET",http_scheme="http",http_status_code="200",le="50.0",net_peer_name="localhost",net_peer_port="8000"} 0.0
+http_client_duration_ms_bucket{http_flavor="1.1",http_host="localhost",http_method="GET",http_scheme="http",http_status_code="200",le="75.0",net_peer_name="localhost",net_peer_port="8000"} 0.0
+http_client_duration_ms_bucket{http_flavor="1.1",http_host="localhost",http_method="GET",http_scheme="http",http_status_code="200",le="100.0",net_peer_name="localhost",net_peer_port="8000"} 0.0
+http_client_duration_ms_bucket{http_flavor="1.1",http_host="localhost",http_method="GET",http_scheme="http",http_status_code="200",le="250.0",net_peer_name="localhost",net_peer_port="8000"} 0.0
+http_client_duration_ms_bucket{http_flavor="1.1",http_host="localhost",http_method="GET",http_scheme="http",http_status_code="200",le="500.0",net_peer_name="localhost",net_peer_port="8000"} 0.0
+http_client_duration_ms_bucket{http_flavor="1.1",http_host="localhost",http_method="GET",http_scheme="http",http_status_code="200",le="750.0",net_peer_name="localhost",net_peer_port="8000"} 0.0
+http_client_duration_ms_bucket{http_flavor="1.1",http_host="localhost",http_method="GET",http_scheme="http",http_status_code="200",le="1000.0",net_peer_name="localhost",net_peer_port="8000"} 0.0
+http_client_duration_ms_bucket{http_flavor="1.1",http_host="localhost",http_method="GET",http_scheme="http",http_status_code="200",le="2500.0",net_peer_name="localhost",net_peer_port="8000"} 0.0
+http_client_duration_ms_bucket{http_flavor="1.1",http_host="localhost",http_method="GET",http_scheme="http",http_status_code="200",le="5000.0",net_peer_name="localhost",net_peer_port="8000"} 0.0
+http_client_duration_ms_bucket{http_flavor="1.1",http_host="localhost",http_method="GET",http_scheme="http",http_status_code="200",le="7500.0",net_peer_name="localhost",net_peer_port="8000"} 0.0
+http_client_duration_ms_bucket{http_flavor="1.1",http_host="localhost",http_method="GET",http_scheme="http",http_status_code="200",le="10000.0",net_peer_name="localhost",net_peer_port="8000"} 0.0
+http_client_duration_ms_bucket{http_flavor="1.1",http_host="localhost",http_method="GET",http_scheme="http",http_status_code="200",le="+Inf",net_peer_name="localhost",net_peer_port="8000"} 3.0
+http_client_duration_ms_count{http_flavor="1.1",http_host="localhost",http_method="GET",http_scheme="http",http_status_code="200",net_peer_name="localhost",net_peer_port="8000"} 3.0
+http_client_duration_ms_sum{http_flavor="1.1",http_host="localhost",http_method="GET",http_scheme="http",http_status_code="200",net_peer_name="localhost",net_peer_port="8000"} 6.125e+06

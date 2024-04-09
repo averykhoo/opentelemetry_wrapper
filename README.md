@@ -11,6 +11,8 @@ a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make l
     * ignore input over raising an exception
     * possible exception: it may be better to fail at startup than to run with known bad config
         * https://opentelemetry.io/docs/specs/otel/error-handling/#basic-error-handling-principles
+    * make dangerous things impossible (by design) > difficult (guardrails) > unusual (defaults) > understood (docs)
+      * there should be a "best practice" somewhere in that statement
 * **hard to get wrong**
     * idempotent, even when you instrument the same thing in different ways from different places
     * "be conservative in what you send, be liberal in what you accept"
@@ -48,17 +50,17 @@ a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make l
 
 ### env vars
 
-| Variable Name                   | Description                                                                                                                                       | Default (if not set)                                                                        |
-|---------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
-| `OTEL_EXPORTER_OTLP_ENDPOINT`   | Looks like `http://tempo.localhost:4317`.                                                                                                         | *NA* (traces are not exported to any OTLP endpoint)                                         |
-| `OTEL_EXPORTER_OTLP_HEADER`     | Looks like `Header-Name=header value`, where values can contain space ('\x20'). To insert multiple headers, delimit by any other whitespace char. | *NA* (no header sent to OTLP endpoint)                                                      |
-| `OTEL_EXPORTER_OTLP_INSECURE`   | Set to `true` to disable SSL for OTLP trace exports, or `false` to always verify.                                                                 | *NA* (follows OpenTelemetry default, which is secure for https and insecure for http)       |
-| `OTEL_EXPORTER_PROMETHEUS_PORT` | The port on which to expose methics for Prometheus. (E.g. `9464` to expose `http://localhost:9464/metrics`)                                       | *NA* (follows OpenTelemetry default, which is secure for https and insecure for http)       |
-| `OTEL_HEADER_ATTRIBUTES`        | List of HTTP headers to extract from incoming requests as span attributes, split by whitespace.                                                   | x-pf-number, x-client-id, x-preferred-username, x-resource-access                           |
-| `OTEL_LOG_LEVEL`                | Log level used by the logging instrumentor (case-insensitive).                                                                                    | `info`                                                                                      |
-| `OTEL_SERVICE_NAME`             | Sets the value of the `service.name` resource attribute.                                                                                          | f'{k8s namespace}/{k8s pod name}' or f'{username}@{hostname}.{domain}:<{filename of main}>' |
-| `OTEL_SERVICE_NAMESPACE`        | Sets the value of the `service.namespace` resource attribute.                                                                                     | f'{k8s namespace}' or None                                                                  |
-| `OTEL_WRAPPER_DISABLED`         | Set to `true` to disable tracing globally (e.g. when running pytest).                                                                             | `false` (tracing is enabled)                                                                |
+| Variable Name                   | Description                                                                                                                                                | Default (if not set)                                                                        |
+|---------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
+| `OTEL_EXPORTER_OTLP_ENDPOINT`   | Looks like `http://tempo.localhost:4317`.                                                                                                                  | *NA* (traces are not exported to any OTLP endpoint)                                         |
+| `OTEL_EXPORTER_OTLP_HEADER`     | Looks like `Header-Name=header value`, where values can contain space ('\x20'). To insert multiple headers, delimit by any other whitespace char.          | *NA* (no header sent to OTLP endpoint)                                                      |
+| `OTEL_EXPORTER_OTLP_INSECURE`   | Set to `true` to disable SSL for OTLP trace exports, or `false` to always verify.                                                                          | *NA* (follows OpenTelemetry default, which is secure for https and insecure for http)       |
+| `OTEL_EXPORTER_PROMETHEUS_PORT` | The port on which to expose metrics for Prometheus. (E.g. `9464` to expose `http://localhost:9464/metrics`) WARNING: do not use the same port as your app. | *NA* (no Prometheus endpoint)                                                               |
+| `OTEL_HEADER_ATTRIBUTES`        | List of HTTP headers to extract from incoming requests as span attributes, split by whitespace.                                                            | x-pf-number, x-client-id, x-preferred-username, x-resource-access                           |
+| `OTEL_LOG_LEVEL`                | Log level used by the logging instrumentor (case-insensitive).                                                                                             | `info`                                                                                      |
+| `OTEL_SERVICE_NAME`             | Sets the value of the `service.name` resource attribute.                                                                                                   | f'{k8s namespace}/{k8s pod name}' or f'{username}@{hostname}.{domain}:<{filename of main}>' |
+| `OTEL_SERVICE_NAMESPACE`        | Sets the value of the `service.namespace` resource attribute.                                                                                              | f'{k8s namespace}' or None                                                                  |
+| `OTEL_WRAPPER_DISABLED`         | Set to `true` to disable tracing globally (e.g. when running pytest).                                                                                      | `false` (tracing is enabled)                                                                |
 
 > **Note:** <br>
 > The `service.name` and `service.namespace` can also be set via `OTEL_RESOURCE_ATTRIBUTES`, but any settings there
