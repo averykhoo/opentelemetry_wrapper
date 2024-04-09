@@ -120,9 +120,7 @@ logging.warning('...')
 
 ### instrumenting fastapi
 
-* while the `instrument_fastapi()` function will auto-instrument any app that is created, if your import order is wrong
-  then your app may end up not being instrumented
-* as such, it is safer to explicitly call `instrument_fastapi_app`
+* use `instrument_fastapi_app`, for example:
 
 ```python
 from fastapi import FastAPI

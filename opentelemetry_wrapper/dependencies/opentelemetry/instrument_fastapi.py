@@ -49,20 +49,3 @@ def instrument_fastapi_app(app):
                                        client_request_hook=request_hook,
                                        )
     return app
-
-
-@instrument_decorate
-def instrument_fastapi() -> None:
-    """
-    this function is idempotent; calling it multiple times has no additional side effects
-    """
-
-    # no-op
-    if OTEL_WRAPPER_DISABLED:
-        return
-
-    _instrumentor = FastAPIInstrumentor()
-    if not _instrumentor.is_instrumented_by_opentelemetry:
-        _instrumentor.instrument(server_request_hook=request_hook,
-                                 client_request_hook=request_hook,
-                                 )
