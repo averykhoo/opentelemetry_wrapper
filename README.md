@@ -120,6 +120,7 @@ logging.warning('...')
 
 ### instrumenting fastapi
 
+* Warning: using `opentelemetry.instrumentation.fastapi.FastAPIInstrumentor` does not work as intended
 * use `instrument_fastapi_app`, for example:
 
 ```python
