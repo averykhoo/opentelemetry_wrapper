@@ -39,6 +39,8 @@ also run the following files:
 
 ## todo
 
+* an intelligent way to include multiple headers in `OTEL_EXPORTER_OTLP_HEADER`
+  * may need support for escapes
 * allow exposing prometheus via fastapi endpoint in an instrumented app
     * probably create an asgi app and mount it to /metrics or something
 * consider RED metrics, e.g. whatever `prometheus-fastapi-instrumentator` is doing
@@ -54,7 +56,8 @@ also run the following files:
     * The co_lnotab attribute of code objects is deprecated and will be removed in 3.12.
     * Code that needs to convert from offset to line number should use the new co_lines() method instead.
 * `OTEL_HEADER_ATTRIBUTES` behaves too much like `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`
-    * consider removing it?
+    * ~~consider removing it?~~
+    * update docs to explain the difference: decoding base64 and flattening json
 * `with ...` instrumentation for non-callable code (e.g. settings, semi-hardcoded config)
     * see [next_version_intended_usage.py](./next_version_intended_usage.py)
 * type-checking decorator, with warning on unmatched types

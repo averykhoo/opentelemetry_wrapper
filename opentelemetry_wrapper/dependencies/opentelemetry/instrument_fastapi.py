@@ -27,10 +27,12 @@ def instrument_fastapi_app(app):
     if not is_fastapi_app(app):
         return app
 
+    # note: this is a bit slow, but we want to ensure it's really mounted, the check below can make mistakes
     # noinspection PyBroadException
     try:
         if OTEL_EXPORTER_PROMETHEUS_ENDPOINT:
-            app.mount(OTEL_EXPORTER_PROMETHEUS_ENDPOINT, make_asgi_app())
+            if all(route.path != OTEL_EXPORTER_PROMETHEUS_ENDPOINT.rstrip('/') for route in app.router.routes):
+                app.mount(OTEL_EXPORTER_PROMETHEUS_ENDPOINT, make_asgi_app())
     except Exception:
         logging.exception(f'failed to mount prometheus endpoint: {OTEL_EXPORTER_PROMETHEUS_ENDPOINT}')
 
