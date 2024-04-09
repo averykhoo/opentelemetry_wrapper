@@ -4,6 +4,8 @@ import inspect
 import sys
 from dataclasses import dataclass
 from dataclasses import field
+from functools import WRAPPER_ASSIGNMENTS
+from functools import WRAPPER_UPDATES
 from functools import cached_property
 from functools import lru_cache
 from functools import partial
@@ -11,22 +13,128 @@ from functools import partialmethod
 from functools import singledispatchmethod
 from pathlib import Path
 from types import ModuleType
+from typing import Any
 from typing import Callable
 from typing import Coroutine
 from typing import Dict
+from typing import Generator
 from typing import List
 from typing import Optional
+from typing import Tuple
 from typing import Union
+
+CodeObjectType = Union[
+    Coroutine, Callable,
+    partial, partialmethod, singledispatchmethod, cached_property,
+    asyncio.Task,
+    type, property
+]
+
+
+def _is_code_object_type(_code_object: CodeObjectType) -> bool:
+    if callable(_code_object):
+        return True
+    if isinstance(_code_object, (Coroutine, Callable)):  # `def` and `async def`
+        return True
+    if isinstance(_code_object, (partial, partialmethod, singledispatchmethod, cached_property)):  # `functools`
+        return True
+    if isinstance(_code_object, asyncio.Task):
+        return True
+    return False
+
+
+def _unwrap_partial(_code_object: CodeObjectType) -> Tuple[Optional[str], CodeObjectType]:
+    # class-based wrappers
+    for wrapper_class in (partial, partialmethod, singledispatchmethod, cached_property):
+        if isinstance(_code_object, wrapper_class):
+            return f'functools.{wrapper_class.__name__}', _code_object.func
+
+    # make best guess about the wrapper
+    _wrapped_code = getattr(_code_object, '__wrapped__', None)
+    if _is_code_object_type(_wrapped_code):
+
+        # probably single dispatch
+        if all(hasattr(_code_object, _attr) for _attr in {'register', 'dispatch', 'registry', '_clear_cache'}):
+            return 'functools.singledispatch', _wrapped_code
+
+        # could be lru_cache or cache (but that's a special_case of lru_cache anyway)
+        if all(hasattr(_code_object, _attr) for _attr in {'cache_info', 'cache_clear'}):
+            return 'functools.lru_cache', _wrapped_code
+
+        # update_wrapper was probably called, and since it's not internal to functools it's probably via wraps
+        if all(getattr(_wrapped_code, _a, None) == getattr(_code_object, _a, None) for _a in WRAPPER_ASSIGNMENTS):
+            for _u in WRAPPER_UPDATES:
+                # this must be a dict
+                if not isinstance(getattr(_code_object, _u, None), dict):
+                    break
+                # this should be a superset, since the keys probably won't be deleted
+                if not set(getattr(_code_object, _u).keys()).issuperset(getattr(_wrapped_code, _u, {}).keys()):
+                    break
+                # the values should also match, since devs are lazy to update things
+                for k, v in getattr(_wrapped_code, _u, {}).items():
+                    if getattr(_code_object, _u)[k] != v:
+                        break
+                else:
+                    break
+            else:
+                return 'functools.wraps', _wrapped_code
+
+    # failed to unwrap
+    return None, _code_object
+
+
+def _unwrap_async(_code_object: CodeObjectType) -> Tuple[Optional[str], CodeObjectType]:
+    # unwrap tasks
+    if isinstance(_code_object, asyncio.Task):
+        return 'asyncio.Task', _code_object.get_coro()
+
+    # attempt to detect asgiref.sync_to_async and asgiref.async_to_sync
+    _module = inspect.getmodule(_code_object)
+    if hasattr(_module, '__name__') and _module.__name__ == 'asgiref.sync':
+
+        # must check this first because it may also have an `awaitable` attribute
+        if hasattr(_code_object, 'func'):
+            if _is_code_object_type(_code_object.func):
+                return 'asgiref.sync.SynctoAsync', _code_object.func
+
+        if hasattr(_code_object, 'awaitable'):
+            if _is_code_object_type(_code_object.awaitable):
+                return 'asgiref.sync.AsyncToSync', _code_object.awaitable
+
+    # failed to unwrap
+    return None, _code_object
+
+
+def unwrap_code_object(code_object: CodeObjectType,
+                       *,
+                       unwrap_partial: bool = True,
+                       unwrap_async: bool = True,
+                       ) -> Generator[Tuple[str, CodeObjectType], Any, None]:
+    while True:
+
+        # handle wrappers from functools
+        if unwrap_partial:
+            _wrapper, code_object = _unwrap_partial(code_object)
+            if _wrapper is not None:
+                yield _wrapper, code_object
+                continue
+
+        # handle async
+        if unwrap_async:
+            _wrapper, code_object = _unwrap_async(code_object)
+            if _wrapper is not None:
+                yield _wrapper, code_object
+                continue
+
+        # unable to unwrap any further
+        return
 
 
 # noinspection PyBroadException
 @lru_cache(maxsize=None)
 @dataclass(unsafe_hash=True, frozen=True)
 class CodeInfo:
-    code_object: Union[Coroutine, Callable,
-    partial, partialmethod, singledispatchmethod, cached_property,
-    asyncio.Task,
-    type, property]
+    code_object: CodeObjectType
 
     unwrap_partial: bool = True
     unwrap_async: bool = True
@@ -304,75 +412,12 @@ class CodeInfo:
 
     @cached_property
     def __unwrapped(self):
-        # todo: provide a way to get at all the layers, so that i can check whether any of them are instrumented
-        # this should probably be externalized and yield all the layers one at a time
         _code_object = self.code_object
         _prefixes = []
-
-        # unwrap recursively
-        while True:
-
-            # handle wrappers from functools
-            if self.unwrap_partial:
-
-                # class-based wrappers
-                if isinstance(_code_object, partial):
-                    _prefixes.append('partial')
-                    _code_object = _code_object.func
-                    continue
-                if isinstance(_code_object, partialmethod):
-                    _prefixes.append('partialmethod')
-                    _code_object = _code_object.func
-                    continue
-                if isinstance(_code_object, singledispatchmethod):
-                    _prefixes.append('singledispatchmethod')
-                    _code_object = _code_object.func
-                    continue
-                if isinstance(_code_object, cached_property):
-                    _prefixes.append('cached_property')
-                    _code_object = _code_object.func
-                    continue
-
-                # make best guess about the wrapper
-                if hasattr(_code_object, '__wrapped__'):
-                    if self.__is_supported_type(_code_object.__wrapped__):
-                        if all(hasattr(_code_object, _attr) for _attr in
-                               {'register', 'dispatch', 'registry', '_clear_cache'}):
-                            _prefixes.append('singledispatch')
-                        elif all(hasattr(_code_object, _attr) for _attr in {'cache_info', 'cache_clear'}):
-                            _prefixes.append('lru_cache')
-                        _code_object = _code_object.__wrapped__
-                        continue
-
-            # handle async
-            if self.unwrap_async:
-
-                # unwrap tasks
-                if isinstance(_code_object, asyncio.Task):
-                    _prefixes.append('Task')
-                    _code_object = _code_object.get_coro()
-                    continue
-
-                # attempt to detect asgiref.sync_to_async and asgiref.async_to_sync
-                _module = inspect.getmodule(_code_object)
-                if hasattr(_module, '__name__') and _module.__name__ == 'asgiref.sync':
-
-                    # must check this first because it may also have an `awaitable` attribute
-                    if hasattr(_code_object, 'func'):
-                        if self.__is_supported_type(_code_object.func):
-                            _prefixes.append('SynctoAsync')
-                            _code_object = _code_object.func
-                            continue
-
-                    if hasattr(_code_object, 'awaitable'):
-                        if self.__is_supported_type(_code_object.awaitable):
-                            _prefixes.append('AsyncToSync')
-                            _code_object = _code_object.awaitable
-                            continue
-
-            # unable to unwrap any further
-            break
-
+        for _wrapper, _code_object in unwrap_code_object(self.code_object,
+                                                         unwrap_partial=self.unwrap_partial,
+                                                         unwrap_async=self.unwrap_async):
+            _prefixes.append(_wrapper)
         return _prefixes, _code_object
 
     @property
