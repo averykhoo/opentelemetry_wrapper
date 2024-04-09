@@ -130,6 +130,18 @@ from opentelemetry_wrapper import instrument_fastapi_app
 app = instrument_fastapi_app(FastAPI(...))
 ```
 
+### exposing prometheus metrics via FastAPI
+
+```python
+from fastapi import FastAPI
+from opentelemetry_wrapper import instrument_fastapi_app
+from prometheus_client import make_asgi_app
+
+app = instrument_fastapi_app(FastAPI(...))
+
+app.mount('/metrics', make_asgi_app())  # exposes `/metrics/` (`/metrics` will 307 redirect)
+```
+
 ## features
 
 * Make instrumentation (more) idempotent:
