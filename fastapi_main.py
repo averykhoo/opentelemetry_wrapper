@@ -71,6 +71,7 @@ def hello_hello() -> str:
 
 if __name__ == '__main__':
     os.environ['OTEL_EXPORTER_PROMETHEUS_PORT'] = '9464'
+    os.environ['OTEL_EXPORTER_PROMETHEUS_ENDPOINT'] = '/metrics'
 
     uvicorn.run(f'{inspect.getmodulename(__file__)}:app',
                 host='localhost',

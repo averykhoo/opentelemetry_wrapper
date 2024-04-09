@@ -40,13 +40,13 @@ also run the following files:
 ## todo
 
 * allow exposing prometheus via fastapi endpoint in an instrumented app
-  * probably create an asgi app and mount it to /metrics or something
+    * probably create an asgi app and mount it to /metrics or something
 * consider RED metrics, e.g. whatever `prometheus-fastapi-instrumentator` is doing
 * documentation pls, including design decisions
 * rename `OTEL_EXPORTER_*` to `OTEL_COLLECTOR_*`
-  * and have separate metric, log, and trace collectors
-  * separate for http and grpc exporters too
-  * maybe allow multiple urls (delimited by whitespace)?
+    * and have separate metric, log, and trace collectors
+    * separate for http and grpc exporters too
+    * maybe allow multiple urls (delimited by whitespace)?
 * env var to enable/disable console printing for logs, metrics (off by default), and traces
 * set `__tracebackhide__=True` (pytest) and `__traceback_hide__=True` (a few others like sentry) in the functions
 * update [introspect.py](./opentelemetry_wrapper/utils/introspect.py) for pep 626
@@ -56,7 +56,7 @@ also run the following files:
 * `OTEL_HEADER_ATTRIBUTES` behaves too much like `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`
     * consider removing it?
 * `with ...` instrumentation for non-callable code (e.g. settings, semi-hardcoded config)
-  * see [next_version_intended_usage.py](./next_version_intended_usage.py)
+    * see [next_version_intended_usage.py](./next_version_intended_usage.py)
 * type-checking decorator, with warning on unmatched types
     * https://github.com/prechelt/typecheck-decorator/blob/master/README.md
     * https://stackoverflow.com/questions/36879932/python-type-checking-decorator
@@ -76,7 +76,7 @@ also run the following files:
 * builtin `tracemalloc` can be used locate the source file and line number of a function, if started early enough
     * check for the [`PYTHONTRACEMALLOC`](https://docs.python.org/3/using/cmdline.html#envvar-PYTHONTRACEMALLOC) var?
 * somehow mark functions/endpoints as do-not-instrument, for extremely spammy functions? or specify a sampling ratio?
-  * the nearest sampling ratio should overwrite, but idk how to do that
+    * the nearest sampling ratio should overwrite, but idk how to do that
 * add a (regex-based?) sanitizer to erase strings/patterns from log output
 * print config at startup? at least print the version?
     * or maybe print a json string with all the (non-sensitive) config?
