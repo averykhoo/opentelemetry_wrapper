@@ -43,7 +43,7 @@ def _is_code_object_type(_code_object: CodeObjectType) -> bool:
     return False
 
 
-def _unwrap_partial(_code_object: CodeObjectType) -> Tuple[Optional[str], CodeObjectType]:
+def _unwrap_partial(_code_object: CodeObjectType) -> Tuple[Optional[str], CodeObjectType]:  # NOSONAR (complexity=32)
     # class-based wrappers
     for wrapper_class in (partial, partialmethod, singledispatchmethod, cached_property):
         if isinstance(_code_object, wrapper_class):
