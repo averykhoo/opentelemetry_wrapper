@@ -17,6 +17,7 @@ from opentelemetry_wrapper import __version__  # don't worry, this does not crea
 from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
 from opentelemetry_wrapper.dependencies.opentelemetry.otel_providers import get_tracer
 from opentelemetry_wrapper.utils.introspect import CodeInfo
+from opentelemetry_wrapper.utils.introspect import unwrap_code_object
 
 _TRACER = get_tracer(__name__, __version__)  # TODO: move this somewhere else
 
@@ -68,13 +69,12 @@ def instrument_decorate(func: InstrumentableThing,
     func_name = func_name or code_info.name
 
     # avoid re-instrumenting functions with wrappers (e.g., lru_cache)
-    # note: this only works if the base function is instrumented
-    # todo: peel back one layer at a time and check if its instrumented
+    # by peeling back one layer at a time and checking if its instrumented
     # noinspection PyBroadException
     try:
-        # noinspection PyProtectedMember
-        if code_info._unwrapped_code_object in _CACHE_INSTRUMENTED:
-            return func
+        for _, code_object in unwrap_code_object(func):
+            if code_object in _CACHE_INSTRUMENTED:
+                return func
     except Exception:
         pass
 
