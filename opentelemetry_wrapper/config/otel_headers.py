@@ -40,4 +40,4 @@ OTEL_LOG_LEVEL: int = get_log_level()
 OTEL_HEADER_ATTRIBUTES: List[str] = get_header_attributes()
 
 OTEL_EXPORTER_PROMETHEUS_PORT: Optional[int] = get_prometheus_port()
-OTEL_EXPORTER_PROMETHEUS_ENDPOINT: Optional[str] = get_prometheus_endpoint()
+OTEL_EXPORTER_PROMETHEUS_ENDPOINT: Optional[str] = get_prometheus_endpoint() or '/metrics'

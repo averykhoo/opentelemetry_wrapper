@@ -41,6 +41,7 @@ async def add_process_time_header(request: Request, call_next: Callable):
     response.headers['X-Process-Time-Seconds'] = str(process_time)
     return response
 
+
 @app.get('/', status_code=status.HTTP_307_TEMPORARY_REDIRECT, include_in_schema=False)
 async def home():
     return RedirectResponse(url='/docs')
@@ -70,7 +71,6 @@ def hello_hello() -> str:
 
 if __name__ == '__main__':
     os.environ['OTEL_EXPORTER_PROMETHEUS_PORT'] = '9464'
-    os.environ['OTEL_EXPORTER_PROMETHEUS_ENDPOINT'] = '/metrics'
 
     uvicorn.run(f'{inspect.getmodulename(__file__)}:app',
                 host='localhost',
