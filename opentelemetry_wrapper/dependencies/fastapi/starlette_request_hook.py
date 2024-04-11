@@ -21,12 +21,12 @@ try:
             _header_data = extract_json_header(header_value)
             if _header_data:
                 for k, v in _header_data.items():
-                    span.set_attribute(f'{header_name}.{k}', v)
+                    span.set_attribute(f'http.response.header.{header_name}.{k}', v)
                 continue
 
             # all other headers
             if isinstance(header_value, (bool, str, bytes, int, float)):
-                span.set_attribute(header_name, header_value)
+                span.set_attribute(f'http.response.header.{header_name}', header_value)
 except ImportError:
     def request_hook(_: Span, __: Scope) -> None:
         return
