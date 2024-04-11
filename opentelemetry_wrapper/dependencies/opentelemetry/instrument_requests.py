@@ -1,5 +1,7 @@
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.trace import Span
+from opentelemetry.trace import Status
+from opentelemetry.trace import StatusCode
 from requests import PreparedRequest
 from requests import Response
 
@@ -21,6 +23,10 @@ def response_hook(span: Span, _request: PreparedRequest, result: Response) -> No
     for header_name in _HEADERS:
         if header_name in result.headers:
             span.set_attribute(f'http.response.header.{header_name}', result.headers[header_name])
+    if 0 < result.status_code < 300:
+        span.set_status(Status(StatusCode.OK))
+    elif result.status_code >= 400:
+        span.set_status(Status(StatusCode.ERROR))
 
 
 @instrument_decorate
