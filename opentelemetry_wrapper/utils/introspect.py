@@ -31,7 +31,7 @@ CodeObjectType = Union[
 ]
 
 
-def _is_code_object_type(_code_object: CodeObjectType) -> bool:
+def _is_function_type(_code_object: CodeObjectType) -> bool:
     if callable(_code_object):
         return True
     if isinstance(_code_object, (Coroutine, Callable)):  # `def` and `async def`
@@ -51,7 +51,7 @@ def _unwrap_partial(_code_object: CodeObjectType) -> Tuple[Optional[str], CodeOb
 
     # make best guess about the wrapper
     _wrapped_code = getattr(_code_object, '__wrapped__', None)
-    if _is_code_object_type(_wrapped_code):
+    if _is_function_type(_wrapped_code):
 
         # probably single dispatch
         if all(hasattr(_code_object, _attr) for _attr in {'register', 'dispatch', 'registry', '_clear_cache'}):
@@ -94,22 +94,22 @@ def _unwrap_async(_code_object: CodeObjectType) -> Tuple[Optional[str], CodeObje
 
         # must check this first because it may also have an `awaitable` attribute
         if hasattr(_code_object, 'func'):
-            if _is_code_object_type(_code_object.func):
+            if _is_function_type(_code_object.func):
                 return 'asgiref.sync.SynctoAsync', _code_object.func
 
         if hasattr(_code_object, 'awaitable'):
-            if _is_code_object_type(_code_object.awaitable):
+            if _is_function_type(_code_object.awaitable):
                 return 'asgiref.sync.AsyncToSync', _code_object.awaitable
 
     # failed to unwrap
     return None, _code_object
 
 
-def unwrap_code_object(code_object: CodeObjectType,
-                       *,
-                       unwrap_partial: bool = True,
-                       unwrap_async: bool = True,
-                       ) -> Generator[Tuple[str, CodeObjectType], Any, None]:
+def unwrap_function(code_object: CodeObjectType,
+                    *,
+                    unwrap_partial: bool = True,
+                    unwrap_async: bool = True,
+                    ) -> Generator[Tuple[str, CodeObjectType], Any, None]:
     while True:
 
         # handle wrappers from functools
@@ -283,6 +283,8 @@ class CodeInfo:
     def cls(self) -> Optional[type]:
         try:
             # if we already are a class
+            # NOTE: this does not unwrap classes, only functions
+            # TODO: unwrap classes too
             if self.is_class:
                 return self._unwrapped_code_object
 
@@ -414,9 +416,9 @@ class CodeInfo:
     def __unwrapped(self):
         _code_object = self.code_object
         _prefixes = []
-        for _wrapper, _code_object in unwrap_code_object(self.code_object,
-                                                         unwrap_partial=self.unwrap_partial,
-                                                         unwrap_async=self.unwrap_async):
+        for _wrapper, _code_object in unwrap_function(self.code_object,
+                                                      unwrap_partial=self.unwrap_partial,
+                                                      unwrap_async=self.unwrap_async):
             _prefixes.append(_wrapper)
         return _prefixes, _code_object
 
