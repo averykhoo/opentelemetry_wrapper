@@ -64,12 +64,10 @@ def instrument_decorate(func: InstrumentableThing,
             return ret
         return func
 
-    # if not provided, try to find the function name
-    code_info = CodeInfo(func)
-    func_name = func_name or code_info.name
-
     # avoid re-instrumenting functions with wrappers (e.g., lru_cache)
     # by peeling back one layer at a time and checking if its instrumented
+    # note: this does not catch the edge case where you instrument a wrapped function first
+    # and instrument the base function later on
     # noinspection PyBroadException
     try:
         for _, code_object in unwrap_code_object(func):
@@ -77,6 +75,10 @@ def instrument_decorate(func: InstrumentableThing,
                 return func
     except Exception:
         pass
+
+    # if not provided, try to find the function name
+    code_info = CodeInfo(func)
+    func_name = func_name or code_info.name
 
     # build span attributes for this class / function / method / builtin / etc
     span_attributes: Dict[str, Union[str, None, int]] = dict()
