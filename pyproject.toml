@@ -28,7 +28,6 @@ dependencies = [
     "pydantic",
     "requests",
     "sqlalchemy",
-    "sqlalchemy2-stubs",
     "starlette",
     "uvicorn",
 ]
