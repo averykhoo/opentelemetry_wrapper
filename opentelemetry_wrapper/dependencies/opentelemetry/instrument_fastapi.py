@@ -1,10 +1,10 @@
 import logging
 
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-from prometheus_client import make_asgi_app
 
 from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_PROMETHEUS_ENDPOINT
 from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
+from opentelemetry_wrapper.dependencies.fastapi.fastapi_prometheus import mount_prometheus
 from opentelemetry_wrapper.dependencies.fastapi.fastapi_typedef import is_fastapi_app
 from opentelemetry_wrapper.dependencies.fastapi.starlette_request_hook import request_hook
 from opentelemetry_wrapper.dependencies.opentelemetry.instrument_decorator import instrument_decorate
@@ -27,14 +27,14 @@ def instrument_fastapi_app(app):
     if not is_fastapi_app(app):
         return app
 
-    # note: this is a bit slow, but we want to ensure it's really mounted, the check below can make mistakes
-    # noinspection PyBroadException
-    try:
-        if OTEL_EXPORTER_PROMETHEUS_ENDPOINT:
-            if all(route.path != OTEL_EXPORTER_PROMETHEUS_ENDPOINT.rstrip('/') for route in app.router.routes):
-                app.mount(OTEL_EXPORTER_PROMETHEUS_ENDPOINT, make_asgi_app())
-    except Exception:
-        logging.exception(f'failed to mount prometheus endpoint: {OTEL_EXPORTER_PROMETHEUS_ENDPOINT}')
+    # note: this needs to be done before checking for double-instrumentation
+    # the check below sometimes prevents prometheus from being added
+    if OTEL_EXPORTER_PROMETHEUS_ENDPOINT:
+        # noinspection PyBroadException
+        try:
+            mount_prometheus(app)
+        except Exception:
+            logging.exception(f'failed to mount prometheus endpoint: {OTEL_EXPORTER_PROMETHEUS_ENDPOINT}')
 
     # avoid double instrumentation
     if getattr(app, '_is_instrumented_by_opentelemetry', None):

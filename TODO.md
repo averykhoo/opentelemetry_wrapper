@@ -41,9 +41,7 @@ also run the following files:
 
 * an intelligent way to include multiple headers in `OTEL_EXPORTER_OTLP_HEADER`
   * may need support for escapes
-* allow exposing prometheus via fastapi endpoint in an instrumented app
-    * probably create an asgi app and mount it to /metrics or something
-* consider RED metrics, e.g. whatever `prometheus-fastapi-instrumentator` is doing
+* add RED metrics, e.g. whatever `prometheus-fastapi-instrumentator` is doing
 * documentation pls, including design decisions
 * rename `OTEL_EXPORTER_*` to `OTEL_COLLECTOR_*`
     * and have separate metric, log, and trace collectors

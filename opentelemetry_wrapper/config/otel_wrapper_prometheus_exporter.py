@@ -31,6 +31,14 @@ def get_prometheus_endpoint() -> Optional[str]:
         warnings.warn(f'`OTEL_EXPORTER_PROMETHEUS_ENDPOINT` does not start with "/", and will be ignored: {out!r}')
         return None
 
+    if len(out.split()) > 1:
+        warnings.warn(f'`OTEL_EXPORTER_PROMETHEUS_ENDPOINT` contains whitespace, and will be ignored: {out!r}')
+        return None
+
+    if '#' in out:
+        warnings.warn(f'`OTEL_EXPORTER_PROMETHEUS_ENDPOINT` contains "#", and will be ignored: {out!r}')
+        return None
+
     out = out.rstrip('/')
 
     if not out:
