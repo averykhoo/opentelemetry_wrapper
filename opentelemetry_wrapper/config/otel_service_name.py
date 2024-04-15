@@ -75,7 +75,7 @@ def get_k8s_namespace() -> str:
 
 
 @lru_cache
-def get_k8s_pod_name() -> str:
+def get_k8s_deployment_name() -> str:
     # does the file exist
     k8s_hostname_path = Path('/etc/hostname')
     if not k8s_hostname_path.is_file():
@@ -86,6 +86,23 @@ def get_k8s_pod_name() -> str:
         hostname = k8s_hostname_path.read_text().strip()
         if hostname.count('-') >= 2:
             return hostname.rsplit('-', 2)[0]
+    except Exception:
+        pass
+    return ''
+
+
+@lru_cache
+def get_k8s_pod_name() -> str:
+    # does the file exist
+    k8s_hostname_path = Path('/etc/hostname')
+    if not k8s_hostname_path.is_file():
+        return ''
+
+    # noinspection PyBroadException
+    try:
+        hostname = k8s_hostname_path.read_text().strip()
+        if hostname.count('-') >= 2:
+            return hostname
     except Exception:
         pass
     return ''
@@ -148,7 +165,7 @@ def get_default_service_name() -> str:
 
     # try return just namespace/pod by default
     if get_k8s_namespace():
-        return f'{get_k8s_namespace()}/{get_k8s_pod_name()}/{get_hostname()}'
+        return f'{get_k8s_namespace()}/{get_k8s_deployment_name()}/{get_k8s_pod_name()}'
 
     # formatting
     _username = f'{get_username()}@' if get_username() else ''
