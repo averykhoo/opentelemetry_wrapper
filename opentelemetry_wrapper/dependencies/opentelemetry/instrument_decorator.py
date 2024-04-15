@@ -205,6 +205,13 @@ def _instrument_class(cls: type,
     assert inspect.isclass(cls)
     assert not inspect.isroutine(cls)
 
+    # this was a last-min addition, since it might not be the best idea to always instrument inplace
+    # which is why it defaults to true for now
+    # avoid duplicate instrumentation? or rely on the decorator caching?
+    # note: this causesd an infinite loop and has been reverted
+    # if not inplace:
+    #     cls = type(cls.__name__, (cls,), {})
+
     # wrap the constructors if they exist
     if cls.__new__ is not object.__new__:
         cls.__new__ = instrument_decorate(cls.__new__, func_name=f'{class_name}.__new__')

@@ -130,6 +130,12 @@ from opentelemetry_wrapper import instrument_fastapi_app
 app = instrument_fastapi_app(FastAPI(...))
 ```
 
+### prometheus
+
+* set `OTEL_EXPORTER_PROMETHEUS_ENDPOINT=/metrics`
+* remember to whitelist both `/metrics` and `/metrics/` in OPA due to starlette quirks
+* 
+
 ## features
 
 * Make instrumentation (more) idempotent:

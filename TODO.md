@@ -40,22 +40,22 @@ also run the following files:
 ## todo
 
 * an intelligent way to include multiple headers in `OTEL_EXPORTER_OTLP_HEADER`
-  * may need support for escapes
+    * may need support for escapes
 * add RED metrics, e.g. whatever `prometheus-fastapi-instrumentator` is doing
+    * maybe this should be automatically done in the backend otel collector?
+* fox trailing slash and /metrics/ redirect
 * documentation pls, including design decisions
+* rename all env vars to start with `OTEL_WRAPPER_` to make things clear?
 * rename `OTEL_EXPORTER_*` to `OTEL_COLLECTOR_*`
     * and have separate metric, log, and trace collectors
     * separate for http and grpc exporters too
     * maybe allow multiple urls (delimited by whitespace)?
 * env var to enable/disable console printing for logs, metrics (off by default), and traces
 * set `__tracebackhide__=True` (pytest) and `__traceback_hide__=True` (a few others like sentry) in the functions
-* update [introspect.py](./opentelemetry_wrapper/utils/introspect.py) for pep 626
-    * The f_lineno attribute of frame objects will always contain the expected line number.
-    * The co_lnotab attribute of code objects is deprecated and will be removed in 3.12.
-    * Code that needs to convert from offset to line number should use the new co_lines() method instead.
 * `OTEL_HEADER_ATTRIBUTES` behaves too much like `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`
     * ~~consider removing it?~~
     * update docs to explain the difference: decoding base64 and flattening json
+    * also how do we disambiguate for the request response header attributes? 
 * `with ...` instrumentation for non-callable code (e.g. settings, semi-hardcoded config)
     * see [next_version_intended_usage.py](./next_version_intended_usage.py)
 * type-checking decorator, with warning on unmatched types
@@ -65,17 +65,10 @@ also run the following files:
     * https://typeguard.readthedocs.io/en/latest/userguide.html
     * or use `pydantic.TypeAdaptor` to manually check
 * correctly handle generators and context managers (and async versions of them)
-* instrument pydantic?
-* validate support for metrics
-    * the asgi/fastapi already supports some metrics
-    * https://github.com/instana/python-sensor/blob/master/instana/autoprofile/samplers
-        * memory profiling
-        * reading frames to make a statistical guess how much time is spent in each function
-    * https://psutil.readthedocs.io/en/latest/
-    * Request Error Duration metrics can be calculated from spans
-* also add a prometheus endpoint for scraping?
+* ~~instrument pydantic?~~ too noisy
 * builtin `tracemalloc` can be used locate the source file and line number of a function, if started early enough
     * check for the [`PYTHONTRACEMALLOC`](https://docs.python.org/3/using/cmdline.html#envvar-PYTHONTRACEMALLOC) var?
+    * there's also `sys.setttrace`, see also PEP 626
 * somehow mark functions/endpoints as do-not-instrument, for extremely spammy functions? or specify a sampling ratio?
     * the nearest sampling ratio should overwrite, but idk how to do that
 * add a (regex-based?) sanitizer to erase strings/patterns from log output

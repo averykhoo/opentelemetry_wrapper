@@ -11,6 +11,10 @@ try:
 
 
     def mount_prometheus(app: Any):
+        """
+        currently relies on a redirect hack because of starlette requiring a trailing slash
+        TODO: port `make_asgi_app` into a native fastapi route
+        """
         if not OTEL_EXPORTER_PROMETHEUS_ENDPOINT:
             return
 
