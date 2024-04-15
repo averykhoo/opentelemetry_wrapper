@@ -39,6 +39,7 @@ also run the following files:
 
 ## todo
 
+* major refactor so the project structure isn't randomly named trash
 * CICD the tests
 * env var to enable/disable console printing for logs, metrics (off by default), and traces
 * an intelligent way to include multiple headers in `OTEL_EXPORTER_OTLP_HEADER`
@@ -56,8 +57,7 @@ also run the following files:
 * `with ...` instrumentation for non-callable code (e.g. settings, semi-hardcoded config)
     * see [next_version_intended_usage.py](./next_version_intended_usage.py)
 * correctly handle generators and context managers (and async versions of them)
-* print config at startup? at least print the version?
-    * or maybe print a json string with all the (non-sensitive) config?
+* [pip install varname](https://github.com/pwwang/python-varname) for magic varname extraction 
 
 ### won't do
 
