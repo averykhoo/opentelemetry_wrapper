@@ -43,7 +43,7 @@ also run the following files:
     * may need support for escapes
 * add RED metrics, e.g. whatever `prometheus-fastapi-instrumentator` is doing
     * maybe this should be automatically done in the backend otel collector?
-* fox trailing slash and /metrics/ redirect
+* make a note somewhere about the trailing slash mounting the prometheus asgi app, which accepts `/**`
 * documentation pls, including design decisions
 * rename all env vars to start with `OTEL_WRAPPER_` to make things clear?
 * rename `OTEL_EXPORTER_*` to `OTEL_COLLECTOR_*`

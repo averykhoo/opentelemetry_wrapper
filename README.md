@@ -132,9 +132,10 @@ app = instrument_fastapi_app(FastAPI(...))
 
 ### prometheus
 
-* set `OTEL_EXPORTER_PROMETHEUS_ENDPOINT=/metrics`
-* remember to whitelist both `/metrics` and `/metrics/` in OPA due to starlette quirks
-* 
+* set (for example) `OTEL_EXPORTER_PROMETHEUS_ENDPOINT=/metrics`
+* remember to whitelist `/metrics` in OPA
+* repeated and trailing slashes are normalized (e.g. `///metrics/` -> `/metrics`)
+* if you set `OTEL_EXPORTER_PROMETHEUS_ENDPOINT=/metrics/`, a redirect will be set up from `/metrics` to `/metrics/`
 
 ## features
 
