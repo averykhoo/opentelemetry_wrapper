@@ -4,6 +4,17 @@ a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make l
 
 __version__ = '0.1.11'
 
+import logging as builtins_logging
+
+from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_ENDPOINT
+from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_HEADER
+from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_INSECURE
+from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_PROMETHEUS_ENDPOINT
+from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_PROMETHEUS_PORT
+from opentelemetry_wrapper.config.otel_headers import OTEL_HEADER_ATTRIBUTES
+from opentelemetry_wrapper.config.otel_headers import OTEL_LOG_LEVEL
+from opentelemetry_wrapper.config.otel_headers import OTEL_SERVICE_NAME
+from opentelemetry_wrapper.config.otel_headers import OTEL_SERVICE_NAMESPACE
 from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
 from opentelemetry_wrapper.dependencies.opentelemetry.instrument_dataclasses import instrument_dataclasses
 from opentelemetry_wrapper.dependencies.opentelemetry.instrument_decorator import instrument_decorate
@@ -48,3 +59,18 @@ __all__ = (
     'instrument_requests',
     'instrument_sqlalchemy',
 )
+
+logger = builtins_logging.getLogger('opentelemetry_wrapper')
+logger.info({
+    'opentelemetry_wrapper.__version__': __version__,
+    'OTEL_WRAPPER_DISABLED':             OTEL_WRAPPER_DISABLED,
+    'OTEL_SERVICE_NAME':                 OTEL_SERVICE_NAME,
+    'OTEL_SERVICE_NAMESPACE':            OTEL_SERVICE_NAMESPACE,
+    'OTEL_EXPORTER_OTLP_ENDPOINT':       OTEL_EXPORTER_OTLP_ENDPOINT,
+    'OTEL_EXPORTER_OTLP_HEADER':         OTEL_EXPORTER_OTLP_HEADER,
+    'OTEL_EXPORTER_OTLP_INSECURE':       OTEL_EXPORTER_OTLP_INSECURE,
+    'OTEL_LOG_LEVEL':                    OTEL_LOG_LEVEL,
+    'OTEL_HEADER_ATTRIBUTES':            OTEL_HEADER_ATTRIBUTES,
+    'OTEL_EXPORTER_PROMETHEUS_PORT':     OTEL_EXPORTER_PROMETHEUS_PORT,
+    'OTEL_EXPORTER_PROMETHEUS_ENDPOINT': OTEL_EXPORTER_PROMETHEUS_ENDPOINT,
+})

@@ -39,35 +39,39 @@ also run the following files:
 
 ## todo
 
+* CICD the tests
+* env var to enable/disable console printing for logs, metrics (off by default), and traces
 * an intelligent way to include multiple headers in `OTEL_EXPORTER_OTLP_HEADER`
     * may need support for escapes
-* add RED metrics, e.g. whatever `prometheus-fastapi-instrumentator` is doing
-    * maybe this should be automatically done in the backend otel collector?
-* make a note somewhere about the trailing slash mounting the prometheus asgi app, which accepts `/**`
-* documentation pls, including design decisions
-* rename all env vars to start with `OTEL_WRAPPER_` to make things clear?
 * rename `OTEL_EXPORTER_*` to `OTEL_COLLECTOR_*`
     * and have separate metric, log, and trace collectors
     * separate for http and grpc exporters too
     * maybe allow multiple urls (delimited by whitespace)?
-* env var to enable/disable console printing for logs, metrics (off by default), and traces
+* rename all env vars to start with `OTEL_WRAPPER_` to make things clear?
+* add RED metrics, e.g. whatever `prometheus-fastapi-instrumentator` is doing
+    * maybe this should be automatically done in the backend otel collector?
+* documentation pls, including design decisions
+    * make a note somewhere about the trailing slash mounting the prometheus asgi app, which accepts `/**`
 * set `__tracebackhide__=True` (pytest) and `__traceback_hide__=True` (a few others like sentry) in the functions
-* how do we disambiguate for the request header attributes `OTEL_HEADER_ATTRIBUTES` and `requests` response attributes? 
+* how do we disambiguate for the request header attributes `OTEL_HEADER_ATTRIBUTES` and `requests` response attributes?
 * `with ...` instrumentation for non-callable code (e.g. settings, semi-hardcoded config)
     * see [next_version_intended_usage.py](./next_version_intended_usage.py)
-* type-checking decorator, with warning on unmatched types
-    * https://github.com/prechelt/typecheck-decorator/blob/master/README.md
-    * https://stackoverflow.com/questions/36879932/python-type-checking-decorator
-    * https://towardsdatascience.com/the-power-of-decorators-fef4dc97020e
-    * https://typeguard.readthedocs.io/en/latest/userguide.html
-    * or use `pydantic.TypeAdaptor` to manually check
 * correctly handle generators and context managers (and async versions of them)
-* ~~instrument pydantic?~~ too noisy
 * builtin `tracemalloc` can be used locate the source file and line number of a function, if started early enough
     * check for the [`PYTHONTRACEMALLOC`](https://docs.python.org/3/using/cmdline.html#envvar-PYTHONTRACEMALLOC) var?
     * there's also `sys.setttrace`, see also PEP 626
 * somehow mark functions/endpoints as do-not-instrument, for extremely spammy functions? or specify a sampling ratio?
     * the nearest sampling ratio should overwrite, but idk how to do that
-* add a (regex-based?) sanitizer to erase strings/patterns from log output
 * print config at startup? at least print the version?
     * or maybe print a json string with all the (non-sensitive) config?
+
+### won't do
+
+* ~~instrument pydantic?~~ (too noisy)
+* ~~type-checking decorator, with warning on unmatched types~~ (out of scope)
+    * ~~https://github.com/prechelt/typecheck-decorator/blob/master/README.md~~
+    * ~~https://stackoverflow.com/questions/36879932/python-type-checking-decorator~~
+    * ~~https://towardsdatascience.com/the-power-of-decorators-fef4dc97020e~~
+    * ~~https://typeguard.readthedocs.io/en/latest/userguide.html~~
+    * ~~or use `pydantic.TypeAdaptor` to manually check~~
+* ~~add a (regex-based?) sanitizer to erase strings/patterns from log output~~ (just don't log secrets)
