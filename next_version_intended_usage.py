@@ -6,6 +6,7 @@ from fastapi import FastAPI
 
 _MISSING = object()
 
+from types import ModuleType
 
 class PrototypeAutoInstrument:
     def __init__(self, **kwargs):
@@ -31,7 +32,14 @@ class PrototypeAutoInstrument:
         if thing is not _MISSING:
             if self.blocked:
                 print('WARNING!!! already used, should not instrument')
-            print(f'instrumented {thing=}, {new_kwargs=}')
+            if isinstance(thing, ModuleType):
+                print(f'instrumented module={thing}, {new_kwargs=}')
+            elif isinstance(thing, FastAPI):
+                print(f'instrumented FastAPI={thing}, {new_kwargs=}')
+            elif isinstance(thing, type):
+                print(f'instrumented class={thing}, {new_kwargs=}')
+            else:
+                print(f'instrumented {thing=}, {new_kwargs=}')
             if self.kwargs:
                 self.blocked = True
             return thing
@@ -59,36 +67,47 @@ class PrototypeAutoInstrument:
 otel = PrototypeAutoInstrument()
 
 if __name__ == '__main__':
+    # instrumenting a class looks like this
     @otel
     class SomeClass:
         pass
 
 
-    @otel(some_kwarg='some_value')  # this creates a new instance
+    # instrumenting a dataclass is the same
+    @otel(some_kwarg='some_value')
     @dataclass
     class SomeOtherClass:
         pass
 
 
+    # instrumenting a function uses the same @otel decorator
     @otel(asdf=1)
     def some_function():
         return SomeClass()
 
 
+    # instrumenting a FastAPI app requires some auto-detection
     app = otel(FastAPI())
 
+    # instrumenting the logging module will look like this
     otel(logging, some_bool=True)
 
+    # to instrument a span of code, it can be used as a context manager
     with otel:
         print(1)
+
+        # the context manager can be nested and used with arguments
         with otel(sampling=0.5):
             print(2)
-            with otel as span_id:
-                print(3, span_id)
+
+            # idk why you need the span, but if there's a use case, we can return the span / span
+            with otel as span:
+                print(3, span)
 
             print(4)
         print(5)
 
+    # just for testing
     print(6)
     with otel(sampling=0.5, asdf=2):
         print(7)
