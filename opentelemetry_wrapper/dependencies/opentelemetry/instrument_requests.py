@@ -18,6 +18,14 @@ _HEADERS = [  # this should all be lowercase!
 
 
 def response_hook(span: Span, _request: PreparedRequest, result: Response) -> None:
+    """
+    add span attributes from response headers
+    following the convention from: https://opentelemetry.io/docs/specs/semconv/attributes-registry/http/
+    :param span:
+    :param _request:
+    :param result:
+    :return:
+    """
     for header_name in _HEADERS:
         if header_name in result.headers:
             span.set_attribute(f'http.response.header.{header_name}', result.headers[header_name])
