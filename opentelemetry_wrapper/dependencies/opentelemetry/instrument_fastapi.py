@@ -47,5 +47,6 @@ def instrument_fastapi_app(app):
     FastAPIInstrumentor.instrument_app(app,
                                        server_request_hook=request_hook,
                                        client_request_hook=request_hook,
+                                       excluded_urls=OTEL_EXPORTER_PROMETHEUS_ENDPOINT.rstrip('/'),
                                        )
     return app

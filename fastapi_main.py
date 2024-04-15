@@ -67,8 +67,6 @@ def hello_hello() -> str:
     return r.text
 
 
-# app.mount('/metrics', make_asgi_app())
-
 if __name__ == '__main__':
     os.environ['OTEL_EXPORTER_PROMETHEUS_PORT'] = '9464'
     os.environ['OTEL_EXPORTER_PROMETHEUS_ENDPOINT'] = '/metrics'
