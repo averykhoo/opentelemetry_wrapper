@@ -148,7 +148,7 @@ def get_default_service_name() -> str:
 
     # try return just namespace/pod by default
     if get_k8s_namespace():
-        return f'{get_k8s_namespace()}/{get_k8s_pod_name()}'
+        return f'{get_k8s_namespace()}/{get_k8s_pod_name()}/{get_hostname()}'
 
     # formatting
     _username = f'{get_username()}@' if get_username() else ''
