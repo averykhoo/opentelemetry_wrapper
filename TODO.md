@@ -52,6 +52,7 @@ also run the following files:
     * maybe this should be automatically done in the backend otel collector?
 * documentation pls, including design decisions
     * make a note somewhere about the trailing slash mounting the prometheus asgi app, which accepts `/**`
+    * should the recommendation for `OTEL_EXPORTER_PROMETHEUS_ENDPOINT` be `/metrics` or just `metrics`?
 * set `__tracebackhide__=True` (pytest) and `__traceback_hide__=True` (a few others like sentry) in the functions
 * how do we disambiguate for the request header attributes `OTEL_HEADER_ATTRIBUTES` and `requests` response attributes?
 * `with ...` instrumentation for non-callable code (e.g. settings, semi-hardcoded config)

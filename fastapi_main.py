@@ -68,6 +68,8 @@ def hello_hello() -> str:
 
 
 if __name__ == '__main__':
+    # this only works because the env vars are preserved in the spawned processes
+    # otherwise, setting these after initializing otel wrapper would obviously fail
     os.environ['OTEL_EXPORTER_PROMETHEUS_PORT'] = '9464'
     os.environ['OTEL_EXPORTER_PROMETHEUS_ENDPOINT'] = '/metrics'
 
