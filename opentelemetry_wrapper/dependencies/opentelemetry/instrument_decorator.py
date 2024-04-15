@@ -221,9 +221,14 @@ def _instrument_class(cls: type,
     if hasattr(cls, '__post_init__'):
         cls.__post_init__ = instrument_decorate(cls.__post_init__, func_name=f'{class_name}.__post_init__')
 
-    # also wrap the call method, if it exists
+    # also wrap the call method if it exists
     if not isinstance(cls.__call__, type(object.__call__)):
         cls.__call__ = instrument_decorate(cls.__call__, func_name=f'{class_name}.__call__')
+
+    # also wrap the context manager methods if they exist
+    if hasattr(cls, '__enter__') and hasattr(cls, '__exit__'):
+        cls.__enter__ = instrument_decorate(cls.__enter__, func_name=f'{class_name}.__enter__')
+        cls.__exit__ = instrument_decorate(cls.__exit__, func_name=f'{class_name}.__exit__')
 
     # wrap the generic attribute getter to auto-wrap all methods
     _original_getattribute = cls.__getattribute__

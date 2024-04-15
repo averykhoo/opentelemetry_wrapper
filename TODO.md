@@ -52,10 +52,7 @@ also run the following files:
     * maybe allow multiple urls (delimited by whitespace)?
 * env var to enable/disable console printing for logs, metrics (off by default), and traces
 * set `__tracebackhide__=True` (pytest) and `__traceback_hide__=True` (a few others like sentry) in the functions
-* `OTEL_HEADER_ATTRIBUTES` behaves too much like `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`
-    * ~~consider removing it?~~
-    * update docs to explain the difference: decoding base64 and flattening json
-    * also how do we disambiguate for the request response header attributes? 
+* how do we disambiguate for the request header attributes `OTEL_HEADER_ATTRIBUTES` and `requests` response attributes? 
 * `with ...` instrumentation for non-callable code (e.g. settings, semi-hardcoded config)
     * see [next_version_intended_usage.py](./next_version_intended_usage.py)
 * type-checking decorator, with warning on unmatched types

@@ -53,6 +53,12 @@ if __name__ == '__main__':
         def e(self, value):
             return
 
+        def __enter__(self):
+            pass
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            pass
+
 
     @instrument_decorate
     @lru_cache
@@ -73,3 +79,6 @@ if __name__ == '__main__':
     a_c = instrument_decorate(a.c)
     a_c_d = instrument_decorate(a_c())
     a_c_d()
+
+    with instrument_decorate(A)():
+        ...

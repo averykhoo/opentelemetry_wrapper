@@ -130,6 +130,11 @@ from opentelemetry_wrapper import instrument_fastapi_app
 app = instrument_fastapi_app(FastAPI(...))
 ```
 
+Capturing headers:
+* to avoid capturing any headers as spans, set a blank header, like `OTEL_HEADER_ATTRIBUTES=,`
+* `OTEL_HEADER_ATTRIBUTES` will attempt to parse base64 and json, and will flatten the data structure
+* `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST` behaves similarly, but does not flatten the structure
+
 ### prometheus
 
 * set (for example) `OTEL_EXPORTER_PROMETHEUS_ENDPOINT=/metrics`
