@@ -43,10 +43,13 @@ def instrument_fastapi_app(app):
     # init metrics
     init_meter_provider()
 
+    # exclude prometheus endpoint
+    exclude_url = OTEL_EXPORTER_PROMETHEUS_ENDPOINT.rstrip('/') if OTEL_EXPORTER_PROMETHEUS_ENDPOINT else None
+
     # instrument the app
     FastAPIInstrumentor.instrument_app(app,
                                        server_request_hook=request_hook,
                                        client_request_hook=request_hook,
-                                       excluded_urls=OTEL_EXPORTER_PROMETHEUS_ENDPOINT.rstrip('/'),
+                                       excluded_urls=exclude_url,
                                        )
     return app

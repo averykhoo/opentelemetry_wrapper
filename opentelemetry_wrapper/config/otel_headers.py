@@ -1,5 +1,5 @@
 """
-all these settings will be (manually) logged at the DEBUG level if you call `instrument_all()`
+all these settings will be (manually) logged at the INFO level if you call `instrument_all()`
 """
 import os
 from typing import List
