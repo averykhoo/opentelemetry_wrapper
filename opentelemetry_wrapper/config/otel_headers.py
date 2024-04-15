@@ -1,3 +1,6 @@
+"""
+all these settings will be (manually) logged at the DEBUG level if you call `instrument_all()`
+"""
 import os
 from typing import List
 from typing import Optional

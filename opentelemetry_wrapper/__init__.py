@@ -48,6 +48,22 @@ def instrument_all(dataclasses: bool = True,
     if system_metrics:
         instrument_system_metrics()
 
+    # log current config
+    logger = builtins_logging.getLogger('opentelemetry_wrapper')
+    logger.debug({
+        'opentelemetry_wrapper.__version__': __version__,
+        'OTEL_WRAPPER_DISABLED':             OTEL_WRAPPER_DISABLED,
+        'OTEL_SERVICE_NAME':                 OTEL_SERVICE_NAME,
+        'OTEL_SERVICE_NAMESPACE':            OTEL_SERVICE_NAMESPACE,
+        'OTEL_EXPORTER_OTLP_ENDPOINT':       OTEL_EXPORTER_OTLP_ENDPOINT,
+        'OTEL_EXPORTER_OTLP_HEADER':         OTEL_EXPORTER_OTLP_HEADER,
+        'OTEL_EXPORTER_OTLP_INSECURE':       OTEL_EXPORTER_OTLP_INSECURE,
+        'OTEL_LOG_LEVEL':                    OTEL_LOG_LEVEL,
+        'OTEL_HEADER_ATTRIBUTES':            OTEL_HEADER_ATTRIBUTES,
+        'OTEL_EXPORTER_PROMETHEUS_PORT':     OTEL_EXPORTER_PROMETHEUS_PORT,
+        'OTEL_EXPORTER_PROMETHEUS_ENDPOINT': OTEL_EXPORTER_PROMETHEUS_ENDPOINT,
+    })
+
 
 __all__ = (
     '__version__',
@@ -59,18 +75,3 @@ __all__ = (
     'instrument_requests',
     'instrument_sqlalchemy',
 )
-
-logger = builtins_logging.getLogger('opentelemetry_wrapper')
-logger.info({
-    'opentelemetry_wrapper.__version__': __version__,
-    'OTEL_WRAPPER_DISABLED':             OTEL_WRAPPER_DISABLED,
-    'OTEL_SERVICE_NAME':                 OTEL_SERVICE_NAME,
-    'OTEL_SERVICE_NAMESPACE':            OTEL_SERVICE_NAMESPACE,
-    'OTEL_EXPORTER_OTLP_ENDPOINT':       OTEL_EXPORTER_OTLP_ENDPOINT,
-    'OTEL_EXPORTER_OTLP_HEADER':         OTEL_EXPORTER_OTLP_HEADER,
-    'OTEL_EXPORTER_OTLP_INSECURE':       OTEL_EXPORTER_OTLP_INSECURE,
-    'OTEL_LOG_LEVEL':                    OTEL_LOG_LEVEL,
-    'OTEL_HEADER_ATTRIBUTES':            OTEL_HEADER_ATTRIBUTES,
-    'OTEL_EXPORTER_PROMETHEUS_PORT':     OTEL_EXPORTER_PROMETHEUS_PORT,
-    'OTEL_EXPORTER_PROMETHEUS_ENDPOINT': OTEL_EXPORTER_PROMETHEUS_ENDPOINT,
-})

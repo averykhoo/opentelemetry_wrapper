@@ -12,7 +12,7 @@ _NAME_TO_LEVEL = {
     'critical': logging.CRITICAL,
     'fatal':    logging.FATAL,
     'error':    logging.ERROR,
-    'warn':     logging.WARNING,
+    'warn':     logging.WARNING,  # since `logging.warn` is deprecated, let's also avoid `logging.WARN`
     'warning':  logging.WARNING,
     'info':     logging.INFO,
     'debug':    logging.DEBUG,
