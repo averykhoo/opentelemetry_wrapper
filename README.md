@@ -59,14 +59,26 @@ a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make l
 | `OTEL_EXPORTER_PROMETHEUS_ENDPOINT` | An endpoint on which to expose metrics for Prometheus via FastAPI. (E.g. `/metrics`, which will 307 redirect to `/metrics/`) WARNING: this can clash with your fastapi routes                 | *NA* (no Prometheus endpoint)                                                               |
 | `OTEL_HEADER_ATTRIBUTES`            | List of HTTP headers to extract from incoming requests as span attributes, split by comma.                                                                                                    | `x-userinfo`                                                                                |
 | `OTEL_LOG_LEVEL`                    | Log level used by the logging instrumentor (case-insensitive).                                                                                                                                | `info`                                                                                      |
-| `OTEL_SERVICE_NAME`                 | Sets the value of the `service.name` resource attribute.                                                                                                                                      | f'{k8s namespace}/{k8s pod name}' or f'{username}@{hostname}.{domain}:<{filename of main}>' |
-| `OTEL_SERVICE_NAMESPACE`            | Sets the value of the `service.namespace` resource attribute.                                                                                                                                 | f'{k8s namespace}' or None                                                                  |
+| `OTEL_SERVICE_NAME`                 | Sets the value of the `service.name` resource attribute. If a `serviceAccount` is mounted in your k8s pod, will auto-detect.                                                                  | f'{k8s namespace}/{k8s pod name}' or f'{username}@{hostname}.{domain}:<{filename of main}>' |
+| `OTEL_SERVICE_NAMESPACE`            | Sets the value of the `service.namespace` resource attribute. If a `serviceAccount` is mounted in your k8s pod, will auto-detect.                                                             | f'{k8s namespace}' or None                                                                  |
 | `OTEL_WRAPPER_DISABLED`             | Set to `true` to disable tracing globally (e.g. when running pytest).                                                                                                                         | `false` (tracing is enabled)                                                                |
 
-> **Note:** <br>
+> **Note:**
+>
 > The `service.name` and `service.namespace` can also be set via `OTEL_RESOURCE_ATTRIBUTES`, but any settings there
 > will be overwritten by `OTEL_SERVICE_NAME` and `OTEL_SERVICE_NAMESPACE`. For more details, read the
 > original [OpenTelemetry docs](https://opentelemetry.io/docs)
+>
+> If you don't have a `serviceAccount` mounted in your pod (i.e. `automountServiceAccountToken: false`),
+> then you should manually set `OTEL_SERVICE_NAMESPACE` using the following yaml:
+> ```yaml
+>  env:
+>    - name: OTEL_SERVICE_NAMESPACE
+>      valueFrom:
+>        fieldRef:
+>          fieldPath: metadata.namespace
+> ```
+> [K8s docs](https://kubernetes.io/docs/tasks/inject-data-application/environment-variable-expose-pod-information/)
 
 ### `@instrument_decorate` decorator for functions and classes
 
@@ -131,6 +143,7 @@ app = instrument_fastapi_app(FastAPI(...))
 ```
 
 Capturing headers:
+
 * to avoid capturing any headers as spans, set a blank header, like `OTEL_HEADER_ATTRIBUTES=,`
 * `OTEL_HEADER_ATTRIBUTES` will attempt to parse base64 and json, and will flatten the data structure
 * `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST` behaves similarly, but does not flatten the structure
