@@ -93,6 +93,27 @@ def get_k8s_deployment_name() -> str:
 
 @lru_cache
 def get_k8s_pod_name() -> str:
+    # TODO: use the `/var/run/secrets/kubernetes.io/serviceaccount/token` instead, which is base64-encoded
+    # {
+    #     "aud":           ["unknown"],
+    #     "exp":           1744713905,
+    #     "iat":           1713177905,
+    #     "iss":           "rke",
+    #     "kubernetes.io": {
+    #         "namespace":      "<some-namespace>",
+    #         "pod":            {
+    #             "name": "<some-deployment>-68b4d66d84-2gwlw",
+    #             "uid":  "<some uuid>"
+    #         },
+    #         "serviceaccount": {
+    #             "name": "default",
+    #             "uid":  "<some uuid>"
+    #         },
+    #         "warnafter":      1713181512
+    #     },
+    #     "nbf":           1713177905,
+    #     "sub":           "system:serviceaccount:<some-namespace>:default"
+    # }
     # does the file exist
     k8s_hostname_path = Path('/etc/hostname')
     if not k8s_hostname_path.is_file():
