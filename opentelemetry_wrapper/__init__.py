@@ -37,18 +37,20 @@ def instrument_all(dataclasses: bool = True,
                    log_json: bool = True,
                    system_metrics: bool = True
                    ):
-    # instrument all the things
-    if not OTEL_WRAPPER_DISABLED:
-        if dataclasses:
-            instrument_dataclasses()
-        if logging:
-            instrument_logging(print_json=log_json)
-        if requests:
-            instrument_requests()
-        if sqlalchemy:
-            instrument_sqlalchemy()
-        if system_metrics:
-            instrument_system_metrics()
+    # no-op
+    if OTEL_WRAPPER_DISABLED:
+        return
+
+    if dataclasses:
+        instrument_dataclasses()
+    if logging:
+        instrument_logging(print_json=log_json)
+    if requests:
+        instrument_requests()
+    if sqlalchemy:
+        instrument_sqlalchemy()
+    if system_metrics:
+        instrument_system_metrics()
 
     # log current config
     global _CONFIG_HAS_BEEN_LOGGED
@@ -58,7 +60,7 @@ def instrument_all(dataclasses: bool = True,
             logger = builtins_logging.getLogger('opentelemetry_wrapper')
             logger.info({
                 'opentelemetry_wrapper.__version__': __version__,
-                'OTEL_WRAPPER_DISABLED':             OTEL_WRAPPER_DISABLED,
+                # 'OTEL_WRAPPER_DISABLED': OTEL_WRAPPER_DISABLED, # must be true
                 # 'OTEL_SERVICE_NAME OTEL_SERVICE_NAME, # already logged
                 # 'OTEL_SERVICE_NAMESPACE OTEL_SERVICE_NAMESPACE, # already logged
                 'OTEL_EXPORTER_OTLP_ENDPOINT':       OTEL_EXPORTER_OTLP_ENDPOINT,
