@@ -39,7 +39,7 @@ also run the following files:
 
 ## todo
 
-* major refactor so the project structure isn't randomly named trash
+* major refactor, renaming and reorganizing all the modules and code
 * CICD the tests
 * env var to enable/disable console printing for logs, metrics (off by default), and traces
 * an intelligent way to include multiple headers in `OTEL_EXPORTER_OTLP_HEADER`

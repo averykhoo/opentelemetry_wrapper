@@ -7,7 +7,7 @@ import socket
 from functools import lru_cache
 from pathlib import Path
 
-from opentelemetry_wrapper.dependencies.opentelemetry.resource_detector import get_resource_attributes
+from opentelemetry_wrapper.v0.dependencies.opentelemetry.resource_detector import get_resource_attributes
 
 
 @lru_cache

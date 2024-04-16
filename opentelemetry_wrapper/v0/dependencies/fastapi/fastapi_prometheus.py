@@ -2,7 +2,7 @@ from typing import Any
 from typing import Union
 from urllib.parse import parse_qs
 
-from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_PROMETHEUS_ENDPOINT
+from opentelemetry_wrapper.v0.config.otel_headers import OTEL_EXPORTER_PROMETHEUS_ENDPOINT
 
 try:
     from fastapi import FastAPI

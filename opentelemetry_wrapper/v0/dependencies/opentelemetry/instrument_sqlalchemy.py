@@ -6,11 +6,11 @@ from opentelemetry.instrumentation.sqlalchemy import EngineTracer
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 
 from opentelemetry_wrapper import instrument_decorate
-from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
-from opentelemetry_wrapper.dependencies.opentelemetry.otel_providers import init_meter_provider
-from opentelemetry_wrapper.dependencies.sqlalchemy.engine_typedef import is_sqlalchemy_async_engine
-from opentelemetry_wrapper.dependencies.sqlalchemy.engine_typedef import is_sqlalchemy_engine
-from opentelemetry_wrapper.dependencies.sqlalchemy.engine_typedef import is_sqlalchemy_sync_engine
+from opentelemetry_wrapper.v0.config.otel_headers import OTEL_WRAPPER_DISABLED
+from opentelemetry_wrapper.v0.dependencies.opentelemetry.otel_providers import init_meter_provider
+from opentelemetry_wrapper.v0.dependencies.sqlalchemy.engine_typedef import is_sqlalchemy_async_engine
+from opentelemetry_wrapper.v0.dependencies.sqlalchemy.engine_typedef import is_sqlalchemy_engine
+from opentelemetry_wrapper.v0.dependencies.sqlalchemy.engine_typedef import is_sqlalchemy_sync_engine
 
 SqlAlchemyEngineType = TypeVar('SqlAlchemyEngineType', bound=type)
 

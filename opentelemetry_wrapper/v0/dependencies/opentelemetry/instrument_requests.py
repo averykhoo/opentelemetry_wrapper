@@ -3,9 +3,9 @@ from opentelemetry.trace import Span
 from requests import PreparedRequest
 from requests import Response
 
-from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
-from opentelemetry_wrapper.dependencies.opentelemetry.instrument_decorator import instrument_decorate
-from opentelemetry_wrapper.dependencies.opentelemetry.otel_providers import init_meter_provider
+from opentelemetry_wrapper.v0.config.otel_headers import OTEL_WRAPPER_DISABLED
+from opentelemetry_wrapper.v0.dependencies.opentelemetry.instrument_decorator import instrument_decorate
+from opentelemetry_wrapper.v0.dependencies.opentelemetry.otel_providers import init_meter_provider
 
 # TODO: don't hardcode!
 _HEADERS = [  # this should all be lowercase!

@@ -33,13 +33,13 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter
 from prometheus_client import start_http_server
 
-from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_ENDPOINT
-from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_HEADER
-from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_INSECURE
-from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_PROMETHEUS_PORT
-from opentelemetry_wrapper.config.otel_headers import OTEL_LOG_LEVEL
-from opentelemetry_wrapper.config.otel_headers import OTEL_SERVICE_NAME
-from opentelemetry_wrapper.config.otel_headers import OTEL_SERVICE_NAMESPACE
+from opentelemetry_wrapper.v0.config.otel_headers import OTEL_EXPORTER_OTLP_ENDPOINT
+from opentelemetry_wrapper.v0.config.otel_headers import OTEL_EXPORTER_OTLP_HEADER
+from opentelemetry_wrapper.v0.config.otel_headers import OTEL_EXPORTER_OTLP_INSECURE
+from opentelemetry_wrapper.v0.config.otel_headers import OTEL_EXPORTER_PROMETHEUS_PORT
+from opentelemetry_wrapper.v0.config.otel_headers import OTEL_LOG_LEVEL
+from opentelemetry_wrapper.v0.config.otel_headers import OTEL_SERVICE_NAME
+from opentelemetry_wrapper.v0.config.otel_headers import OTEL_SERVICE_NAMESPACE
 
 
 @lru_cache  # only run once

@@ -19,7 +19,7 @@ from typing import Type
 from typing import Union
 from uuid import UUID
 
-from opentelemetry_wrapper.utils.introspect import CodeInfo
+from opentelemetry_wrapper.v0.utils.introspect import CodeInfo
 
 try:
     fastapi_jsonable_encoder: Optional[Callable]

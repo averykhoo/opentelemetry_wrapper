@@ -1,7 +1,7 @@
 from opentelemetry.trace import Span
 
-from opentelemetry_wrapper.config.otel_headers import OTEL_HEADER_ATTRIBUTES
-from opentelemetry_wrapper.utils.extract_json_header import extract_json_header
+from opentelemetry_wrapper.v0.config.otel_headers import OTEL_HEADER_ATTRIBUTES
+from opentelemetry_wrapper.v0.utils.extract_json_header import extract_json_header
 
 try:
     from starlette.datastructures import Headers

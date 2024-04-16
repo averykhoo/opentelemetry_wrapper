@@ -2,8 +2,8 @@ import dataclasses
 import inspect
 from functools import wraps
 
-from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
-from opentelemetry_wrapper.dependencies.opentelemetry.instrument_decorator import instrument_decorate
+from opentelemetry_wrapper.v0.config.otel_headers import OTEL_WRAPPER_DISABLED
+from opentelemetry_wrapper.v0.dependencies.opentelemetry.instrument_decorator import instrument_decorate
 
 _ORIGINAL = None
 

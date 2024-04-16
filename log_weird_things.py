@@ -4,7 +4,7 @@ from decimal import Decimal
 from pydantic import BaseModel
 from pydantic.v1.json import pydantic_encoder
 
-from opentelemetry_wrapper.dependencies.opentelemetry.instrument_logging import instrument_logging
+from opentelemetry_wrapper import instrument_logging
 
 
 class Something(BaseModel):

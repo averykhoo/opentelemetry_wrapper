@@ -15,7 +15,7 @@ from fastapi.responses import RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
 
 from opentelemetry_wrapper import instrument_all
-from opentelemetry_wrapper.dependencies.opentelemetry.instrument_fastapi import instrument_fastapi_app
+from opentelemetry_wrapper import instrument_fastapi_app
 
 instrument_all()
 

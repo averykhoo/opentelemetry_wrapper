@@ -2,13 +2,13 @@ import logging
 
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
-from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_PROMETHEUS_ENDPOINT
-from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
-from opentelemetry_wrapper.dependencies.fastapi.fastapi_prometheus import mount_prometheus
-from opentelemetry_wrapper.dependencies.fastapi.fastapi_typedef import is_fastapi_app
-from opentelemetry_wrapper.dependencies.fastapi.starlette_request_hook import request_hook
-from opentelemetry_wrapper.dependencies.opentelemetry.instrument_decorator import instrument_decorate
-from opentelemetry_wrapper.dependencies.opentelemetry.otel_providers import init_meter_provider
+from opentelemetry_wrapper.v0.config.otel_headers import OTEL_EXPORTER_PROMETHEUS_ENDPOINT
+from opentelemetry_wrapper.v0.config.otel_headers import OTEL_WRAPPER_DISABLED
+from opentelemetry_wrapper.v0.dependencies.fastapi.fastapi_prometheus import mount_prometheus
+from opentelemetry_wrapper.v0.dependencies.fastapi.fastapi_typedef import is_fastapi_app
+from opentelemetry_wrapper.v0.dependencies.fastapi.starlette_request_hook import request_hook
+from opentelemetry_wrapper.v0.dependencies.opentelemetry.instrument_decorator import instrument_decorate
+from opentelemetry_wrapper.v0.dependencies.opentelemetry.otel_providers import init_meter_provider
 
 
 @instrument_decorate

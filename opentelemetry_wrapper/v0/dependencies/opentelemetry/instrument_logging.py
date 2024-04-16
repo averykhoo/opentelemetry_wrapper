@@ -13,12 +13,12 @@ from typing import Tuple
 
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 
-from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_ENDPOINT
-from opentelemetry_wrapper.config.otel_headers import OTEL_LOG_LEVEL
-from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
-from opentelemetry_wrapper.dependencies.opentelemetry.instrument_decorator import instrument_decorate
-from opentelemetry_wrapper.dependencies.opentelemetry.otel_providers import get_otel_log_handler
-from opentelemetry_wrapper.utils.logging_json_formatter import JsonFormatter
+from opentelemetry_wrapper.v0.config.otel_headers import OTEL_EXPORTER_OTLP_ENDPOINT
+from opentelemetry_wrapper.v0.config.otel_headers import OTEL_LOG_LEVEL
+from opentelemetry_wrapper.v0.config.otel_headers import OTEL_WRAPPER_DISABLED
+from opentelemetry_wrapper.v0.dependencies.opentelemetry.instrument_decorator import instrument_decorate
+from opentelemetry_wrapper.v0.dependencies.opentelemetry.otel_providers import get_otel_log_handler
+from opentelemetry_wrapper.v0.utils.logging_json_formatter import JsonFormatter
 
 LOGGING_FORMAT_VERBOSE = (
     '%(asctime)s '

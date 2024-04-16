@@ -8,7 +8,7 @@ from typing import Optional
 from typing import Tuple
 from typing import Union
 
-from opentelemetry_wrapper.utils.json_encoder import jsonable_encoder
+from opentelemetry_wrapper.v0.utils.json_encoder import jsonable_encoder
 
 
 class JsonFormatter(logging.Formatter):

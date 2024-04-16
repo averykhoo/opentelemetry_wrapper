@@ -8,23 +8,24 @@ import logging as builtins_logging
 from multiprocessing import current_process
 from threading import current_thread
 
-from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_ENDPOINT
-from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_HEADER
-from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_OTLP_INSECURE
-from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_PROMETHEUS_ENDPOINT
-from opentelemetry_wrapper.config.otel_headers import OTEL_EXPORTER_PROMETHEUS_PORT
-from opentelemetry_wrapper.config.otel_headers import OTEL_HEADER_ATTRIBUTES
-from opentelemetry_wrapper.config.otel_headers import OTEL_LOG_LEVEL
-from opentelemetry_wrapper.config.otel_headers import OTEL_SERVICE_NAME
-from opentelemetry_wrapper.config.otel_headers import OTEL_SERVICE_NAMESPACE
-from opentelemetry_wrapper.config.otel_headers import OTEL_WRAPPER_DISABLED
-from opentelemetry_wrapper.dependencies.opentelemetry.instrument_dataclasses import instrument_dataclasses
-from opentelemetry_wrapper.dependencies.opentelemetry.instrument_decorator import instrument_decorate
-from opentelemetry_wrapper.dependencies.opentelemetry.instrument_fastapi import instrument_fastapi_app
-from opentelemetry_wrapper.dependencies.opentelemetry.instrument_logging import instrument_logging
-from opentelemetry_wrapper.dependencies.opentelemetry.instrument_requests import instrument_requests
-from opentelemetry_wrapper.dependencies.opentelemetry.instrument_sqlalchemy import instrument_sqlalchemy
-from opentelemetry_wrapper.dependencies.opentelemetry.instrument_system_metrics import instrument_system_metrics
+from opentelemetry_wrapper.v0.config.otel_headers import OTEL_EXPORTER_OTLP_ENDPOINT
+from opentelemetry_wrapper.v0.config.otel_headers import OTEL_EXPORTER_OTLP_HEADER
+from opentelemetry_wrapper.v0.config.otel_headers import OTEL_EXPORTER_OTLP_INSECURE
+from opentelemetry_wrapper.v0.config.otel_headers import OTEL_EXPORTER_PROMETHEUS_ENDPOINT
+from opentelemetry_wrapper.v0.config.otel_headers import OTEL_EXPORTER_PROMETHEUS_PORT
+from opentelemetry_wrapper.v0.config.otel_headers import OTEL_HEADER_ATTRIBUTES
+from opentelemetry_wrapper.v0.config.otel_headers import OTEL_LOG_LEVEL
+from opentelemetry_wrapper.v0.config.otel_headers import OTEL_SERVICE_NAME
+from opentelemetry_wrapper.v0.config.otel_headers import OTEL_SERVICE_NAMESPACE
+from opentelemetry_wrapper.v0.config.otel_headers import OTEL_WRAPPER_DISABLED
+from opentelemetry_wrapper.v0.dependencies.opentelemetry.instrument_dataclasses import instrument_dataclasses
+from opentelemetry_wrapper.v0.dependencies.opentelemetry.instrument_decorator import instrument_decorate
+from opentelemetry_wrapper.v0.dependencies.opentelemetry.instrument_fastapi import instrument_fastapi_app
+from opentelemetry_wrapper.v0.dependencies.opentelemetry.instrument_logging import instrument_logging
+from opentelemetry_wrapper.v0.dependencies.opentelemetry.instrument_requests import instrument_requests
+from opentelemetry_wrapper.v0.dependencies.opentelemetry.instrument_sqlalchemy import instrument_sqlalchemy
+from opentelemetry_wrapper.v0.dependencies.opentelemetry.instrument_sqlalchemy import instrument_sqlalchemy_engine
+from opentelemetry_wrapper.v0.dependencies.opentelemetry.instrument_system_metrics import instrument_system_metrics
 
 _CONFIG_HAS_BEEN_LOGGED = False
 
@@ -80,6 +81,7 @@ __all__ = (
     'instrument_dataclasses',
     'instrument_logging',
     'instrument_fastapi_app',
+    'instrument_sqlalchemy_engine',
     'instrument_requests',
     'instrument_sqlalchemy',
 )
