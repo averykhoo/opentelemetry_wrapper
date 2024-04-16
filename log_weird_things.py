@@ -33,3 +33,4 @@ logging.info(SENTINEL := object())  # an anonymous sentinel object
 logging.info(1, 2, 3, 4, 5, 6, 7)  # passing in random unhandled arguments
 logging.error(Something)  # a defined class
 logging.error(Something())  # a class instance
+logging.error(lambda x: x + 1)  # anonymous lambda

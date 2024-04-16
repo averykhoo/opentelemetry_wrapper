@@ -144,10 +144,18 @@ class CodeInfo:
     __cached_cls: List[type] = field(default_factory=list, init=False, repr=False, hash=False, compare=False)
     __cached_function: List[str] = field(default_factory=list, init=False, repr=False, hash=False, compare=False)
 
+    # __cached_varname: List[str] = field(default_factory=list, init=False, repr=False, hash=False, compare=False)
+
     def __post_init__(self):
         assert self.__is_supported_type(self.code_object), type(self.code_object)
         assert isinstance(self.unwrap_partial, bool), self.unwrap_partial
         assert isinstance(self.unwrap_async, bool), self.unwrap_async
+        # try:
+        #     self.__cached_varname.append('')
+        #     for i in range(4, 9):
+        #         self.__cached_varname.append(varname.nameof(self.code_object, frame=i))
+        # except Exception:
+        #     pass
 
     @cached_property
     def json(self) -> Dict[str, Union[str, int, bool, None]]:
@@ -172,6 +180,10 @@ class CodeInfo:
         except Exception:
             return False
 
+    # @cached_property
+    # def varname_nameof(self) -> str:
+    #     return self.__cached_varname[-1]
+
     @cached_property
     def name(self) -> str:
         try:
@@ -190,6 +202,11 @@ class CodeInfo:
             else:
                 _class_name = '<unknown class>' if self.is_class else ''
                 _function_name = '' if self.is_class else '<unknown function>'
+
+            # if _function_name == '<lambda>':
+            #     _varname = f'{self.varname_nameof} = ' if self.varname_nameof else ''
+            # else:
+            #     _varname = ''
 
             return f'{_prefixes}{_module_name}{_class_name}{_function_name}'
         except Exception:
