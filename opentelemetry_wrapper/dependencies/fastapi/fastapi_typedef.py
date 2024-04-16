@@ -9,5 +9,5 @@ try:
 
 except ImportError:
     # noinspection PyUnusedLocal
-    def is_fastapi_app(_) -> bool:
+    def is_fastapi_app(_: Any) -> bool:
         return False

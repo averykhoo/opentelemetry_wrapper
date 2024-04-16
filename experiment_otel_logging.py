@@ -86,7 +86,6 @@ async def square(x):
 @sync_to_async
 @instrument_decorate
 @async_to_sync
-@instrument_decorate
 async def exponentiate(base, exponent):
     """
     exponentiation-by-squaring

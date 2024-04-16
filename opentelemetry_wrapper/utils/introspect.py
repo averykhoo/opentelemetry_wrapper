@@ -90,7 +90,7 @@ def _unwrap_async(_code_object: CodeObjectType) -> Tuple[Optional[str], CodeObje
 
     # attempt to detect asgiref.sync_to_async and asgiref.async_to_sync
     _module = inspect.getmodule(_code_object)
-    if hasattr(_module, '__name__') and _module.__name__ == 'asgiref.sync':
+    if getattr(_module, '__name__', None) == 'asgiref.sync':
 
         # must check this first because it may also have an `awaitable` attribute
         if hasattr(_code_object, 'func'):
