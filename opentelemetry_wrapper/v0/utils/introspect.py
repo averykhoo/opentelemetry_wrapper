@@ -55,11 +55,15 @@ def _unwrap_partial(_code_object: CodeObjectType) -> Tuple[Optional[str], CodeOb
 
         # probably single dispatch
         if all(hasattr(_code_object, _attr) for _attr in {'register', 'dispatch', 'registry', '_clear_cache'}):
-            return 'functools.singledispatch', _wrapped_code
+            return '@functools.singledispatch', _wrapped_code
 
         # could be lru_cache or cache (but that's a special_case of lru_cache anyway)
         if all(hasattr(_code_object, _attr) for _attr in {'cache_info', 'cache_clear'}):
-            return 'functools.lru_cache', _wrapped_code
+            return '@functools.lru_cache', _wrapped_code
+
+        # our own typecheck decorator
+        if all(hasattr(_code_object, _attr) for _attr in {'__type_checkers__'}):
+            return '@typecheck', _wrapped_code
 
         # update_wrapper was probably called, and since it's not internal to functools it's probably via wraps
         if all(getattr(_wrapped_code, _a, None) == getattr(_code_object, _a, None) for _a in WRAPPER_ASSIGNMENTS):
@@ -77,7 +81,7 @@ def _unwrap_partial(_code_object: CodeObjectType) -> Tuple[Optional[str], CodeOb
                 else:
                     break
             else:
-                return 'functools.wraps', _wrapped_code
+                return '@functools.wraps', _wrapped_code
 
     # failed to unwrap
     return None, _code_object

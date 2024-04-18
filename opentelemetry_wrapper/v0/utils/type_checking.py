@@ -154,3 +154,5 @@ if __name__ == '__main__':
     print(repr(typecheck(square)(2)))
     print(repr(typecheck(square)(2.0)))
     # print(repr(typecheck(square)(2.5))) # this fails
+
+    print(hasattr(typecheck(square), '__type_checkers__'))
