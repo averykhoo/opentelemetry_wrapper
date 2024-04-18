@@ -62,12 +62,6 @@ also run the following files:
 ### won't do
 
 * ~~instrument pydantic?~~ (too noisy)
-* ~~type-checking decorator, with warning on unmatched types~~
-    * ~~https://github.com/prechelt/typecheck-decorator/blob/master/README.md~~
-    * ~~https://stackoverflow.com/questions/36879932/python-type-checking-decorator~~
-    * ~~https://towardsdatascience.com/the-power-of-decorators-fef4dc97020e~~
-    * ~~https://typeguard.readthedocs.io/en/latest/userguide.html~~
-    * ~~or use `pydantic.TypeAdaptor` to manually check~~
 * ~~add a (regex-based?) sanitizer to erase strings/patterns from log output~~ (just don't log secrets)
 * ~~builtin `tracemalloc` can be used locate the source file and line number of a function, if started early enough~~
     * ~~check for the `PYTHONTRACEMALLOC`var?~~
