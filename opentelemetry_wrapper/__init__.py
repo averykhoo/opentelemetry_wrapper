@@ -2,7 +2,7 @@
 a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make life a bit easier
 """
 
-__version__ = '0.1.12'
+__version__ = '0.1.13'
 
 import logging as builtins_logging
 from multiprocessing import current_process
