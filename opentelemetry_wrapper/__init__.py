@@ -26,6 +26,7 @@ from opentelemetry_wrapper.v0.dependencies.opentelemetry.instrument_requests imp
 from opentelemetry_wrapper.v0.dependencies.opentelemetry.instrument_sqlalchemy import instrument_sqlalchemy
 from opentelemetry_wrapper.v0.dependencies.opentelemetry.instrument_sqlalchemy import instrument_sqlalchemy_engine
 from opentelemetry_wrapper.v0.dependencies.opentelemetry.instrument_system_metrics import instrument_system_metrics
+from opentelemetry_wrapper.v0.utils.type_checking import typecheck
 
 _CONFIG_HAS_BEEN_LOGGED = False
 
@@ -77,11 +78,12 @@ def instrument_all(dataclasses: bool = True,
 __all__ = (
     '__version__',
     'instrument_all',
-    'instrument_decorate',
     'instrument_dataclasses',
-    'instrument_logging',
+    'instrument_decorate',
     'instrument_fastapi_app',
-    'instrument_sqlalchemy_engine',
+    'instrument_logging',
     'instrument_requests',
     'instrument_sqlalchemy',
+    'instrument_sqlalchemy_engine',
+    'typecheck',
 )
