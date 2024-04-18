@@ -50,18 +50,18 @@ a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make l
 
 ### env vars
 
-| Variable Name                       | Description                                                                                                                                                                                   | Default (if not set)                                                                                    |
-|-------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------|
-| `OTEL_EXPORTER_OTLP_ENDPOINT`       | Looks like `http://tempo.localhost:4317`.                                                                                                                                                     | *NA* (traces are not exported to any OTLP endpoint)                                                     |
-| `OTEL_EXPORTER_OTLP_HEADER`         | Looks like `Header-Name=header value`, where values can contain space ('\x20'). To insert multiple headers, delimit by any other whitespace char.                                             | *NA* (no header sent to OTLP endpoint)                                                                  |
-| `OTEL_EXPORTER_OTLP_INSECURE`       | Set to `true` to disable SSL for OTLP trace exports, or `false` to always verify.                                                                                                             | *NA* (follows OpenTelemetry default, which is secure for https and insecure for http)                   |
-| `OTEL_EXPORTER_PROMETHEUS_PORT`     | The port on which to expose metrics for Prometheus, running in parallel as a WSGI app. (E.g. `9464` to expose `http://localhost:9464/metrics`) WARNING: do not use the same port as your app. | *NA* (no Prometheus server)                                                                             |
-| `OTEL_EXPORTER_PROMETHEUS_ENDPOINT` | An endpoint on which to expose metrics for Prometheus via FastAPI. (E.g. `/metrics`, which will 307 redirect to `/metrics/`) WARNING: this can clash with your fastapi routes                 | *NA* (no Prometheus endpoint)                                                                           |
-| `OTEL_HEADER_ATTRIBUTES`            | List of HTTP headers to extract from incoming requests as span attributes, split by comma.                                                                                                    | `x-userinfo`                                                                                            |
-| `OTEL_LOG_LEVEL`                    | Log level used by the logging instrumentor (case-insensitive).                                                                                                                                | `info`                                                                                                  |
-| `OTEL_SERVICE_NAME`                 | Sets the value of the `service.name` resource attribute.                                                                                                                                      | f'{k8s namespace}/{k8s deployment}/{k8s pod}' or f'{username}@{hostname}.{domain}:<{filename of main}>' |
-| `OTEL_SERVICE_NAMESPACE`            | Sets the value of the `service.namespace` resource attribute.                                                                                                                                 | f'{k8s namespace}' or None                                                                              |
-| `OTEL_WRAPPER_DISABLED`             | Set to `true` to disable tracing globally (e.g. when running pytest).                                                                                                                         | `false` (tracing is enabled)                                                                            |
+| Variable Name                       | Description                                                                                                                                                                             | Default (if not set)                                                                                    |
+|-------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------|
+| `OTEL_EXPORTER_OTLP_ENDPOINT`       | Looks like `http://tempo.localhost:4317`.                                                                                                                                               | *NA* (traces are not exported to any OTLP endpoint)                                                     |
+| `OTEL_EXPORTER_OTLP_HEADER`         | Looks like `Header-Name=header value`, where values can contain space ('\x20'). To insert multiple headers, delimit by any other whitespace char.                                       | *NA* (no header sent to OTLP endpoint)                                                                  |
+| `OTEL_EXPORTER_OTLP_INSECURE`       | Set to `true` to disable SSL for OTLP trace exports, or `false` to always verify.                                                                                                       | *NA* (follows OpenTelemetry default, which is secure for https and insecure for http)                   |
+| `OTEL_EXPORTER_PROMETHEUS_PORT`     | The port on which to expose metrics for Prometheus, running in parallel as a WSGI app. (E.g. `9464` to expose `http://localhost:9464/*`) WARNING: do not use the same port as your app. | *NA* (no Prometheus server)                                                                             |
+| `OTEL_EXPORTER_PROMETHEUS_ENDPOINT` | An endpoint on which to expose metrics for Prometheus via FastAPI. (E.g. `/metrics`) WARNING: this can clash with your fastapi routes.                                                  | *NA* (no Prometheus endpoint)                                                                           |
+| `OTEL_HEADER_ATTRIBUTES`            | List of HTTP headers to extract from incoming requests as span attributes, split by comma.                                                                                              | `x-userinfo`                                                                                            |
+| `OTEL_LOG_LEVEL`                    | Log level used by the logging instrumentor (case-insensitive).                                                                                                                          | `info`                                                                                                  |
+| `OTEL_SERVICE_NAME`                 | Sets the value of the `service.name` resource attribute.                                                                                                                                | f'{k8s namespace}/{k8s deployment}/{k8s pod}' or f'{username}@{hostname}.{domain}:<{filename of main}>' |
+| `OTEL_SERVICE_NAMESPACE`            | Sets the value of the `service.namespace` resource attribute.                                                                                                                           | f'{k8s namespace}' or None                                                                              |
+| `OTEL_WRAPPER_DISABLED`             | Set to `true` to disable tracing globally (e.g. when running pytest).                                                                                                                   | `false` (tracing is enabled)                                                                            |
 
 > **Note:**
 >
@@ -150,10 +150,15 @@ Capturing headers:
 
 ### prometheus
 
+[//]: # (TODO: rewrite these docs)
+
 * set (for example) `OTEL_EXPORTER_PROMETHEUS_ENDPOINT=/metrics`
 * remember to whitelist `/metrics` in OPA
 * repeated and trailing slashes are normalized (e.g. `///metrics/` -> `/metrics`)
 * if you set `OTEL_EXPORTER_PROMETHEUS_ENDPOINT=/metrics/`, a redirect will be set up from `/metrics` to `/metrics/`
+* if you set the port instead, the created wsgi app accepts any endpoint
+* if you set up both, the endpoint will be created in fastapi and a separate wsgi app will also be created
+* the `/graph` endpoint is not available, you'll need to actually run prometheus to get that
 
 ## features
 
