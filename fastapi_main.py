@@ -17,7 +17,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from opentelemetry_wrapper import instrument_all
 from opentelemetry_wrapper import instrument_fastapi_app
 
-instrument_all()
+instrument_all(clobber_other_log_handlers=True)
 
 app = instrument_fastapi_app(FastAPI(title='My Super Project',
                                      description='This is a very fancy project, with docs for the API and everything',
