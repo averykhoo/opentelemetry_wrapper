@@ -36,7 +36,7 @@ def get_prometheus_endpoint() -> Optional[str]:
     * ////
     * anything where the segments don't match `[a-z0-9_-]+`
     """
-    out = os.getenv('OTEL_EXPORTER_PROMETHEUS_ENDPOINT', '').strip()
+    out = os.getenv('OTEL_EXPORTER_PROMETHEUS_ENDPOINT', '/metrics').strip()
 
     if not out:
         return None
