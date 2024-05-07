@@ -29,19 +29,26 @@ except ImportError:
 
 try:
     pydantic_jsonable_encoder: Optional[Callable]
-    from pydantic.v1.json import pydantic_encoder as pydantic_jsonable_encoder
+    from pydantic.v1.json import pydantic_encoder as pydantic_jsonable_encoder  # v2
 except ImportError:
     try:
-        from pydantic_core import to_jsonable_python as pydantic_jsonable_encoder
+        from pydantic.json import pydantic_encoder as pydantic_jsonable_encoder  # v1
     except ImportError:
-        pydantic_jsonable_encoder = None
+        try:
+            from pydantic_core import to_jsonable_python as pydantic_jsonable_encoder
+        except ImportError:
+            pydantic_jsonable_encoder = None
 
 try:
     PYDANTIC_ENCODERS: Dict[Type, Callable]
     # noinspection PyProtectedMember
-    from pydantic.v1.json import ENCODERS_BY_TYPE as PYDANTIC_ENCODERS
+    from pydantic.v1.json import ENCODERS_BY_TYPE as PYDANTIC_ENCODERS  # v2
 except ImportError:
-    PYDANTIC_ENCODERS = dict()
+    try:
+        # noinspection PyProtectedMember
+        from pydantic.json import ENCODERS_BY_TYPE as PYDANTIC_ENCODERS  # v1
+    except ImportError:
+        PYDANTIC_ENCODERS = dict()
 
 
 def parse_datetime(o: datetime.date) -> str:

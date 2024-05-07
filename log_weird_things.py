@@ -2,7 +2,11 @@ import logging
 from decimal import Decimal
 
 from pydantic import BaseModel
-from pydantic.v1.json import pydantic_encoder
+
+try:
+    from pydantic.v1.json import pydantic_encoder  # v2
+except ImportError:
+    from pydantic.json import pydantic_encoder  # v1
 
 from opentelemetry_wrapper import instrument_logging
 

@@ -8,7 +8,7 @@ from asgiref.sync import sync_to_async
 
 from opentelemetry_wrapper import instrument_decorate
 from opentelemetry_wrapper import instrument_logging
-from opentelemetry_wrapper import typecheck
+# from opentelemetry_wrapper import typecheck
 
 instrument_logging()
 
@@ -38,7 +38,7 @@ async def bitshift(x: int, shift_by: int):
 @instrument_decorate
 @lru_cache
 @instrument_decorate
-@typecheck
+# @typecheck
 async def multiply(multiplier: int, multiplicand: int):
     """
     very silly way to multiply things inspired by exponentiation-by-squaring
