@@ -7,23 +7,52 @@ from functools import partial
 from functools import wraps
 
 from pydantic import ConfigDict
-from pydantic import TypeAdapter
 from pydantic import ValidationError
+from pydantic.config import get_config
+
+try:
+    from pydantic import TypeAdapter  # v2
 
 
-@lru_cache(maxsize=None)
-def _get_pydantic_type_checker(type_annotation, *, strict=True, allow_caching=True):
-    type_adapter = TypeAdapter(type_annotation, config=ConfigDict(arbitrary_types_allowed=True))
-    cached_type_adapter_validate_python = lru_cache(maxsize=4096)(type_adapter.validate_python)
+    @lru_cache(maxsize=None)
+    def _get_pydantic_type_checker(type_annotation, *, strict=True, allow_caching=True):
+        type_adapter = TypeAdapter(type_annotation, config=ConfigDict(arbitrary_types_allowed=True))
+        cached_type_adapter_validate_python = lru_cache(maxsize=4096)(type_adapter.validate_python)
 
-    @wraps(type_adapter.validate_python)
-    def type_checker(value):
-        if allow_caching and isinstance(value, Hashable):
-            return cached_type_adapter_validate_python(value, strict=strict)
-        return type_adapter.validate_python(value, strict=strict)
+        @wraps(type_adapter.validate_python)
+        def type_checker(value):
+            if allow_caching and isinstance(value, Hashable):
+                return cached_type_adapter_validate_python(value, strict=strict)
+            return type_adapter.validate_python(value, strict=strict)
 
-    type_checker.__type_adapter__ = type_adapter
-    return type_checker
+        type_checker.__type_adapter__ = type_adapter
+        return type_checker
+
+
+except ImportError:
+    # WARNING:
+    # type checking works slightly differently on pydantic v1!
+    # this was hacked together for backwards compat
+    from pydantic.validators import find_validators  # v1
+
+
+    @lru_cache(maxsize=None)
+    def _get_pydantic_type_checker(type_annotation, *, strict=True, allow_caching=True):
+        _base_config = get_config(ConfigDict(arbitrary_types_allowed=True))
+        for type_validator in find_validators(type_annotation, config=_base_config):
+            cached_type_validator = lru_cache(maxsize=4096)(type_validator)
+
+            @wraps(type_validator)
+            def type_checker(value):
+                if allow_caching and isinstance(value, Hashable):
+                    if strict and value != cached_type_validator(value):
+                        raise TypeError(f'expected {cached_type_validator(value)!r}, got {value!r}')
+                    return type_validator(value)
+                if strict and value != type_validator(value):
+                    raise TypeError(f'expected {type_validator(value)!r}, got {value!r}')
+                return type_validator(value)
+
+            return type_checker
 
 
 def check_type(value, type_annotation, *, label='', strict=True, allow_caching=True):
@@ -128,7 +157,7 @@ if __name__ == '__main__':
 
     print(repr(check_type('asdf', str)))
     print(repr(check_type('123', str)))
-    # print(repr(check_type('123', int))) # this fails
+    # print(repr(check_type('123', int)))  # this fails
     # print(repr(check_type('123', float))) # this fails
     print(repr(check_type('123', int, strict=False)))
     print(repr(check_type('123', float, strict=False)))
@@ -137,9 +166,9 @@ if __name__ == '__main__':
     print(repr(check_type(100.0, int)))  # this is cached, but maybe shouldn't be
     print(repr(check_type(100, int, allow_caching=False)))
     # print(repr(check_type(100.0, int, allow_caching=False))) # this fails
-    print(repr(check_type(100, 'float')))  # this is coerced, but maybe shouldn't be
-    print(repr(check_type(100.0, 'float')))
-    # print(repr(check_type('2024-01-01', datetime.date))) # this fails
+    # print(repr(check_type(100, 'float')))  # this is coerced, but maybe shouldn't be
+    # print(repr(check_type(100.0, 'float')))
+    # print(repr(check_type('2024-01-01', datetime.date)))  # this fails
     print(repr(check_type('2024-01-01', datetime.date, strict=False)))
 
 
@@ -150,9 +179,9 @@ if __name__ == '__main__':
     print(repr(square(2.0)))
     print(repr(square(2)))
     print(repr(square(2.5)))
-    # print(repr(typecheck(square)(2.0))) # this fails
+    # print(repr(typecheck(square)(2.0)))  # this fails
     print(repr(typecheck(square)(2)))
     print(repr(typecheck(square)(2.0)))
-    # print(repr(typecheck(square)(2.5))) # this fails
+    # print(repr(typecheck(square)(2.5)))  # this fails
 
     print(hasattr(typecheck(square), '__type_checkers__'))
