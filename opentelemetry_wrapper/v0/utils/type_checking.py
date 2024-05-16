@@ -8,7 +8,6 @@ from functools import wraps
 
 from pydantic import ConfigDict
 from pydantic import ValidationError
-from pydantic.config import get_config
 
 try:
     from pydantic import TypeAdapter  # v2
@@ -33,6 +32,7 @@ except ImportError:
     # WARNING:
     # type checking works slightly differently on pydantic v1!
     # this was hacked together for backwards compat
+    from pydantic.config import get_config
     from pydantic.validators import find_validators  # v1
 
 
