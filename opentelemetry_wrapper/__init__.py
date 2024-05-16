@@ -2,7 +2,7 @@
 a wrapper around `opentelemetry` and `opentelemetry-instrumentation-*` to make life a bit easier
 """
 
-__version__ = '0.1.16'
+__version__ = '0.1.17'
 
 import logging as builtins_logging
 from multiprocessing import current_process
@@ -27,7 +27,7 @@ from opentelemetry_wrapper.v0.dependencies.opentelemetry.instrument_sqlalchemy i
 from opentelemetry_wrapper.v0.dependencies.opentelemetry.instrument_sqlalchemy import instrument_sqlalchemy_engine
 from opentelemetry_wrapper.v0.dependencies.opentelemetry.instrument_system_metrics import instrument_system_metrics
 
-from opentelemetry_wrapper.v0.utils.type_checking import typecheck
+# from opentelemetry_wrapper.v0.utils.type_checking import typecheck
 
 _CONFIG_HAS_BEEN_LOGGED = False
 
@@ -87,5 +87,5 @@ __all__ = (
     'instrument_requests',
     'instrument_sqlalchemy',
     'instrument_sqlalchemy_engine',
-    'typecheck',
+    # 'typecheck',
 )
