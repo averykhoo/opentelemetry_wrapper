@@ -1,7 +1,9 @@
 """
-tbh this was written before I discovered the pydantic.validate_call decorator,
-but there's added support for pydantic v1, caching, and typed dict,
-so it's not entirely a waste of space
+this was written before I discovered the pydantic.validate_call decorator, it's almost the same:
+* supports both pydantic v1 and v2 (with minor behavioral differences)
+* also caches successful type check results when the input is hashable
+* supports `typing.TypedDict`
+* automatically typechecks return values if the return type is declared
 """
 import asyncio
 import dataclasses
@@ -27,12 +29,10 @@ try:
         # noinspection PyUnresolvedReferences,PyProtectedMember
         if isinstance(type_annotation, typing._TypedDictMeta):
             type_annotation = typing_extensions.TypedDict(type_annotation.__name__, type_annotation.__annotations__)
-            # if strict:
-            #     type_annotation.__pydantic_config__ = ConfigDict(strict=True)
             type_adapter = TypeAdapter(type_annotation)
-        elif isinstance(type_annotation, (BaseModel, typing_extensions._TypedDictMeta)):
-            # if strict:
-            #     type_annotation.__pydantic_config__ = ConfigDict(strict=True)
+        elif isinstance(type_annotation, typing_extensions._TypedDictMeta):
+            type_adapter = TypeAdapter(type_annotation)
+        elif issubclass(type_annotation, BaseModel):
             type_adapter = TypeAdapter(type_annotation)
         elif dataclasses.is_dataclass(type_annotation):
             type_adapter = TypeAdapter(type_annotation)
@@ -238,3 +238,17 @@ if __name__ == '__main__':
 
     # test_typed_dict2({'x': 1, 'y': 2, 'z': 3}) # fails in v1, passes in v2
     test_typed_dict2({'x': 1, 'y': 2})
+
+
+    class TestModel(BaseModel):
+        x: int
+        y: int
+
+
+    @typecheck
+    def test_typed_dict2(tm: TestModel) -> int:
+        return tm.x
+
+
+    # test_typed_dict2({'x': 1, 'y': 2, 'z': 3}) # fails in v1, passes in v2
+    test_typed_dict2(TestModel(x=1, y=2))
