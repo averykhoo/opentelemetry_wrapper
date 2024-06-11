@@ -15,4 +15,5 @@ pydantic
 requests
 sqlalchemy
 starlette
+typing-extensions
 uvicorn

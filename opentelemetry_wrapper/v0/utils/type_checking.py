@@ -1,11 +1,20 @@
+"""
+tbh this was written before I discovered the pydantic.validate_call decorator,
+but there's added support for pydantic v1, caching, and typed dict,
+so it's not entirely a waste of space
+"""
 import asyncio
+import dataclasses
 import inspect
+import typing
 from collections import defaultdict
 from collections.abc import Hashable
 from functools import lru_cache
 from functools import partial
 from functools import wraps
 
+import typing_extensions
+from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import ValidationError
 
@@ -15,7 +24,20 @@ try:
 
     @lru_cache(maxsize=None)
     def _get_pydantic_type_checker(type_annotation, *, strict=True, allow_caching=True):
-        type_adapter = TypeAdapter(type_annotation, config=ConfigDict(arbitrary_types_allowed=True))
+        # noinspection PyUnresolvedReferences,PyProtectedMember
+        if isinstance(type_annotation, typing._TypedDictMeta):
+            type_annotation = typing_extensions.TypedDict(type_annotation.__name__, type_annotation.__annotations__)
+            # if strict:
+            #     type_annotation.__pydantic_config__ = ConfigDict(strict=True)
+            type_adapter = TypeAdapter(type_annotation)
+        elif isinstance(type_annotation, (BaseModel, typing_extensions._TypedDictMeta)):
+            # if strict:
+            #     type_annotation.__pydantic_config__ = ConfigDict(strict=True)
+            type_adapter = TypeAdapter(type_annotation)
+        elif dataclasses.is_dataclass(type_annotation):
+            type_adapter = TypeAdapter(type_annotation)
+        else:
+            type_adapter = TypeAdapter(type_annotation, config=ConfigDict(arbitrary_types_allowed=True))
         cached_type_adapter_validate_python = lru_cache(maxsize=4096)(type_adapter.validate_python)
 
         @wraps(type_adapter.validate_python)
@@ -38,6 +60,9 @@ except ImportError:
 
     @lru_cache(maxsize=None)
     def _get_pydantic_type_checker(type_annotation, *, strict=True, allow_caching=True):
+        # noinspection PyUnresolvedReferences,PyProtectedMember
+        if isinstance(type_annotation, typing._TypedDictMeta):
+            type_annotation = typing_extensions.TypedDict(type_annotation.__name__, type_annotation.__annotations__)
         _base_config = get_config(ConfigDict(arbitrary_types_allowed=True))
         for type_validator in find_validators(type_annotation, config=_base_config):
             cached_type_validator = lru_cache(maxsize=4096)(type_validator)
@@ -185,3 +210,31 @@ if __name__ == '__main__':
     # print(repr(typecheck(square)(2.5)))  # this fails
 
     print(hasattr(typecheck(square), '__type_checkers__'))
+
+
+    class TestTypedDict1(typing.TypedDict):
+        x: int
+        y: int
+
+
+    @typecheck
+    def test_typed_dict1(td: TestTypedDict1) -> int:
+        return td['x']
+
+
+    # test_typed_dict1({'x': 1, 'y': 2, 'z': 3}) # fails in v1, passes in v2
+    test_typed_dict1({'x': 1, 'y': 2})
+
+
+    class TestTypedDict2(typing_extensions.TypedDict):
+        x: int
+        y: int
+
+
+    @typecheck
+    def test_typed_dict2(td: TestTypedDict2) -> int:
+        return td['x']
+
+
+    # test_typed_dict2({'x': 1, 'y': 2, 'z': 3}) # fails in v1, passes in v2
+    test_typed_dict2({'x': 1, 'y': 2})
