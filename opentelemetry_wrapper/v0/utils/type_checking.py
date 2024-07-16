@@ -32,7 +32,7 @@ try:
             type_adapter = TypeAdapter(type_annotation)
         elif isinstance(type_annotation, typing_extensions._TypedDictMeta):
             type_adapter = TypeAdapter(type_annotation)
-        elif issubclass(type_annotation, BaseModel):
+        elif inspect.isclass(type_annotation) and issubclass(type_annotation, BaseModel):
             type_adapter = TypeAdapter(type_annotation)
         elif dataclasses.is_dataclass(type_annotation):
             type_adapter = TypeAdapter(type_annotation)
