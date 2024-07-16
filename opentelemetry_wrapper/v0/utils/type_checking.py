@@ -27,7 +27,7 @@ try:
     @lru_cache(maxsize=None)
     def _get_pydantic_type_checker(type_annotation, *, strict=True, allow_caching=True):
         # noinspection PyUnresolvedReferences,PyProtectedMember
-        if isinstance(type_annotation, typing._TypedDictMeta):
+        if hasattr(typing, "_TypedDictMeta") and isinstance(type_annotation, typing._TypedDictMeta):
             type_annotation = typing_extensions.TypedDict(type_annotation.__name__, type_annotation.__annotations__)
             type_adapter = TypeAdapter(type_annotation)
         elif isinstance(type_annotation, typing_extensions._TypedDictMeta):
