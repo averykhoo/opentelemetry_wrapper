@@ -27,16 +27,14 @@ try:
     @lru_cache(maxsize=None)
     def _get_pydantic_type_checker(type_annotation, *, strict=True, allow_caching=True):
         try:
-            inspect.isclass(type_annotation) and issubclass(type_annotation, BaseModel)
-        except:
-            print(repr(type_annotation))
+            is_basemodel = inspect.isclass(type_annotation) and issubclass(type_annotation, BaseModel)
+        except TypeError:
+            is_basemodel = False
         # noinspection PyUnresolvedReferences,PyProtectedMember
         if hasattr(typing, "_TypedDictMeta") and isinstance(type_annotation, typing._TypedDictMeta):
             type_annotation = typing_extensions.TypedDict(type_annotation.__name__, type_annotation.__annotations__)
             type_adapter = TypeAdapter(type_annotation)
-        elif isinstance(type_annotation, typing_extensions._TypedDictMeta):
-            type_adapter = TypeAdapter(type_annotation)
-        elif inspect.isclass(type_annotation) and issubclass(type_annotation, BaseModel):
+        elif is_basemodel:
             type_adapter = TypeAdapter(type_annotation)
         elif dataclasses.is_dataclass(type_annotation):
             type_adapter = TypeAdapter(type_annotation)
@@ -182,7 +180,9 @@ def typecheck(func, *, strict=True, allow_caching=True):
 
 
 if __name__ == '__main__':
+    _get_pydantic_type_checker(typing.Dict[str, typing.Any])
 
+if __name__ == '__main__':
     import datetime
 
     print(repr(check_type('asdf', str)))
@@ -257,3 +257,12 @@ if __name__ == '__main__':
 
     # test_typed_dict2({'x': 1, 'y': 2, 'z': 3}) # fails in v1, passes in v2
     test_typed_dict2(TestModel(x=1, y=2))
+
+
+    @typecheck
+    async def test_typed_dict3(tm: TestModel) -> int:
+        raise IndexError
+
+
+    # test_typed_dict2({'x': 1, 'y': 2, 'z': 3}) # fails in v1, passes in v2
+    test_typed_dict3(TestModel(x=1, y=2))
