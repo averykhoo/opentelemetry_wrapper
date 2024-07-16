@@ -26,6 +26,10 @@ try:
 
     @lru_cache(maxsize=None)
     def _get_pydantic_type_checker(type_annotation, *, strict=True, allow_caching=True):
+        try:
+            inspect.isclass(type_annotation) and issubclass(type_annotation, BaseModel)
+        except:
+            print(repr(type_annotation))
         # noinspection PyUnresolvedReferences,PyProtectedMember
         if hasattr(typing, "_TypedDictMeta") and isinstance(type_annotation, typing._TypedDictMeta):
             type_annotation = typing_extensions.TypedDict(type_annotation.__name__, type_annotation.__annotations__)
@@ -178,6 +182,7 @@ def typecheck(func, *, strict=True, allow_caching=True):
 
 
 if __name__ == '__main__':
+
     import datetime
 
     print(repr(check_type('asdf', str)))
