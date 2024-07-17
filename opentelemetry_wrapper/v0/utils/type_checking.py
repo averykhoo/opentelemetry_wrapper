@@ -21,25 +21,50 @@ from pydantic import ConfigDict
 from pydantic import ValidationError
 
 try:
-    from pydantic import TypeAdapter  # v2
+    # for pydantic v2
+    from pydantic import TypeAdapter
+    from pydantic import PydanticUserError
+
+
+    def _is_basemodel(type_annotation):
+        try:
+            return inspect.isclass(type_annotation) and issubclass(type_annotation, BaseModel)
+        except TypeError:
+            # weird error (likely in builtins) when using issubclass with classes and ABCs
+            # happens in 3.10, not in 3.8
+            return False
+
+
+    def _is_typeddict(type_annotation):
+        # python 3.8 doesn't have typing.is_typeddict
+        if hasattr(typing, "is_typeddict") and typing.is_typeddict(type_annotation):
+            return True
+
+        # noinspection PyUnresolvedReferences,PyProtectedMember
+        if hasattr(typing, "_TypedDictMeta") and isinstance(type_annotation, typing._TypedDictMeta):
+            return True
+
+        return False
 
 
     @lru_cache(maxsize=None)
     def _get_pydantic_type_checker(type_annotation, *, strict=True, allow_caching=True):
-        try:
-            is_basemodel = inspect.isclass(type_annotation) and issubclass(type_annotation, BaseModel)
-        except TypeError:
-            is_basemodel = False
-        # noinspection PyUnresolvedReferences,PyProtectedMember
-        if hasattr(typing, "_TypedDictMeta") and isinstance(type_annotation, typing._TypedDictMeta):
+
+        # TypedDict needs special handling before we can create a TypeAdapter
+        if _is_typeddict(type_annotation):
             type_annotation = typing_extensions.TypedDict(type_annotation.__name__, type_annotation.__annotations__)
             type_adapter = TypeAdapter(type_annotation)
-        elif is_basemodel:
+
+        # dataclasses don't support ConfigDict
+        elif dataclasses.is_dataclass(type_annotation) or _is_basemodel(type_annotation):
             type_adapter = TypeAdapter(type_annotation)
-        elif dataclasses.is_dataclass(type_annotation):
-            type_adapter = TypeAdapter(type_annotation)
+
         else:
-            type_adapter = TypeAdapter(type_annotation, config=ConfigDict(arbitrary_types_allowed=True))
+            try:
+                type_adapter = TypeAdapter(type_annotation, config=ConfigDict(arbitrary_types_allowed=True))
+            except PydanticUserError:
+                type_adapter = TypeAdapter(type_annotation)
+
         cached_type_adapter_validate_python = lru_cache(maxsize=4096)(type_adapter.validate_python)
 
         @wraps(type_adapter.validate_python)
@@ -51,11 +76,10 @@ try:
         type_checker.__type_adapter__ = type_adapter
         return type_checker
 
-
 except ImportError:
     # WARNING:
     # type checking works slightly differently on pydantic v1!
-    # this was hacked together for backwards compat
+    # this was hacked together for basic backwards compat
     from pydantic.config import get_config
     from pydantic.validators import find_validators  # v1
 
@@ -261,8 +285,8 @@ if __name__ == '__main__':
 
     @typecheck
     async def test_typed_dict3(tm: TestModel) -> int:
-        raise IndexError
+        return tm.x * tm.y
 
 
     # test_typed_dict2({'x': 1, 'y': 2, 'z': 3}) # fails in v1, passes in v2
-    test_typed_dict3(TestModel(x=1, y=2))
+    print(asyncio.run(test_typed_dict3(TestModel(x=1, y=2))))
