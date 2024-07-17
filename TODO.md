@@ -17,6 +17,7 @@ also run the following files:
 * setup_otel_logging.py
 * sqlalchemy_example.py
 * log_weird_things.py
+* type_checking.py (with pydantic 1 and 2)
 
 ## publishing (notes for myself)
 

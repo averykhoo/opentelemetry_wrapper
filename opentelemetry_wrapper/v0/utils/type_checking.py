@@ -20,6 +20,14 @@ from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import ValidationError
 
+
+class TypeCheckError(TypeError):
+    """
+    custom exception when typechecking
+    """
+    pass
+
+
 try:
     # for pydantic v2
     from pydantic import TypeAdapter
@@ -97,10 +105,10 @@ except ImportError:
             def type_checker(value):
                 if allow_caching and isinstance(value, Hashable):
                     if strict and value != cached_type_validator(value):
-                        raise TypeError(f'expected {cached_type_validator(value)!r}, got {value!r}')
+                        raise TypeCheckError(f'expected {cached_type_validator(value)!r}, got {value!r}')
                     return type_validator(value)
                 if strict and value != type_validator(value):
-                    raise TypeError(f'expected {type_validator(value)!r}, got {value!r}')
+                    raise TypeCheckError(f'expected {type_validator(value)!r}, got {value!r}')
                 return type_validator(value)
 
             return type_checker
@@ -118,7 +126,7 @@ def check_type(value, type_annotation, *, label='', strict=True, allow_caching=T
 
     :param value: to be checked
     :param type_annotation: what the value is supposed to be, e.g. `int` or `str | None`
-    :param label: describes the value in the raised `TypeError` (useful when using `check_type(...)` programmatically)
+    :param label: describes the value in the raised `TypeCheckError` (useful when using `check_type(...)` programmatically)
     :param strict: if `False`, will attempt to coerce `value` to `type_annotation`
     :param allow_caching: if `False`, will not cache successful results
     :return: the input `value`, coerced to `type_annotation` if `strict=False`
@@ -128,7 +136,7 @@ def check_type(value, type_annotation, *, label='', strict=True, allow_caching=T
     except ValidationError as e:
         if str(label).strip():
             label = f' for {label!s}'
-        raise TypeError(f'Typecheck failed{str(label).rstrip()}! Expected {type_annotation}, got {value!r}') from e
+        raise TypeCheckError(f'Typecheck failed{str(label).rstrip()}! Expected {type_annotation}, got {value!r}') from e
 
 
 def _get_function_type_checkers(function, *, strict=True, allow_caching=True):
@@ -168,6 +176,8 @@ def typecheck(func, *, strict=True, allow_caching=True):
     :return: the wrapped function
 
     TODO: should the values be coerced when `strict=False` hmmm
+    TODO: somehow accept a custom exception class to raise (instead of `TypeCheckError`)
+    TODO: support `@typecheck(...)` decorator with args syntax
     """
     # create type checkers for all function params and the return value
     type_checkers = _get_function_type_checkers(func, strict=strict, allow_caching=allow_caching)
