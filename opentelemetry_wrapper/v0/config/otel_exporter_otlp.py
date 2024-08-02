@@ -77,6 +77,8 @@ def getenv_otel_exporter_otlp_header() -> Tuple[Tuple[str, str], ...]:
     header_separator = os.getenv('OTEL_EXPORTER_OTLP_HEADER_SEPARATOR', '\t')
     split_headers = os.getenv('OTEL_EXPORTER_OTLP_HEADER', '').split(header_separator)
     for header in split_headers:
+        if not header:
+            continue
         header_name, _, header_value = header.partition('=')
         if not _:
             _header = f'"{header[:5]}..."' if len(header) > 8 else f'"{header}"'  # truncate long header pairs

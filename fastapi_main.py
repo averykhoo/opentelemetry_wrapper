@@ -56,7 +56,7 @@ def hello() -> str:
 @app.get('/hello/{name}')
 def hello2(name: str) -> str:
     logging.info(f'called `hello/{name}`')
-    return 'hello'
+    return f'hello {name}'
 
 
 @app.get('/hello-hello')
