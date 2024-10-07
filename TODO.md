@@ -50,6 +50,8 @@ also run the following files:
     * separate for http and grpc exporters too
     * maybe allow multiple urls (delimited by whitespace)?
 * rename all env vars to start with `OTEL_WRAPPER_` to make things clear?
+* replace `asyncio.iscoroutinefunction` with `inspect.iscoroutinefunction`
+    * deprecated in python 3.14, removed in 3.16
 * documentation pls, including design decisions
     * make a note somewhere about the trailing slash mounting the prometheus asgi app, which accepts `/**`
     * should the recommendation for `OTEL_EXPORTER_PROMETHEUS_ENDPOINT` be `/metrics` or just `metrics`?
@@ -58,7 +60,7 @@ also run the following files:
 * `with ...` instrumentation for non-callable code (e.g. settings, semi-hardcoded config)
     * see [next_version_intended_usage.py](./next_version_intended_usage.py)
 * correctly handle generators and context managers (and async versions of them)
-* [pip install varname](https://github.com/pwwang/python-varname) for magic varname extraction 
+* [pip install varname](https://github.com/pwwang/python-varname) for magic varname extraction
 
 ### won't do
 
