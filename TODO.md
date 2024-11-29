@@ -61,6 +61,7 @@ also run the following files:
     * see [next_version_intended_usage.py](./next_version_intended_usage.py)
 * correctly handle generators and context managers (and async versions of them)
 * [pip install varname](https://github.com/pwwang/python-varname) for magic varname extraction
+* detect infinite recursion loops somehow, and warn?
 
 ### won't do
 
