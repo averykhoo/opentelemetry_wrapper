@@ -8,7 +8,7 @@ from asgiref.sync import sync_to_async
 
 from opentelemetry_wrapper import instrument_decorate
 from opentelemetry_wrapper import instrument_logging
-from opentelemetry_wrapper import typecheck
+from opentelemetry_wrapper.v0.utils.type_checking import typecheck
 
 instrument_logging()
 

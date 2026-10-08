@@ -1,31 +1,34 @@
 from typing import Any
+from typing import Tuple
 
-# note: ignore E303 too many blank lines since flak8 disagrees with pycharm
+# sync and async engines are imported separately, since the asyncio extension can be missing even when sqlalchemy
+# is installed (e.g. sqlalchemy>=2.1 without greenlet), and that should not disable sync engine detection
+_SYNC_ENGINE_TYPES: Tuple[type, ...] = ()
+_ASYNC_ENGINE_TYPES: Tuple[type, ...] = ()
+
 try:
     from sqlalchemy.engine import Engine as LegacyEngine
-    from sqlalchemy.ext.asyncio import AsyncEngine
     from sqlalchemy.future import Engine as FutureEngine
 
-
-    def is_sqlalchemy_engine(item: Any) -> bool:  # noqa: E303
-        return isinstance(item, (LegacyEngine, AsyncEngine, FutureEngine))
-
-
-    def is_sqlalchemy_sync_engine(item: Any) -> bool:  # noqa: E303
-        return isinstance(item, (LegacyEngine, FutureEngine))
-
-
-    def is_sqlalchemy_async_engine(item: Any) -> bool:  # noqa: E303
-        # noinspection PyTypeHints
-        return isinstance(item, AsyncEngine)
-
+    _SYNC_ENGINE_TYPES = (LegacyEngine, FutureEngine)
 except ImportError:
-    # noinspection PyUnusedLocal
-    def is_sqlalchemy_engine(_: Any) -> bool:
-        return False
+    pass
+
+try:
+    from sqlalchemy.ext.asyncio import AsyncEngine
+
+    _ASYNC_ENGINE_TYPES = (AsyncEngine,)
+except ImportError:
+    pass
 
 
-    # noqa: E303
-    LegacyEngine = Any  # type: ignore[assignment,misc]
-    AsyncEngine = Any  # type: ignore[assignment,misc]
-    FutureEngine = Any  # type: ignore[assignment,misc]
+def is_sqlalchemy_engine(item: Any) -> bool:
+    return is_sqlalchemy_sync_engine(item) or is_sqlalchemy_async_engine(item)
+
+
+def is_sqlalchemy_sync_engine(item: Any) -> bool:
+    return isinstance(item, _SYNC_ENGINE_TYPES)
+
+
+def is_sqlalchemy_async_engine(item: Any) -> bool:
+    return isinstance(item, _ASYNC_ENGINE_TYPES)

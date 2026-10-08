@@ -100,7 +100,13 @@ def instrument_logging(*,
 
     uninstrument_logging()
 
-    LoggingInstrumentor().instrument(set_logging_format=False)
+    # in newer versions of instrumentation-logging (e.g. 0.65b0), trace context is only injected into log records
+    # if explicitly requested, and an otel log handler is added by default (which would duplicate ours, see
+    # `get_otel_log_handler`)
+    # older versions ignore these kwargs
+    LoggingInstrumentor().instrument(set_logging_format=False,
+                                     inject_trace_context=True,
+                                     enable_log_auto_instrumentation=False)
     old_factory = logging.getLogRecordFactory()
 
     # the instrumentor failed to use the @wraps decorator so let's do it for them
@@ -117,8 +123,9 @@ def instrument_logging(*,
         # therefore, we format it to match (span_id: `0x09f8e31e775ec22e` instead of `9f8e31e775ec22e`)
         # note that logs outside a span will be assigned an invalid trace-id and span-id (all zeroes)
         # TODO: this could skip the int cast and instead just left-pad and lowercase
-        record.otelTraceID = f'0x{int(record.otelTraceID, 16):032x}'
-        record.otelSpanID = f'0x{int(record.otelSpanID, 16):016x}'
+        # default to zero in case the instrumentor didn't set them, since logging must never crash
+        record.otelTraceID = f'0x{int(getattr(record, "otelTraceID", "0"), 16):032x}'
+        record.otelSpanID = f'0x{int(getattr(record, "otelSpanID", "0"), 16):016x}'
 
         return record
 

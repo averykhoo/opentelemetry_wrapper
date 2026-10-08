@@ -1,7 +1,10 @@
+import warnings
+from functools import lru_cache
 from typing import Dict
 from typing import Optional
 from typing import TypeVar
 
+from opentelemetry.instrumentation.dependencies import get_dependency_conflicts
 from opentelemetry.instrumentation.sqlalchemy import EngineTracer
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 
@@ -15,6 +18,23 @@ from opentelemetry_wrapper.v0.dependencies.sqlalchemy.engine_typedef import is_s
 SqlAlchemyEngineType = TypeVar('SqlAlchemyEngineType', bound=type)
 
 _CACHE_INSTRUMENTED: Dict[int, EngineTracer] = dict()
+
+
+@lru_cache  # only warn once
+def _has_dependency_conflict() -> bool:
+    """
+    if the installed sqlalchemy is outside the range supported by opentelemetry-instrumentation-sqlalchemy,
+    `SQLAlchemyInstrumentor().instrument()` logs an error and silently does nothing (no exception, no spans)
+    so we warn at startup instead, since otherwise it looks like tracing is working when it's not
+    (e.g. sqlalchemy 2.1, see https://github.com/open-telemetry/opentelemetry-python-contrib/issues/5118)
+    """
+    conflict = get_dependency_conflicts(SQLAlchemyInstrumentor().instrumentation_dependencies())
+    if conflict is None:
+        return False
+    warnings.warn(f'SQLAlchemy will NOT be traced, '
+                  f'since the installed version is not supported by opentelemetry-instrumentation-sqlalchemy '
+                  f'({conflict})')
+    return True
 
 
 @instrument_decorate
@@ -44,6 +64,10 @@ def instrument_sqlalchemy_engine(engine: SqlAlchemyEngineType,
 
     # ensure it's actually an engine
     if not is_sqlalchemy_engine(engine):
+        return engine
+
+    # instrumenting would silently do nothing
+    if _has_dependency_conflict():
         return engine
 
     # avoid double-instrumentation
@@ -79,6 +103,10 @@ def instrument_sqlalchemy() -> None:
 
     # no-op
     if OTEL_WRAPPER_DISABLED:
+        return
+
+    # instrumenting would silently do nothing
+    if _has_dependency_conflict():
         return
 
     # init metrics

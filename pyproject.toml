@@ -27,7 +27,11 @@ dependencies = [
     "opentelemetry-sdk",
     "pydantic",
     "requests",
-    "sqlalchemy",
+    # TODO: temporary pin, since opentelemetry-instrumentation-sqlalchemy (<=0.66b0) silently skips sqlalchemy>=2.1
+    #  check https://github.com/open-telemetry/opentelemetry-python-contrib/issues/5118 (and PR #5120)
+    #  once a release supports 2.1, remove `<2.1` here AND in requirements.txt, and set that release as the minimum
+    #  for opentelemetry-instrumentation-sqlalchemy; then check that `sqlalchemy_example.py` prints a `SELECT` span
+    "sqlalchemy[asyncio]<2.1",
     "starlette",
     "typing-extensions",
     "uvicorn",
