@@ -4,16 +4,17 @@ LIVING. Orientation note (FRAMEWORK §5.1): what is true now, the next session's
 derivable from the code. The board is `context-engine task list`; this note keeps no copy of it. The banner is
 written at each clean close by `context-engine banner set`.
 
-## Banner (2026-10-18c)
+## Banner (2026-10-18d)
 
 - **Engine mode since 2026-10-18a** (engine `7fd3997`, framework 0.5): the v1 design is records now (DEC-n, the
   board, AC-n); `docs/evidence/adoption-map-2026-10-18.md` maps the archived `PLAN.md` / `TODO.md` onto them.
 - **On `main` since 2026-10-18c:** the adoption was re-verified (no content lost) and fast-forwarded to
   `origin/main`. What the verification left over is OTW-19.
+- **v0 is not touched** (DEC-71, answering ASK-17): no v0 patch release; OTW-18 closed as moot.
 - **v1 is the epic OTW-1**; OTW-2 (workstream 0: `OTW_IMPL` adapter, canaries, CI, Renovate) is NOW and needs its
   design review first (its traps say why).
-- **Waiting on the owner:** the charter and STORY-1..10 are unconfirmed reconstructions (OTW-19 names an invented
-  tie-break rule in the charter); ASK-17 (patch v0's secret-logging bug?).
+- **Next session, with the owner:** review the charter and STORY-1..10 (unconfirmed reconstructions; OTW-19 names
+  an invented tie-break rule in the charter).
 - **Commits are automatic here, pushes are not** (DEC-70, `CLAUDE.md` § Overrides). Every clean close appends to
   `context-engine-feedback.md`.
 
