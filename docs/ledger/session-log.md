@@ -4,6 +4,31 @@ Append-only, newest first, one entry per session (FRAMEWORK §7.1).
 
 ---
 
+## 2026-10-18g · kind: close
+
+- **rows:** ASK-20, OTW-20, OTW-19
+- **receipts:**
+  - guards: require code: green (code: covered on g1/code:912d9e4af5fe1d93 by the all run of
+    2026-10-18T15:16:50+08:00, 23.1s); lint: clean
+  - read: orient, charter, STORY-1..13, criteria, HANDOFF.md (whole), OTW-2, OTW-19, ASK-17..19,
+    DEC-28/34/45/61/72/73/76, deck slides 17/23/26-28
+  - asked: ASK-20
+- **summary** (the owner digest):
+  - Read the charter, the 13 stories, the criteria and the v0 deck; a subagent reviewed them for
+    parsimony (docs/evidence/parsimony-review-2026-10-18.md).
+  - Verdict: close to parsimonious; repeats, provenance in the charter and three wrong or missing
+    measure links.
+  - Nothing open on the board besides it; DEC-61 is the owner's deferral; the PROVISIONAL decisions
+    are signed off, unbuilt.
+  - Owner: ASK-20, six choices with recommendations (agent rank placements, fail-small in G-3,
+    slimmer G-1, charter trim, STORY-9/10, deck principles).
+  - Agent: OTW-20 (LATER, after ASK-20) aligns measures and criteria; OTW-19's criteria bullet folds
+    into it.
+- **Still owed:**
+  - ASK-20 answer (owner); then OTW-20; push not asked
+
+---
+
 ## 2026-10-18f · kind: close
 
 - **rows:** DEC-76, STORY-13, AC-12, AC-30, OTW-7

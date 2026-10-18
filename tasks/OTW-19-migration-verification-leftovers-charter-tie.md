@@ -9,7 +9,7 @@ deps: []
 source: session 2026-10-18c
 created: 2026-10-18
 moved: 2026-10-18c
-updated: 2026-10-18e
+updated: 2026-10-18g
 ---
 
 The 2026-10-18c verification (five independent checkers plus a skeptic each) found no lost content and no blocker; these confirmed findings remain.
@@ -22,3 +22,4 @@ The 2026-10-18c verification (five independent checkers plus a skeptic each) fou
 ## Log
 
 - 2026-10-18e (claude-code/2.1.287): Charter bullet settled in the owner's review (DEC-72): the owner kept 'the higher goal wins' as a real ranking, never crash first. The other bullets (criteria, adoption-map errata, nits) remain.
+- 2026-10-18g (claude-code/2.1.287): Its criteria bullet (asyncio extension into AC-9, negative UTC offset into AC-18) is folded into OTW-20.
