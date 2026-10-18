@@ -9,7 +9,7 @@ deps: [OTW-2]
 source: session 2026-10-18a
 created: 2026-10-18
 moved: 2026-10-18a
-updated: 2026-10-18a
+updated: 2026-10-18l
 aliases: [WS10]
 labels: [v1]
 ---
@@ -43,3 +43,7 @@ its integration; CI covers both.
 ## Read first
 
 - The decisions: [DEC-35](../docs/decisions/DEC-35-pydantic-2-only-optional-never-imported-by-us.md), [DEC-36](../docs/decisions/DEC-36-otlp-http-only-grpc-export-dropped.md), [DEC-44](../docs/decisions/DEC-44-v1-requires-python-3-12-or-later.md), [DEC-57](../docs/decisions/DEC-57-strict-otel-pins-capped-at-the-next-minor.md), [DEC-16](../docs/decisions/DEC-16-scrubbing-engine-stdlib-re-by-default-hyperscan.md); [the criteria](../docs/criteria.md)
+
+## Log
+
+- 2026-10-18l (claude-code/2.1.287): 576106a (merged): pyproject (requires-python >=3.12, SDK >=1.44,<1.45, contrib 0.65b0 window, extras fastapi/sqlalchemy/requests/system-metrics/hyperscan/dev, pytest11 entry point, no opentelemetry-exporter-otlp meta package), requirements.txt aligned, py.typed, ci/test.sh modes all|core + ci/smoke_core.py, workflow matrix python x extras, tests/test_packaging.py (22 static checks, 20 sabotages). v0's deps (incl. the gRPC exporter v0 imports) stay core until 1.0.0 (DEC-80, DEC-36 amended); main is the v1 line (DEC-84). Left: root becomes v1 with lazy v0 names (DEC-80, in progress); 'each extra enables its integration' is only checked statically; first CI run of the extras axis after the next push; hyperscan wheels on 3.14 unverified.
