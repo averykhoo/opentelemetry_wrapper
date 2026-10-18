@@ -16,6 +16,7 @@ Generated from each decision's frontmatter by `context-engine decision index`; n
 
 - [DEC-14](DEC-14-proposals-3-8-10-and-11-signed-off-as-amended-9.md): Proposals 3-8, 10 and 11 signed off as amended; 9 withdrawn (Q14) *(owner, 2026-10-08)*
 - [DEC-40](DEC-40-hosting-stays-on-github-and-pypi-ci-is-github.md): Hosting stays on GitHub and PyPI; CI is GitHub Actions *(owner, 2026-10-08)*
+- [DEC-70](DEC-70-adopt-context-engine-fully-as-is-engine.md): Adopt context-engine fully, as is: engine defaults, automatic commits, a full migration of the v1 plan, an OTW board with a v1 epic *(owner, 2026-10-18)*
 
 ### testing
 

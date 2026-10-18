@@ -322,3 +322,5 @@
 {"at": "2026-10-18T10:12:48+08:00", "session": "2026-10-18a", "actor": "claude-code/2.1.287", "op": "doc.archive", "id": "TODO.md", "path": "TODO.md", "fields": ["moved"], "mechanical": false}
 {"at": "2026-10-18T10:12:48+08:00", "session": "2026-10-18a", "actor": "claude-code/2.1.287", "op": "doc.archive", "id": "TODO.md", "path": "docs/archive/TODO.md", "fields": ["archived"], "mechanical": false}
 {"at": "2026-10-18T10:12:48+08:00", "session": "2026-10-18a", "actor": "claude-code/2.1.287", "op": "doc.archive", "id": "TODO.md", "path": "docs/archive/README.md", "fields": ["redirect"], "mechanical": false}
+{"at": "2026-10-18T10:18:05+08:00", "session": "2026-10-18a", "actor": "claude-code/2.1.287", "op": "new", "id": "DEC-70", "path": "docs/decisions/DEC-70-adopt-context-engine-fully-as-is-engine.md", "fields": ["type", "id", "title", "actor", "decision_status", "tags", "decided", "session", "body_sha"], "mechanical": false}
+{"at": "2026-10-18T10:18:05+08:00", "session": "2026-10-18a", "actor": "claude-code/2.1.287", "op": "index", "id": "index", "path": "docs/decisions/index.md", "fields": ["index"], "mechanical": true}
