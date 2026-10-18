@@ -4,21 +4,18 @@ LIVING. Orientation note (FRAMEWORK §5.1): what is true now, the next session's
 derivable from the code. The board is `context-engine task list`; this note keeps no copy of it. The banner is
 written at each clean close by `context-engine banner set`.
 
-## Banner (2026-10-18i)
+## Banner (2026-10-18j)
 
 - **Engine mode since 2026-10-18a** (engine `7fd3997`, framework 0.5): the v1 design is records now (DEC-n, the
   board, AC-n); `docs/evidence/adoption-map-2026-10-18.md` maps the archived `PLAN.md` / `TODO.md` onto them.
-- **The charter is the owner's since 2026-10-18e** (DEC-72, DEC-73): the higher goal wins, never crash first; a
-  Purpose section and G-11 to G-13 from the owner's v0 talk (`docs/evidence/v0-talk-deck-2026-10-18.md`); all thirteen
-  stories are live. Scrub failures get their own placeholder (DEC-74); the wrapper reports swallowed runtime
-  failures on stderr (DEC-75).
-- **Charter trimmed (2026-10-18h, DEC-77)** after a parsimony review
-  (`docs/evidence/parsimony-review-2026-10-18.md`): the ranking is confirmed, G-3 fails small, and every goal's
-  measures match the criteria's Story column (AC-31 to AC-33 new).
-- **v0 is not touched** (DEC-71). **v1 is the epic OTW-1**; OTW-2 (workstream 0: `OTW_IMPL` adapter, canaries, CI,
-  Renovate) is NOW and needs its design review first (its traps say why).
-- **On `main` and pushed through 2026-10-18i;** the only remote branches are `main` and the merged `v1-plan`.
-  OTW-19 holds the rest of the migration leftovers.
+- **The charter is the owner's since 2026-10-18e** (DEC-72, DEC-73, trimmed by DEC-77): the higher goal wins, never
+  crash first; scrub failures get their own placeholder (DEC-74); swallowed runtime failures go to stderr (DEC-75).
+- **Building has started (2026-10-18j, DEC-78).** OTW-2 (workstream 0) is now the adapter, canaries and CI, below the
+  design-review threshold; Renovate and auto-release moved to OTW-21 (LATER, after the strict pins of OTW-13, with
+  its design review owed). The `OTW_IMPL=v0|v1` adapter is built (`tests/impl.py`); canaries and CI are next.
+- **v0 is not touched** (DEC-71). **v1 is the epic OTW-1.** OTW-19 holds the rest of the migration leftovers.
+- **On `main`; pushed through 2026-10-18i, not 2026-10-18j** (the push needs the owner's yes). The only remote
+  branches are `main` and the merged `v1-plan`.
 - **Commits are automatic here, pushes are not** (DEC-70, `CLAUDE.md` § Overrides). Every clean close appends to
   `context-engine-feedback.md`.
 
