@@ -4,9 +4,26 @@ Append-only, newest first, one entry per session (FRAMEWORK §7.1).
 
 ---
 
-## 2026-10-18h · kind: open
+## 2026-10-18h · kind: close
 
-- **opened:** 2026-10-18T15:57:13+08:00 by claude-code/2.1.287
+- **rows:** ASK-20, OTW-20, OTW-19, OTW-3, OTW-7, OTW-11, STORY-9, STORY-10
+- **receipts:**
+  - guards: require code: green (code: covered on g1/code:912d9e4af5fe1d93 by the all run of
+    2026-10-18T15:16:50+08:00, 23.1s; no code changed); lint: clean
+  - read: orient (from 2026-10-18g), charter, criteria, history-to-2026-10-18.md lines 125-145, task
+    criteria lines
+- **summary** (the owner digest):
+  - Owner: 'Okay to all' on ASK-20, recorded as DEC-77.
+  - Charter: ranking confirmed; G-1 slimmed; G-2 is 'hard to use incorrectly' (sync and async
+    alike); G-3 fails small; DEC-75 stated once; the denylist only in G-9; G-8 cites DEC-34.
+  - Criteria: every goal's measures equal the rows citing its story (checked by script); new AC-31
+    (JSON-encode anything), AC-32 (no arguments on spans), AC-33 (the x-userinfo denylist split from
+    AC-12).
+  - STORY-9 and STORY-10 amended to name their decisions as the authority; OTW-3, OTW-7, OTW-11
+    point at the new criteria; OTW-20 closed.
+  - Nothing pushed: 2026-10-18g and 2026-10-18h are local commits.
+- **Still owed:**
+  - push (owner's yes); OTW-19's remaining errata and nits
 
 ---
 
