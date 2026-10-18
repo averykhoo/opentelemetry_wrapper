@@ -24,3 +24,5 @@ unscrubbed; README says so.
 ## Amendments
 
 - **2026-10-18e (claude-code/2.1.287):** **2026-10-18e, owner confirmation:** reviewing STORY-1 to STORY-10 one by one, the owner: *"Okay for 6 to 10"*. Confirmed as written; `story_status` moved from `unconfirmed` to `live`.
+
+- **2026-10-18h (claude-code/2.1.287):** AGENT (DEC-77): the body above is a copy of DEC-58's paragraph; DEC-58 (scrubbing), DEC-26 (no arguments on spans) and DEC-2 (the claim denylist) are the authority for what it says. The story's intent is the title: exported telemetry carries no secrets by default.
