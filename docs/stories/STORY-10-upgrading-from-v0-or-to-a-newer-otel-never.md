@@ -26,3 +26,5 @@ AGENT: reconstructed at adoption (2026-10-18) from PLAN.md § Decided (Process) 
 ## Amendments
 
 - **2026-10-18a (claude-code/2.1.287):** corrected: at 1244 (+48) inserted "[... the excerpt stops here; the rest is DEC-54]" after "(workstream 10). Config to"
+
+- **2026-10-18e (claude-code/2.1.287):** **2026-10-18e, owner confirmation:** reviewing STORY-1 to STORY-10 one by one, the owner: *"Okay for 6 to 10"*. Confirmed as written; `story_status` moved from `unconfirmed` to `live`.

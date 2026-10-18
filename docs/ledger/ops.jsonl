@@ -442,3 +442,4 @@
 {"at": "2026-10-18T13:01:23+08:00", "session": "2026-10-18e", "actor": "claude-code/2.1.287", "op": "amend", "id": "STORY-7", "path": "docs/stories/STORY-7-in-kubernetes-the-service-is-identified-from.md", "fields": [], "mechanical": false}
 {"at": "2026-10-18T13:01:23+08:00", "session": "2026-10-18e", "actor": "claude-code/2.1.287", "op": "amend", "id": "STORY-8", "path": "docs/stories/STORY-8-logs-are-machine-readable-first-one-line-json.md", "fields": [], "mechanical": false}
 {"at": "2026-10-18T13:01:24+08:00", "session": "2026-10-18e", "actor": "claude-code/2.1.287", "op": "amend", "id": "STORY-9", "path": "docs/stories/STORY-9-exported-telemetry-carries-no-secrets-by-default.md", "fields": [], "mechanical": false}
+{"at": "2026-10-18T13:01:25+08:00", "session": "2026-10-18e", "actor": "claude-code/2.1.287", "op": "amend", "id": "STORY-10", "path": "docs/stories/STORY-10-upgrading-from-v0-or-to-a-newer-otel-never.md", "fields": [], "mechanical": false}
