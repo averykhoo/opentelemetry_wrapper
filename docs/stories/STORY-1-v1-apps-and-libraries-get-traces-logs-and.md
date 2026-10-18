@@ -16,3 +16,7 @@ Build directly on the OpenTelemetry SDK (providers, OTLP/HTTP exporters, sampler
 instrumentors, plus what neither provides: the `otel` decorator / context manager, idempotent never-crash
 instrumentation, introspection, class support, Kubernetes resource detection, `x-userinfo` flattening, scrubbing,
 one-line JSON logs and Prometheus. Python floor: **3.12** (the SDK itself needs >= 3.10).
+
+## Amendments
+
+- **2026-10-18e (claude-code/2.1.287):** **2026-10-18e, owner confirmation:** reviewing STORY-1 to STORY-10 one by one, the owner: *"Okay for 1 to 4"*. Confirmed as written; `story_status` moved from `unconfirmed` to `live`.
