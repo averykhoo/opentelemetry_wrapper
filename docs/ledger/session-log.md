@@ -4,9 +4,25 @@ Append-only, newest first, one entry per session (FRAMEWORK §7.1).
 
 ---
 
-## 2026-10-18f · kind: open
+## 2026-10-18f · kind: close
 
-- **opened:** 2026-10-18T15:15:10+08:00 by claude-code/2.1.287
+- **rows:** DEC-76, STORY-13, AC-12, AC-30, OTW-7
+- **receipts:**
+  - guards: gate PASSED in 23.1s (203 passed, 23 xfailed in 20.63s) on g1/code:912d9e4af5fe1d93; log
+    .context/gate/20261018T151650-1824.log
+  - read: orient (2026-10-18e banner); docs/runbooks/procedures.md § Push and CI; tasks/OTW-7;
+    docs/criteria.md
+- **summary** (the owner digest):
+  - Owner: 'Okay with either, if you're not sure get an opinion from fable, but do add 13 in some
+    shape or form, helpful is quite an important point'.
+  - G-13 added (request context: the calling user via x-userinfo, upstream latency); G-7 kept, since
+    folding would retire the owner-confirmed STORY-7; G-13 ranked 6th, first of the Helpful tier
+    (DEC-76, STORY-13, AC-30). No fable opinion needed.
+  - Owner: 'When done merge everything into main and push': main fast-forwarded to this close and
+    pushed; CI watcher started (no workflow exists yet, so it expects no run).
+  - Framework feedback appended.
+- **Still owed:**
+  - none
 
 ---
 
