@@ -10,6 +10,7 @@ imported_from: docs/evidence/decision-log-import-2026-10-18.md
 aliases: [Q-4]
 body_sha: sha256:06ec0dcc1cebb0298c2d011affdf8bc95ff245417f849606c355b8aa1e6dc11e
 tags: [resources]
+tasks: [OTW-9, OTW-16]
 ---
 
 - **Q4. `process.executable.name`.** *Decided 2026-10-18:* `os.path.basename(sys.executable)` (*verified*:

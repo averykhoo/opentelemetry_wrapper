@@ -38,5 +38,5 @@ xfails (first-class-only spans, nested spans through instances, the leak) pass.
 
 ## Read first
 
-- The decisions: [DEC-42](../docs/decisions/index.md), [DEC-48](../docs/decisions/index.md), [DEC-53](../docs/decisions/index.md); [the criteria](../docs/criteria.md)
+- The decisions: [DEC-42](../docs/decisions/DEC-42-global-dataclass-instrumentation-is-dropped.md), [DEC-48](../docs/decisions/DEC-48-property-on-top-otel-underneath-proposal-6.md), [DEC-53](../docs/decisions/DEC-53-classes-span-methods-and-constructors-selected.md); [the criteria](../docs/criteria.md)
 - [v0 lessons](../docs/evidence/v0-lessons-2026-10-07.md)

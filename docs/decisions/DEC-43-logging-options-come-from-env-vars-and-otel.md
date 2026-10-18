@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:fef7d845ffa5f31ea4e8d6f63bf5af1c5ba3e77a5499795686e2d72d970bd76f
 tags: [logging]
+tasks: [OTW-11]
 ---
 
 - **Logging options** come from env vars and `otel.configure(...)` only, not `otel.instrument(logging, level=...)`:

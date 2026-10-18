@@ -37,6 +37,10 @@ row here.
 | AC-22 | Our own entry points emit no spans or logs at runtime; every warning fires at startup, decoration or instrumentation time, once per call site | STORY-4, DEC-49 | planned | |
 | AC-23 | A canary test per upstream behaviour or semi-private API we rely on passes on the pinned OTel versions and fails when that behaviour changes | STORY-10, DEC-54, DEC-57 | planned | |
 | AC-24 | An OTel bump PR auto-merges only when CI passes, and a dependency-only merge publishes a patch release with no stored token | STORY-10, DEC-54, DEC-55 | planned | |
+| AC-25 | An exception raised through spans sets status and attributes per DEC-3's table: ERROR with the stack trace on the innermost span, `error.type` only on outer ones; `StopIteration`, `GeneratorExit`, `CancelledError` and `KeyboardInterrupt` leave the status unset with their marker attributes; `SystemExit` is ERROR only for a non-zero code; the exception re-raises untouched | STORY-3, DEC-3 | planned | |
+| AC-26 | `from opentelemetry_wrapper import otel` works; `otel.span` is never `None` (a no-op span outside spans), and `otel.trace_id` / `otel.span_id` are hex strings, all zeros without a span or with telemetry disabled | STORY-1, DEC-45, DEC-46 | planned | |
+| AC-27 | v0's environment variable names are read for one release with a startup warning, except `OTEL_LOG_LEVEL`, which only warns; an OTLP endpoint on port 4317 or `grpc://`, `OTEL_EXPORTER_OTLP_PROTOCOL=grpc` and `OTEL_EXPORTER_OTLP_INSECURE` each warn at startup | STORY-10, DEC-52, DEC-59 | planned | |
 
-Every row was drafted at adoption (2026-10-18) from a workstream's "Done when" in the pre-adoption `PLAN.md`;
-the task that delivers each is in the epic OTW-1.
+Every row was drafted at adoption (2026-10-18), most from a workstream's "Done when" in the pre-adoption
+`PLAN.md`; AC-22 comes from principle 3, AC-24 and AC-25 to AC-27 from the decisions they cite. The task that
+delivers each is in the epic OTW-1.

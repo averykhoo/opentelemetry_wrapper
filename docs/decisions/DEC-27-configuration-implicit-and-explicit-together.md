@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:a64c47165a8af4c4df5198290d2ec07eaec089bc0e6936bb9dcbaa6a234dc793
 tags: [config]
+tasks: [OTW-12, OTW-3]
 ---
 
 - **Configuration: implicit and explicit together** (was proposal 1, with the review's changes; rule 2 changed

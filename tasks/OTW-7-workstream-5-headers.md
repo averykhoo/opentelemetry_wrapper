@@ -5,7 +5,7 @@ title: 'Workstream 5: headers'
 brief: denied claims are dropped before recording; the raw base64 header never appears
 pri: LATER
 state: open
-deps: [OTW-6]
+deps: [OTW-6, OTW-8]
 source: session 2026-10-18a
 created: 2026-10-18
 moved: 2026-10-18a
@@ -44,5 +44,5 @@ raw base64 value never appears, including with header capture on.
 
 ## Read first
 
-- The decisions: [DEC-2](../docs/decisions/index.md), [DEC-59](../docs/decisions/index.md); [the criteria](../docs/criteria.md)
+- The decisions: [DEC-2](../docs/decisions/DEC-2-x-userinfo-record-every-claim-except-a-denylist.md), [DEC-59](../docs/decisions/DEC-59-environment-variables-standard-names-where-they.md); [the criteria](../docs/criteria.md)
 - [v1 design evidence](../docs/evidence/v1-design-evidence-2026-10-18.md): Headers and scrubbing

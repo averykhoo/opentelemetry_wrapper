@@ -33,6 +33,6 @@ objects.
 
 ## Read first
 
-- The decisions: [DEC-21](../docs/decisions/index.md), [DEC-31](../docs/decisions/index.md), [DEC-47](../docs/decisions/index.md); [the criteria](../docs/criteria.md)
+- The decisions: [DEC-21](../docs/decisions/DEC-21-no-blocked-behaviour-code-info-is-looked-up-at.md), [DEC-31](../docs/decisions/DEC-31-stable-semconv-code-keys-everywhere.md), [DEC-47](../docs/decisions/DEC-47-unnamed-with-otel-blocks-are-named-after-the.md); [the criteria](../docs/criteria.md)
 - [v1 design evidence](../docs/evidence/v1-design-evidence-2026-10-18.md): Introspection
 - [history](../docs/evidence/history-to-2026-10-18.md): the old `HANDOFF.md` § TODO, `CodeInfo` bugs

@@ -10,6 +10,7 @@ imported_from: docs/evidence/decision-log-import-2026-10-18.md
 aliases: [Q-1]
 body_sha: sha256:ad6eb7c76788729ddc22066bdee2d148bdbec09e07cf11e9caf62f5c73ce6ba1
 tags: [sqlalchemy]
+tasks: [OTW-4]
 ---
 
 - **Q1. SQLAlchemy engines created later.** *Decided 2026-10-07*, see workstream 2: `otel.instrument(sqlalchemy)`

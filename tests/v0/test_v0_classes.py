@@ -297,7 +297,7 @@ def test_plain_attribute_access_is_not_traced(classes):
     assert classes['plain_attributes'] == []
 
 
-DOUBLE_SPAN_REASON = ('found while writing this suite (not in the v0 bug list): a method that is already instrumented '
+DOUBLE_SPAN_REASON = ('found by this suite (v0 bug list, 2nd section): a method that is already instrumented '
                       '(decorated in the class body, or a dunder/__post_init__ wrapped by class instrumentation) is '
                       'wrapped AGAIN by the __getattribute__ hook when accessed through an instance, because the '
                       'bound method is not recognised as instrumented -> two nested spans with the same name')
@@ -323,7 +323,7 @@ def test_already_instrumented_method_accessed_via_instance_is_traced(classes, ke
     assert set(names(classes[key])) == {name}
 
 
-@pytest.mark.xfail(strict=True, reason='found while writing this suite (not in the v0 bug list): _CACHE_GETATTRIBUTE '
+@pytest.mark.xfail(strict=True, reason='found by this suite (v0 bug list, 2nd section): _CACHE_GETATTRIBUTE '
                                        'is keyed by the original __getattribute__, which is object.__getattribute__ '
                                        'for every ordinary class, so only the first instrumented class gets method and '
                                        'property spans (instrument_decorator.py:226); nested classes count as later')
@@ -339,7 +339,7 @@ def test_second_class_constructor_is_traced(classes):
     assert names(classes['second_construct']) == ['<__main__>.Second.__init__']
 
 
-@pytest.mark.xfail(strict=True, reason='found while writing this suite (not in the v0 bug list): only the first class '
+@pytest.mark.xfail(strict=True, reason='found by this suite (v0 bug list, 2nd section): only the first class '
                                        'instrumented in a process gets method/property spans, because '
                                        '_CACHE_GETATTRIBUTE is keyed by object.__getattribute__ '
                                        '(instrument_decorator.py:226)')
@@ -427,7 +427,7 @@ def test_dataclass_with_arguments_is_instrumented(dataclasses_result):
     assert names(dataclasses_result['frozen_construct']) == ['<__main__>.Frozen.__init__']
 
 
-@pytest.mark.xfail(strict=True, reason='found while writing this suite (not in the v0 bug list): only the first '
+@pytest.mark.xfail(strict=True, reason='found by this suite (v0 bug list, 2nd section): only the first '
                                        'instrumented class gets method spans (_CACHE_GETATTRIBUTE keyed by '
                                        'object.__getattribute__), so every dataclass after the first one has '
                                        'constructor spans only')

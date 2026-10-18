@@ -5,7 +5,7 @@ title: 'Workstream 6: resource detectors'
 brief: never call the Kubernetes API; never put a whole pod name in service.name
 pri: NEXT
 state: open
-deps: [OTW-2]
+deps: [OTW-2, OTW-8]
 source: session 2026-10-18a
 created: 2026-10-18
 moved: 2026-10-18a
@@ -152,5 +152,5 @@ faked Downward API volume (including escaped values), and a missing volume is si
 
 ## Read first
 
-- The decisions: [DEC-4](../docs/decisions/index.md), [DEC-12](../docs/decisions/index.md), [DEC-29](../docs/decisions/index.md), [DEC-30](../docs/decisions/index.md), [DEC-33](../docs/decisions/index.md); [the criteria](../docs/criteria.md)
+- The decisions: [DEC-4](../docs/decisions/DEC-4-process-executable-name-is-the-base-name-of-sys.md), [DEC-12](../docs/decisions/DEC-12-no-kubernetes-api-calls-labels-and-annotations.md), [DEC-29](../docs/decisions/DEC-29-service-name-follows-semconv-v0-s-readable-name.md), [DEC-30](../docs/decisions/DEC-30-record-the-full-command-line-as-process-command.md), [DEC-33](../docs/decisions/DEC-33-resource-precedence-our-detectors-otel-service.md); [the criteria](../docs/criteria.md)
 - [v1 design evidence](../docs/evidence/v1-design-evidence-2026-10-18.md): Resources

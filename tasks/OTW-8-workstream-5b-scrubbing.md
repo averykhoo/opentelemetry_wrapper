@@ -3,7 +3,7 @@ type: Task
 id: OTW-8
 title: 'Workstream 5b: scrubbing'
 brief: rules stay in a regex subset an automaton can handle; scrub on the exporter thread; fail closed
-pri: LATER
+pri: NEXT
 state: open
 deps: [OTW-2]
 source: session 2026-10-18a
@@ -14,7 +14,7 @@ aliases: [WS5b]
 labels: [v1]
 ---
 
-Criteria: AC-13, AC-15. Decisions: DEC-16, DEC-18, DEC-58.
+Criteria: AC-13; its `scrub_argv` serves AC-15, which OTW-9 claims. Decisions: DEC-16, DEC-18, DEC-58.
 
 *Workstream 5b of the v1 design, verbatim from the pre-adoption `PLAN.md` (`docs/archive/PLAN.md`); there, "workstream n" is the task aliased `WSn` (OTW-1 lists them), "Decided" / "proposal n" / "Qn" are decisions (`docs/evidence/adoption-map-2026-10-18.md`), and "`HANDOFF.md`" is the old note in `docs/evidence/history-to-2026-10-18.md`.*
 
@@ -80,4 +80,4 @@ unscrubbed; README says so.
 
 ## Read first
 
-- The decisions: [DEC-16](../docs/decisions/index.md), [DEC-18](../docs/decisions/index.md), [DEC-58](../docs/decisions/index.md); [the criteria](../docs/criteria.md)
+- The decisions: [DEC-16](../docs/decisions/DEC-16-scrubbing-engine-stdlib-re-by-default-hyperscan.md), [DEC-18](../docs/decisions/DEC-18-scrubbing-s-optional-fast-engine-is-an-re2.md), [DEC-58](../docs/decisions/DEC-58-v1-scrubs-exported-telemetry-with-its-own-rules.md); [the criteria](../docs/criteria.md)

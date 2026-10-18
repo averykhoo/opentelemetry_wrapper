@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:2543f0adc2466ccd05437685aaa54e4e9b932d118820afa7d6fb414e0d06b089
 tags: [logging]
+tasks: [OTW-11]
 ---
 
 - **Console:** one-line JSON logs on stderr (`OTEL_WRAPPER_LOG_FORMAT=json|off`). No pretty console in 1.0 (decided

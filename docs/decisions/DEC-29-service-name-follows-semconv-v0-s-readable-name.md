@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:cffd8526cbf97d010da6a60eb195b5298d889f7a2a7fbe327cefb4963e8c120d
 tags: [resources]
+tasks: [OTW-9]
 ---
 
 - **`service.name` follows semconv** (the workload name); breaking existing dashboards is accepted. v0's readable

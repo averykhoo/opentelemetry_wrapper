@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:72a14bb79482d1168eceae54cda342cfbbd2e379690a8bbbb3f413dc5d4539ee
 tags: [config]
+tasks: [OTW-3]
 ---
 
 - **Exporters from the standard env vars:** `OTEL_EXPORTER_OTLP_{,TRACES_,METRICS_,LOGS_}ENDPOINT`, `..._HEADERS`,

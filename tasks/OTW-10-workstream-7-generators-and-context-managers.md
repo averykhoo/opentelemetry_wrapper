@@ -49,5 +49,5 @@ decorated with `@otel`.
 
 ## Read first
 
-- The decisions: [DEC-22](../docs/decisions/index.md), [DEC-3](../docs/decisions/index.md); [the criteria](../docs/criteria.md)
+- The decisions: [DEC-22](../docs/decisions/DEC-22-generators-and-context-managers-one-span-each.md), [DEC-3](../docs/decisions/DEC-3-exception-status-error-on-the-innermost-span.md); [the criteria](../docs/criteria.md)
 - [v1 design evidence](../docs/evidence/v1-design-evidence-2026-10-18.md): Generators and context managers

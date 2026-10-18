@@ -10,6 +10,7 @@ supersedes: [DEC-66]
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:de7b9ad50cadba161d6934707ad7fac3f7a04d2cd209e9ed537659fd191c1af3
 tags: [scrubbing]
+tasks: [OTW-8]
 ---
 
 Our own rules, designed from examples (2026-10-18), not copied from logfire's list. Applied in wrappers around every

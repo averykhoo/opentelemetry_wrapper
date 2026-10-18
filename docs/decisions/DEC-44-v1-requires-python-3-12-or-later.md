@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:ace435341851b9c5c09b7ee4bb4f5fc7f18176be6e263f56daa9dec564382c02
 tags: [packaging]
+tasks: [OTW-13]
 ---
 
 one-line JSON logs and Prometheus. Python floor: **3.12** (the SDK itself needs >= 3.10).

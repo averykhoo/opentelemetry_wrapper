@@ -2,7 +2,7 @@
 type: Question
 id: ASK-17
 title: Ship a v0 patch release that stops logging the OTLP auth header?
-brief: 'owner-only: a release is outward-facing; v1 fixes it by design (DEC-49, DEC-58)'
+brief: 'owner-only: a release is outward-facing; v1 fixes it by design (DEC-27, DEC-58)'
 pri: NEXT
 state: open
 deps: []

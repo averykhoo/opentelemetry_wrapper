@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:9d525f24d0c9417354ea556d2880b46957736e79626437be6f40543da62d683b
 tags: [telemetry]
+tasks: [OTW-3]
 ---
 
 - **No per-span sampling.** Sampling is decided at the root span, via the standard `OTEL_TRACES_SAMPLER` /

@@ -16,12 +16,12 @@ Engine mode since 2026-10-18 (adopted on branch `adopt-context-engine`): the rec
 through `context-engine`. What is true now and what is next live in `HANDOFF.md` and on the board
 (`context-engine task list`); this file holds only what is durable. Where each component lives: `context-engine routes`.
 
-**Id prefixes:** tasks `OTW-n`, decisions `DEC-n`, stories `STORY-n`, criteria `AC-n`, owner questions `ASK-n`,
-batons `BATON-n`, pause records `PAUSE-n`, goals `G-n`. Never reuse or renumber an id. The pre-adoption design ids
-(PLAN.md's Q1-Q16, proposals 1-11, workstreams 0-11) map to records in `docs/evidence/adoption-map-2026-10-18.md`;
-`Q-n` resolves as an alias of `DEC-n`.
+**Id prefixes:** tasks `OTW-n` (workstreams also by alias, `WS0` to `WS11` and `WS5b`), decisions `DEC-n`, stories
+`STORY-n`, criteria `AC-n`, owner questions `ASK-n`, batons `BATON-n`, pause records `PAUSE-n`, goals `G-n`. Never reuse
+or renumber an id. The pre-adoption design ids (PLAN.md's Q1-Q16, proposals 1-11, workstreams 0-11) map to records in
+`docs/evidence/adoption-map-2026-10-18.md`; `Q-n` resolves as an alias of `DEC-n`.
 
-## Overrides of the global rules (owner, 2026-10-18)
+## Overrides of the global rules (owner, 2026-10-18, DEC-70)
 
 - **Commits:** the engine commits its own writes at milestones (`[engine] commit = "milestones"`), and a session
   commits its work through `context-engine commit <paths> -m ...` whenever the contract or the procedures say to,
@@ -29,6 +29,8 @@ batons `BATON-n`, pause records `PAUSE-n`, goals `G-n`. Never reuse or renumber 
   owner's yes** (contract § Rules).
 - **Package installs** into `.context-engine/env/` (the engine's env) need no confirmation; the conda env's
   dependencies still do (global rule).
+- **Actor:** records and commits name no model, so `CE_ACTOR` is `claude-code/<Claude Code version>`, not the
+  contract's `<harness>/<model>`.
 
 ## Environment
 
@@ -52,7 +54,8 @@ batons `BATON-n`, pause records `PAUSE-n`, goals `G-n`. Never reuse or renumber 
 - **The conda env** (2026-10-18): Python 3.12.15, opentelemetry 1.44.0 / 0.65b0, sqlalchemy 2.0.54, fastapi 0.142.2,
   pydantic 2.13.5. Besides `requirements.txt` it holds `pytest`, `flake8`, `mypy`, `types-requests`, `logfire`
   (only for the Q15 comparison, DEC-15), and, for the scrubbing benchmark (DEC-16) only, `greenery`, `interegular`,
-  `regex`, `google-re2` and `hyperscan`.
+  `regex`, `google-re2` and `hyperscan` (greenery 4.2.2, interegular 0.3.3, regex 2026.9.29, google-re2 1.1.20251105,
+  hyperscan 0.9.1). `flit` (for releases) is not installed.
 
 ## Gate
 
@@ -80,10 +83,11 @@ records and the prose); before a commit touching code or tests, `context-engine 
 
 ## Release (v0, by hand; `docs/runbooks/release.md` is the method)
 
-`~/.pypirc` holds a `[pypi]` section with `username = __token__` and the PyPI token. Bump `__version__` in
-`opentelemetry_wrapper/__init__.py` (which must keep its docstring), `flit publish`, then check the release installs:
-`pip download opentelemetry_wrapper==X.Y.Z` in an empty directory. The automated release for dependency-only bumps
-is planned (DEC-55, OTW-2).
+The distribution is `opentelemetry_wrapper` on PyPI (flit; `requires-python = ">3.8.0"` for v0, `>=3.12` from the first
+release that ships v1, DEC-44). `pip install flit` into the env first. `~/.pypirc` holds a `[pypi]` section with
+`username = __token__` and the PyPI token. Bump `__version__` in `opentelemetry_wrapper/__init__.py` (which must keep
+its docstring), `flit publish`, then check the release installs: `pip download opentelemetry_wrapper==X.Y.Z` in an empty
+directory. The automated release for dependency-only bumps is planned (DEC-55, OTW-2).
 
 ## Scratch space
 
@@ -105,7 +109,7 @@ Tell the agent to:
 `gh` is not installed: use `curl` against the GitHub REST API as described under "GitHub CI logs" in the global
 `~/.claude/CLAUDE.md`. Pass the token through the environment (`GH_TOKEN`); never write it into this repo.
 
-## Framework feedback (owner, 2026-10-18)
+## Framework feedback (owner, 2026-10-18, DEC-70)
 
 This repo is the engine's second adopter, so its friction is worth recording. **At every clean close, append to
 `context-engine-feedback.md`** (newest first, dated, with the session key) anything the session noticed: an

@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:41e4add36375f1ddfa733182bd056d02fb814c20b2155f40af4a2eee7bf63b74
 tags: [config]
+tasks: [OTW-12, OTW-7]
 ---
 
 | rename env vars to `OTEL_WRAPPER_*` | yes, for the non-standard ones only (table below) |

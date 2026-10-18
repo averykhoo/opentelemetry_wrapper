@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:2e784471b11a0150016c67d41cf7e5ceea663f1fe4bc0ce7c96f3ce7375fac97
 tags: [config]
+tasks: [OTW-3, OTW-16]
 ---
 
 10. **Migration** (F9):

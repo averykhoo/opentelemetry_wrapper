@@ -9,6 +9,7 @@ decision_status: BUILT
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:35348178fdfa6b205330da53251ab37e70ce9ba9e9a305dcc5713c53322f5285
 tags: [api]
+tasks: [OTW-18]
 ---
 
 - **`type_checking.py` stays in the repo, unchanged** (it works), but v1 doesn't import or export it, as v0 already

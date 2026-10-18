@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:242f065930f0112af90950029ed50f1f29464f5b15a345a7acf7eaa8df5f4ffe
 tags: [config]
+tasks: [OTW-3]
 ---
 
 - **`OTEL_WRAPPER_DISABLED`** means no telemetry at all, for test envs with nowhere to export, where only stack traces

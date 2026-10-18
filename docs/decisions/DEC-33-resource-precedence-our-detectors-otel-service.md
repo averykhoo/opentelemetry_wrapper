@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:830518bb88267bc4410feb242cfab791124c7ea678e57a29145b65875a417e2c
 tags: [resources]
+tasks: [OTW-9]
 ---
 
 - **Resource precedence:** our detectors (guesses) < `OTEL_SERVICE_NAME` / `OTEL_RESOURCE_ATTRIBUTES` < explicit

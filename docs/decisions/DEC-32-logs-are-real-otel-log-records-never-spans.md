@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:bbc7fd2785d6c69ab51a0741f394164f4871cbc46c3998004686435a4f65ce51
 tags: [logging]
+tasks: [OTW-11]
 ---
 
 - **Logs are real OTel log records**, never spans: a handler on the root logger feeding a `LoggerProvider` we always

@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:47a59f002572da036908f0c7d9dd0c36c12484681dec98fe9bad99c95b66c580
 tags: [telemetry]
+tasks: [OTW-3]
 ---
 
 - **No arguments or return values on spans.** PII, payload size, and parameter names colliding with real attribute

@@ -46,5 +46,5 @@ handlers, not four; `tests/v0` logging tests pass under `OTW_IMPL=v1`.
 
 ## Read first
 
-- The decisions: [DEC-13](../docs/decisions/index.md), [DEC-32](../docs/decisions/index.md), [DEC-34](../docs/decisions/index.md), [DEC-43](../docs/decisions/index.md); [the criteria](../docs/criteria.md)
+- The decisions: [DEC-13](../docs/decisions/DEC-13-log-records-keep-the-bare-record-funcname-q13.md), [DEC-32](../docs/decisions/DEC-32-logs-are-real-otel-log-records-never-spans.md), [DEC-34](../docs/decisions/DEC-34-console-one-line-json-logs-on-stderr-no-pretty.md), [DEC-43](../docs/decisions/DEC-43-logging-options-come-from-env-vars-and-otel.md); [the criteria](../docs/criteria.md)
 - [v1 design evidence](../docs/evidence/v1-design-evidence-2026-10-18.md): Logs

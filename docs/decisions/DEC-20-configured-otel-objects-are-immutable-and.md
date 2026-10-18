@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:c2edca557acd1a31cd9246387102c4211eccafa04dc9a6b21d697b3eb0a7abab
 tags: [api]
+tasks: [OTW-3]
 ---
 
 - **Configured objects (`otel(name=...)`) are immutable and stateless**; per-entry span state lives in a `ContextVar`.

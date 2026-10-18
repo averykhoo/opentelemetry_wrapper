@@ -10,6 +10,7 @@ relaxes: [DEC-68]
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:838ebe3b8860cb1e6078c9cfb3efbb7d1954549e3d1c33fefd961471e9f6352f
 tags: [api]
+tasks: [OTW-6]
 ---
 
 11. **Smaller points** (F12):

@@ -10,6 +10,7 @@ imported_from: docs/evidence/decision-log-import-2026-10-18.md
 aliases: [Q-2]
 body_sha: sha256:761df033b6e3d45ff31f8089b2cc285584f1cde1210bd17c9ffd4e69f56a380a
 tags: [headers]
+tasks: [OTW-7]
 ---
 
 - **Q2. `x-userinfo` by default.** *Decided 2026-10-07*, see workstream 5: capture every claim except a denylist.

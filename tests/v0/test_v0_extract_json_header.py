@@ -92,8 +92,7 @@ def test_base64_userinfo_needing_two_padding_chars_is_decoded():
     assert extract_json_header(b64(obj, padded=True)) == {**USERINFO_FLAT, 'pad': obj['pad']}
 
 
-@pytest.mark.xfail(strict=True, reason='found while writing this suite (not in the v0 bug list): '
-                                       '_extract_userinfo always '
+@pytest.mark.xfail(strict=True, reason='found by this suite (v0 bug list, 2nd section): _extract_userinfo always '
                                        'appends "==" before b64decode(validate=True), which python >= 3.11 rejects '
                                        '("Excess data after padding" / "Excess padding not allowed"), so 2 out of 3 '
                                        'userinfo headers are not decoded (python 3.10 accepted them)')

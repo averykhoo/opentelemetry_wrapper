@@ -10,6 +10,7 @@ imported_from: docs/evidence/decision-log-import-2026-10-18.md
 aliases: [Q-3]
 body_sha: sha256:8bc50e98712c93ad0554d2fbaa4bcd003b44dfebb154382ec32ddcb0904f97cd
 tags: [api]
+tasks: [OTW-10, OTW-3]
 ---
 
 - **Q3. Exception status.** *Decided 2026-10-18* as follows:

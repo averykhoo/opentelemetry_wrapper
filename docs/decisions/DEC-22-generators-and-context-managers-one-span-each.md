@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:b85aa37051a4508455c87baa61098abb8e2c732d875219c141d6f3c1736a0353
 tags: [api]
+tasks: [OTW-10]
 ---
 
 - **Generators and context managers** as in workstream 7 (author approved the prototype).

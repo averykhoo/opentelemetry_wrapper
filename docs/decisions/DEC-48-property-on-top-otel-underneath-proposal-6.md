@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:f23d3ad590a7e7e2066e84fdc18c23e508bba6d68ed3e8588a74587a058b6574
 tags: [api]
+tasks: [OTW-14, OTW-6]
 ---
 
 6. **Decorator order with `@property`** (F7): document `@property` on top, `@otel` underneath. *Verified:* mypy

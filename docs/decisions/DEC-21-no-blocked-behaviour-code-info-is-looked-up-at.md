@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:db51cc22ff57cd77212de6f3542cbc84f2513536d2e0fe9bd8cf86bfdb6814ba
 tags: [api]
+tasks: [OTW-3, OTW-5]
 ---
 
 - **No "blocked" behaviour.** It existed because code info cached on the object could be reused for the wrong target.

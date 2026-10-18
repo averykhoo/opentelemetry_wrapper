@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:a5093a9addcc69170c45800b8dacf62e2b6a0bd4195d21bf94498b3e5f2b99e8
 tags: [packaging]
+tasks: [OTW-13]
 ---
 
 - **Pydantic 2 only, optional, never imported by us.** Pydantic models can only exist if the app imported pydantic, so

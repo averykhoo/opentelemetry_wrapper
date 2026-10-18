@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:94dc0f46857ffa677fd3354ca28f9ae0a7a6d339779bfe22cebcb5cdb783aabd
 tags: [api]
+tasks: [OTW-3]
 ---
 
 8. **`@otel()` and `with otel():`** (F10) mean the same as `@otel` / `with otel:`, silently (v0's sketch warned).

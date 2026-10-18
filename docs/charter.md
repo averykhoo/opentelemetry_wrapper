@@ -15,14 +15,14 @@ from decisions rather than stated as goals anywhere.
 |---|---|---|
 | G-1 | v1 builds directly on the OpenTelemetry SDK and the contrib instrumentors, plus what neither provides: the `otel` decorator / context manager, idempotent never-crash instrumentation, introspection, class support, Kubernetes resource detection, `x-userinfo` flattening, scrubbing, one-line JSON logs and Prometheus | the epic OTW-1 closes: every workstream's criteria pass and `README_v1.md`'s API works as written |
 | G-2 | Idempotency: every public entry point can be called any number of times, from anywhere, and behaves as if called once, including methods reached through instances | AC-6; the strict xfails for nested spans through instances pass |
-| G-3 | Never crash the application | AC-7; no public entry point raises into the app in any test |
+| G-3 | Never crash the application | AC-7, AC-25; no public entry point raises into the app in any test |
 | G-4 | No telemetry of its own at runtime: warnings only at startup, decoration or instrumentation time, once each; our own entry points emit no spans | AC-22 |
 | G-5 | Introspection: spans name the right code (`co_qualname`, no `cls` heuristics, stable attributes) | AC-10 |
 | G-6 | Class and dataclass support, including library classes (`otel(SortedList)`) | AC-11 |
 | G-7 | Kubernetes support, as resource detectors | AC-14, AC-16 |
 | G-8 | Machine-readable first: one-line JSON logs, JSON-encode anything | AC-18 |
 | G-9 | Telemetry carries no secrets by default: no arguments on spans, a claim denylist, scrubbing on every exporter we build | AC-12, AC-13, AC-15 |
-| G-10 | Upgrades don't break users: v0 users migrate incrementally, and an OTel release reaches users only once our tests pass on it | AC-8, AC-23, AC-24 |
+| G-10 | Upgrades don't break users: v0 users migrate incrementally, and an OTel release reaches users only once our tests pass on it | AC-8, AC-23, AC-24, AC-27 |
 
 ## Ranked principles
 

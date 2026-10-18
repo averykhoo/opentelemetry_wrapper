@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:1c143b93f21ca00dcd9ae5034c9f893f0e4a6b61c5576479a50e944a3fa2f5fa
 tags: [api]
+tasks: [OTW-3]
 ---
 
 - **One `otel` object** that decorates (functions, methods, classes, dataclasses, generators, context managers) and

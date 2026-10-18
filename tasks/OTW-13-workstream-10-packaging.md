@@ -42,4 +42,4 @@ its integration; CI covers both.
 
 ## Read first
 
-- The decisions: [DEC-35](../docs/decisions/index.md), [DEC-36](../docs/decisions/index.md), [DEC-44](../docs/decisions/index.md), [DEC-57](../docs/decisions/index.md), [DEC-16](../docs/decisions/index.md); [the criteria](../docs/criteria.md)
+- The decisions: [DEC-35](../docs/decisions/DEC-35-pydantic-2-only-optional-never-imported-by-us.md), [DEC-36](../docs/decisions/DEC-36-otlp-http-only-grpc-export-dropped.md), [DEC-44](../docs/decisions/DEC-44-v1-requires-python-3-12-or-later.md), [DEC-57](../docs/decisions/DEC-57-strict-otel-pins-capped-at-the-next-minor.md), [DEC-16](../docs/decisions/DEC-16-scrubbing-engine-stdlib-re-by-default-hyperscan.md); [the criteria](../docs/criteria.md)

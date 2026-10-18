@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:f6c7d24b431150719469f423f23799e92b424fd4dd28850dabbee3c52cb88f81
 tags: [api]
+tasks: [OTW-5]
 ---
 
 5. **Unnamed `with otel:` blocks** (F6): name them after the enclosing function, not `load_config:42`. A span name

@@ -30,4 +30,4 @@ overloads, so mypy and pyright see the original signature (and the original clas
 
 ## Read first
 
-- The decisions: [DEC-25](../docs/decisions/index.md), [DEC-48](../docs/decisions/index.md); [the criteria](../docs/criteria.md)
+- The decisions: [DEC-25](../docs/decisions/DEC-25-our-spans-come-from-the-otel-tracer-the-exposed.md), [DEC-48](../docs/decisions/DEC-48-property-on-top-otel-underneath-proposal-6.md); [the criteria](../docs/criteria.md)

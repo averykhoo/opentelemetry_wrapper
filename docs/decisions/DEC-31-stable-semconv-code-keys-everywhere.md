@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:6d3f658ecd19111a7a55eb0a8d7e213877d6a4313c814093bb10746da960a836
 tags: [telemetry]
+tasks: [OTW-5]
 ---
 
 - **Stable semconv `code.*` keys** everywhere (workstream 3).

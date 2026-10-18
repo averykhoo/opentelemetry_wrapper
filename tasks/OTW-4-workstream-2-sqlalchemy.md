@@ -49,5 +49,5 @@ warning, no crash.
 
 ## Read first
 
-- The decisions: [DEC-1](../docs/decisions/index.md), [DEC-11](../docs/decisions/index.md), [DEC-62](../docs/decisions/index.md); [the criteria](../docs/criteria.md)
+- The decisions: [DEC-1](../docs/decisions/DEC-1-sqlalchemy-otel-instrument-sqlalchemy-is-global.md), [DEC-11](../docs/decisions/DEC-11-otel-instrument-with-no-arguments-logging.md), [DEC-62](../docs/decisions/DEC-62-v0-pins-sqlalchemy-asyncio-2-1-until-the.md); [the criteria](../docs/criteria.md)
 - [v1 design evidence](../docs/evidence/v1-design-evidence-2026-10-18.md): SQLAlchemy

@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:5c0cb46732461eb14abb92aaf570c459071d661faf140ae0e1fc77c0b98772e0
 tags: [process]
+tasks: [OTW-16, OTW-18]
 ---
 
 - **Rollout: side by side.** v1 ships next to v0 in the same package until it's proven safe against `tests/v0`, then

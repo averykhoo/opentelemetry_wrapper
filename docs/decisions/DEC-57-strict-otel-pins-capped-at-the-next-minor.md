@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:3aa1beece008f20ab69173c3bbdbbf8e32e8489f786a16c197f03e1d4619b13d
 tags: [packaging]
+tasks: [OTW-13, OTW-2]
 ---
 
 - **Strict OTel pins, as in v0** (decided 2026-10-18): OTel has shipped breaking changes without warning, twice

@@ -10,6 +10,7 @@ imported_from: docs/evidence/decision-log-import-2026-10-18.md
 aliases: [Q-8]
 body_sha: sha256:7a06f207fdca0b6a20a98cadc72ef2f1adf3e454041ffab961336ba917ebe116
 tags: [api]
+tasks: [OTW-3]
 ---
 
 - **Q8. `PYTHONWARNINGS=error` in production** turns our startup warnings into exceptions. Accept that as the one

@@ -4,6 +4,8 @@ FROZEN 2026-10-18. `PLAN.md` § "Evidence" and § "Public API notes", verbatim a
 decisions cite it (DEC-1, DEC-2, DEC-15, DEC-20, DEC-31 among them), and workstream 0 (OTW-2) turns the claims
 about upstream behaviour into canary tests. "`HANDOFF.md`" below means the old note, now in
 `docs/evidence/history-to-2026-10-18.md`; "workstream n" means the task whose alias is `WSn` (OTW-1 lists them).
+*Verified* here and in the decisions means run against OTel SDK 1.44.0 / contrib 0.65b0 (and logfire 5.1.1 where
+logfire is discussed), mypy 2.4, Python 3.12.15 on Windows (the plan's convention); everything else is design opinion.
 
 ## Evidence
 

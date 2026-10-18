@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:83f920a010e392ac6eb3e209e57cf7d10969accf2633554820cfb43925212e4f
 tags: [api]
+tasks: [OTW-3]
 ---
 
 7. **Warning channel** (F8): one `OtelWrapperWarning(UserWarning)` via `warnings.warn(..., stacklevel=2)`, only on

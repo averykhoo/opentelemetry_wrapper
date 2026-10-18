@@ -9,6 +9,7 @@ decision_status: BUILT
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:76df5247dd1261f8a1120b85043f8b6c82a1fcf8ca5a74f1c175ccffe75d7d41
 tags: [testing]
+tasks: [OTW-2]
 ---
 
 **Test suite (added 2026-10-07, committed 2026-10-08):** `python -m pytest -q tests/v0` -> `203 passed, 23 xfailed` (~22 s).

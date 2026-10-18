@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:c2126e40d1504a71691b9bedcfec108b1e914180eff1ad629b305cbc5f253b1e
 tags: [api]
+tasks: [OTW-3]
 ---
 
 4. **Import path** (F5): `from opentelemetry_wrapper import otel`, so users change imports once, not twice. *Verified:*

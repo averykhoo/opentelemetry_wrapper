@@ -11,6 +11,7 @@ superseded_by: [DEC-16]
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:db408fbc49e38b544395c4c543b2ba219e20e1d8a6f8ec676537ab01c059027b
 tags: [scrubbing]
+tasks: [OTW-8]
 ---
 
 - **Q16. Scrubbing engine** (benchmark in workstream 5b). *Decided 2026-10-18:* stdlib `re` by default (factored

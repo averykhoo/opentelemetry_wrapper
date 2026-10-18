@@ -9,6 +9,7 @@ decision_status: BUILT
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:264d6bed5a7e3064eed8f3be2f48460e94393b90d3a93bc27b672500f75578ae
 tags: [v0]
+tasks: [OTW-4, OTW-15]
 ---
 
   - `requirements.txt` / `pyproject.toml`: `sqlalchemy` -> `sqlalchemy[asyncio]<2.1` (temporary pin, see below)

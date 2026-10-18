@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:7b14c5d37dba3899f89ce3913bac5688d071838f4ddfddf4204ce9dc1c34a4ff
 tags: [testing]
+tasks: [OTW-2]
 ---
 
 - **"Proven safe" is one command.** The v0 tests call v0 names directly, so the harness gets a small adapter

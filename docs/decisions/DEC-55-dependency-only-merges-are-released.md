@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:25ccc8698c96beb0bb69777f04cb1876482cc388d0d7cf74ed37fe5eda430df3
 tags: [process]
+tasks: [OTW-2]
 ---
 
 - **Auto-release of dependency-only bumps** (decided 2026-10-18): when such a PR merges, a release workflow bumps the

@@ -10,6 +10,7 @@ imported_from: docs/evidence/decision-log-import-2026-10-18.md
 aliases: [Q-12]
 body_sha: sha256:a4108e529e09d078486d87b5eeb4a5c258496f4f77eee8f8bdeb27a6924bed7f
 tags: [resources]
+tasks: [OTW-9]
 ---
 
 - **Q12. The k8s API lookup** (pod labels/annotations, one HTTPS call at startup). *Verified 2026-10-18:* Falco's

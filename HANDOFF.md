@@ -20,11 +20,12 @@ written at each clean close by `context-engine banner set`.
 
 ## Facts not derivable from the code (dated)
 
-- **2026-10-18, branches:** `v1-plan` holds the v1 design commits on top of `main` (not pushed, not merged).
-  `adopt-context-engine` (this adoption) branches from it, also not pushed. Hosting is GitHub + PyPI (DEC-40).
+- **2026-10-18, branches:** `v1-plan` holds the v1 design commits on top of `main`; it is pushed to origin (at
+  `24a0430`), not merged. `adopt-context-engine` (this adoption) branches from it and is not pushed. Hosting is
+  GitHub + PyPI (DEC-40).
 - **2026-10-18, history before adoption:** the old orientation note, verbatim, with the v0 fixes of 2026-10-08 and
-  the v0 bug inventory, is `docs/evidence/history-to-2026-10-18.md`. Commit messages and code comments keep the old
-  ids (`PLAN.md` workstreams, `Q15`, `HANDOFF.md` sections).
+  the v0 bug inventory, is `docs/evidence/history-to-2026-10-18.md`. Commit messages from before the adoption keep
+  the old ids (`PLAN.md` workstreams, `Q15`, `HANDOFF.md` sections); the test comments were rewritten to cite records.
 - **2026-10-18, local-only material:** the author's untracked notes (the evidence scripts, the Q15 spike, the
   scrubbing prototype, the full ergonomics review with findings F1-F12, the v0 talk deck transcript) exist on the
   author's machine only. Everything the design needs from them is in the decisions and evidence docs; OTW-2 turns
@@ -32,3 +33,5 @@ written at each clean close by `context-engine banner set`.
 - **2026-10-18, upstream watch:** `opentelemetry-instrumentation-sqlalchemy` (<= 0.66b0) declares `sqlalchemy <
   2.1.0`, hence the temporary `sqlalchemy[asyncio]<2.1` pin (DEC-62); unpinning is OTW-15.
 - **2026-10-18, the user never reads CI results** (DEC-54): automation is only worth having if it acts by itself.
+- **2026-10-18, v0 pins no OTel package** (DEC-57's amendment): an OTel release can break v0 users today; strict
+  pins arrive with v1 (OTW-13).

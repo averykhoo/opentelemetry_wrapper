@@ -9,6 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:91cab672a6ad72f6302e701a08d89e7f85a7d8645d5d873fe15e68e6643c3722
 tags: [testing]
+tasks: [OTW-2]
 ---
 
 - **CI:** GitHub Actions on push and on pull requests (none yet; `.github/workflows/` doesn't exist). Kept

@@ -14,7 +14,7 @@ aliases: [WS1]
 labels: [v1]
 ---
 
-Criteria: AC-1 to AC-7, AC-22; the plain `tests/v0` decorator tests under `OTW_IMPL=v1` (part of AC-8). Decisions: DEC-19, DEC-20, DEC-21, DEC-24, DEC-25, DEC-27, DEC-28, DEC-3, DEC-5, DEC-9, DEC-10, DEC-11, DEC-49.
+Criteria: AC-1 to AC-7, AC-22, AC-25 to AC-27; the plain `tests/v0` decorator tests under `OTW_IMPL=v1` (part of AC-8). Decisions: DEC-19, DEC-20, DEC-21, DEC-23, DEC-24, DEC-25, DEC-26, DEC-27, DEC-28, DEC-3, DEC-5, DEC-8, DEC-9, DEC-10, DEC-11, DEC-45, DEC-46, DEC-49, DEC-50, DEC-52.
 
 *Workstream 1 of the v1 design, verbatim from the pre-adoption `PLAN.md` (`docs/archive/PLAN.md`); there, "workstream n" is the task aliased `WSn` (OTW-1 lists them), "Decided" / "proposal n" / "Qn" are decisions (`docs/evidence/adoption-map-2026-10-18.md`), and "`HANDOFF.md`" is the old note in `docs/evidence/history-to-2026-10-18.md`.*
 
@@ -50,9 +50,10 @@ built, someone-else-configured-first), disabled mode and the pytest plugin pass 
 - An instrumentor's `DependencyConflict` is only logged by upstream and produces no spans: not an exception we would catch, so warn once ourselves.
 - Starlette raises when middleware is added after the app started: warn once and return the app.
 - A `ContextVar` must hold an immutable value: `copy_context()` copies the mapping, not the values.
+- The exporter wrappers take their scrubber from OTW-8 (5b): build them with a pluggable scrubber (identity until OTW-8 lands), so this task does not wait on 5b.
 
 ## Read first
 
-- The decisions: [DEC-19](../docs/decisions/index.md), [DEC-20](../docs/decisions/index.md), [DEC-21](../docs/decisions/index.md), [DEC-24](../docs/decisions/index.md), [DEC-25](../docs/decisions/index.md), [DEC-27](../docs/decisions/index.md), [DEC-28](../docs/decisions/index.md), [DEC-3](../docs/decisions/index.md), [DEC-5](../docs/decisions/index.md), [DEC-9](../docs/decisions/index.md), [DEC-10](../docs/decisions/index.md), [DEC-11](../docs/decisions/index.md), [DEC-49](../docs/decisions/index.md); [the criteria](../docs/criteria.md)
+- The decisions: [DEC-19](../docs/decisions/DEC-19-one-otel-object-decorates-and-opens-spans.md), [DEC-20](../docs/decisions/DEC-20-configured-otel-objects-are-immutable-and.md), [DEC-21](../docs/decisions/DEC-21-no-blocked-behaviour-code-info-is-looked-up-at.md), [DEC-24](../docs/decisions/DEC-24-otel-wrapper-disabled-means-no-telemetry-at-all.md), [DEC-25](../docs/decisions/DEC-25-our-spans-come-from-the-otel-tracer-the-exposed.md), [DEC-27](../docs/decisions/DEC-27-configuration-implicit-and-explicit-together.md), [DEC-28](../docs/decisions/DEC-28-exporters-are-chosen-from-the-standard-otel-env.md), [DEC-3](../docs/decisions/DEC-3-exception-status-error-on-the-innermost-span.md), [DEC-5](../docs/decisions/DEC-5-otel-sdk-disabled-true-also-means-otel-wrapper.md), [DEC-9](../docs/decisions/DEC-9-only-the-log-level-may-change-after.md), [DEC-10](../docs/decisions/DEC-10-pytest-plugin-opt-in-requesting-otel-spans-otel.md), [DEC-11](../docs/decisions/DEC-11-otel-instrument-with-no-arguments-logging.md), [DEC-49](../docs/decisions/DEC-49-one-otelwrapperwarning-through-warnings-warn-on.md); [the criteria](../docs/criteria.md)
 - [v0 lessons](../docs/evidence/v0-lessons-2026-10-07.md)
 - [v1 design evidence](../docs/evidence/v1-design-evidence-2026-10-18.md): Public API notes (the shared span stack race)

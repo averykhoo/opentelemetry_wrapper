@@ -62,9 +62,11 @@ on push.
 
 - Renovate's config for OTel's contrib packages is unverified: they are PEP 440 pre-releases (`0.66b0`), which Renovate may skip as unstable; SDK and contrib must move in one grouped PR (DEC-54).
 - The post-fork resource canary (`_handle_fork`) can only run on Linux CI: there is no fork on Windows.
+- Above the design-review threshold (it ships automation that merges and publishes by itself: `shipped`, `write-op`): write its `## Design review` and `task set OTW-2 --set review=[shipped, write-op]` before building (FRAMEWORK §5.2).
+- `asyncio.iscoroutinefunction` (v0's `instrument_decorator.py`, `type_checking.py`) is deprecated in Python 3.14, which the CI matrix runs (DEC-56): expect `DeprecationWarning`s there, and errors if warnings are errors (OTW-18).
 - The evidence scripts this replaces exist only on the author's machine; the claims they checked are in the evidence doc below.
 
 ## Read first
 
-- The decisions: [DEC-38](../docs/decisions/index.md), [DEC-54](../docs/decisions/index.md), [DEC-55](../docs/decisions/index.md), [DEC-56](../docs/decisions/index.md), [DEC-57](../docs/decisions/index.md), [DEC-63](../docs/decisions/index.md); [the criteria](../docs/criteria.md)
+- The decisions: [DEC-38](../docs/decisions/DEC-38-proven-safe-is-one-command-tests-v0-under-otw.md), [DEC-54](../docs/decisions/DEC-54-upstream-otel-bumps-renovate-prs-that-auto.md), [DEC-55](../docs/decisions/DEC-55-dependency-only-merges-are-released.md), [DEC-56](../docs/decisions/DEC-56-ci-github-actions-on-push-and-pull-requests.md), [DEC-57](../docs/decisions/DEC-57-strict-otel-pins-capped-at-the-next-minor.md), [DEC-63](../docs/decisions/DEC-63-v0-is-pinned-by-a-characterization-suite-plain.md); [the criteria](../docs/criteria.md)
 - [v1 design evidence](../docs/evidence/v1-design-evidence-2026-10-18.md): the upstream behaviours the canaries pin

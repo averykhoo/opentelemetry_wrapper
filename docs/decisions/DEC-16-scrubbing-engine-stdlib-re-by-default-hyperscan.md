@@ -11,6 +11,7 @@ imported_from: docs/evidence/decision-log-import-2026-10-18.md
 aliases: [Q-16]
 body_sha: sha256:774ceb147679477ba53448a27784ed601f26aa914fc91bf72fc4a4cfc0b7b05c
 tags: [scrubbing]
+tasks: [OTW-13, OTW-8]
 ---
 
 - **Q16. Scrubbing engine** (benchmark in workstream 5b). *Decided 2026-10-18:* stdlib `re` by default (factored

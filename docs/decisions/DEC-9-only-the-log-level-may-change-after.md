@@ -10,6 +10,7 @@ imported_from: docs/evidence/decision-log-import-2026-10-18.md
 aliases: [Q-9]
 body_sha: sha256:d7c068640c5f6870b5ed3538212d04d07c6c616412562fab16236c8e2b45ab2c
 tags: [config]
+tasks: [OTW-3]
 ---
 
 - **Q9. Settings that may change after configuration is built:** the log level only. *Decided 2026-10-18.*

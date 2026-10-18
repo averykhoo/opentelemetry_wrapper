@@ -294,7 +294,7 @@ def test_bound_method_code_function_attribute_drops_the_class_name(otw, spans):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# generators (v1 has real generator spans, DEC-22)
+# generators (v1 will have real generator spans, DEC-22)
 # ----------------------------------------------------------------------------------------------------------------------
 
 def generator_child():
@@ -321,7 +321,7 @@ def test_generator_span_only_covers_creating_the_generator(otw, spans):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# "never crash" (charter goal G-3); the v0 bug list has these holes as "from reading the code, not yet reproduced"
+# "never crash" (charter goal G-3); the v0 bug list found these holes by reading the code
 # ----------------------------------------------------------------------------------------------------------------------
 
 def partial_fresh_target(a, b):

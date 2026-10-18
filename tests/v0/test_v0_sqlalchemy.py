@@ -199,7 +199,7 @@ def test_import_and_engine_detection_work_without_the_asyncio_extension():
     assert result['checks'] == [True, True, False]
 
 
-@pytest.mark.xfail(strict=True, reason='found while writing this suite (not in the v0 bug list; simulated with '
+@pytest.mark.xfail(strict=True, reason='found by this suite (v0 bug list, 2nd section); simulated with '
                                        'sys.modules["sqlalchemy.ext.asyncio"] = None): the upstream instrument() '
                                        'patches sqlalchemy.ext.asyncio and raises (wrapt TargetModuleNotFoundError), '
                                        'which instrument_sqlalchemy_engine does not catch ("never crash")')

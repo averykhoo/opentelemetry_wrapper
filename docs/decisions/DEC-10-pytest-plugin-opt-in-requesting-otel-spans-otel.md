@@ -10,6 +10,7 @@ imported_from: docs/evidence/decision-log-import-2026-10-18.md
 aliases: [Q-10]
 body_sha: sha256:6d1247810e2809473d1aee904bf857a003bd5e6dbeac2471ad2c36b5081def9c
 tags: [testing]
+tasks: [OTW-3]
 ---
 
 - **Q10. Pytest plugin opt-in trigger:** requesting the `otel_spans` / `otel_logs` fixture, plus an ini option for

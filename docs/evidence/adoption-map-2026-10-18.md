@@ -4,13 +4,15 @@ FROZEN 2026-10-18 (session 2026-10-18a). The repo adopted `context-engine` (engi
 migrated its three working docs, as committed at `24a0430`, into records. The originals are unchanged in
 `docs/archive/` (`PLAN.md`, `TODO.md`) and in `docs/evidence/history-to-2026-10-18.md` (`HANDOFF.md`). The
 decisions' id map is `docs/evidence/decision-id-map-2026-10-18.md`, and the log they were imported from is
-`docs/evidence/decision-log-import-2026-10-18.md`.
+`docs/evidence/decision-log-import-2026-10-18.md`. The id map prints every status as BUILT, the import's
+default: the statuses were set right after it (below), and `docs/decisions/index.md` is current.
 
 ## Conventions used
 
 - **Decision status:** BUILT means in force with nothing left to build (a process fact, a v0 change); PROVISIONAL
   means decided v1 behaviour not built yet (it becomes BUILT when the task that builds it closes); REJECTED carries
-  `reopen_if`; DEFERRED is out of v1.0 but not ruled out; SUPERSEDED links its successor.
+  `reopen_if`; DEFERRED is out of v1.0 but not ruled out; SUPERSEDED links its successor. Every PROVISIONAL decision
+  is linked (`tasks:`) to the task that builds it, so `context-engine why OTW-n` lists a task's decisions.
 - **Actor:** `owner` for what the plan recorded as the author's decision; `owner + agent` for agent proposals the
   author signed off (proposals 3-11) and for v0 work the agent did at the author's request. Each record's `decided`
   is the original date; its `session` is the import's.
@@ -55,9 +57,9 @@ decisions' id map is `docs/evidence/decision-id-map-2026-10-18.md`, and the log 
 | State: conda env | `CLAUDE.md` § Environment |
 | How to verify | `CLAUDE.md` § Gate (the baseline and the manual checks); the suite's design is DEC-63 |
 | Watch upstream | DEC-62, OTW-15 |
-| TODO: confirmed and suite-found v0 bugs | fixed by v1 by design: the class leak and first-class-only spans (OTW-6, AC-11), the first engine only (OTW-4, AC-9), `CodeInfo` (OTW-5, AC-10), the timezone offset (OTW-11), nested spans through instances (OTW-3, AC-6), base64 padding (OTW-7, AC-12), the missing asyncio extension (OTW-3, OTW-13: optional at call time) |
+| TODO: confirmed and suite-found v0 bugs | fixed by v1 by design: the class leak and first-class-only spans (OTW-6, AC-11), the first engine only (OTW-4, AC-9), `CodeInfo` (OTW-5, AC-10), the timezone offset (OTW-11), nested spans through instances (OTW-3, AC-6), base64 padding (OTW-7, AC-12), the missing asyncio extension (OTW-4, AC-9; CI runs with and without the extras, DEC-56) |
 | TODO: bugs and risks from reading the code | secrets in the startup log: ASK-17; Prometheus bound to localhost: OTW-12 (AC-19); never-crash holes: OTW-3 (AC-7); silent instrumentor failures: a trap on OTW-3; `x-userinfo` captured by default: DEC-2 |
-| TODO: cleanup | OTW-18 |
+| TODO: cleanup | OTW-18; `requires-python` and the hardcoded `requests` response headers are redone for v1 in OTW-13 and OTW-7 |
 | TODO: bigger picture | OTW-2 (suite and CI), OTW-1 (v1) |
 
 ## TODO.md
@@ -69,11 +71,11 @@ decisions' id map is `docs/evidence/decision-id-map-2026-10-18.md`, and the log 
 | Major refactor | OTW-1 |
 | CICD the tests | OTW-2, DEC-56 |
 | Console printing switch | DEC-34 |
-| Multiple OTLP headers, per-signal collectors, `OTEL_COLLECTOR_*`, `OTEL_WRAPPER_*` names | DEC-59, DEC-28 (standard variables instead); gRPC: DEC-36 |
-| `asyncio.iscoroutinefunction` | OTW-3 (trivial with the 3.12 floor, DEC-44) |
-| Documentation, design decisions, the Prometheus trailing slash | OTW-16; the decisions are the records; the trailing slash is moot (OTW-12 uses `add_route`) |
+| Multiple OTLP headers, per-signal collectors, `OTEL_COLLECTOR_*`, `OTEL_WRAPPER_*` names | DEC-59, DEC-28 (standard variables instead); gRPC: DEC-36; "multiple urls" is moot (one standard endpoint per signal) |
+| `asyncio.iscoroutinefunction` | v0's uses: OTW-18 and a trap on OTW-2 (deprecated in 3.14, which CI runs); v1 uses `inspect` (3.12 floor, DEC-44) |
+| Documentation, design decisions, the Prometheus trailing slash, `/metrics` vs `metrics` | OTW-16; the decisions are the records; the trailing slash is moot (OTW-12 uses `add_route`), and the path default is `/metrics` (DEC-59) |
 | `__tracebackhide__` | OTW-3 |
-| Request vs response header variables | DEC-2, OTW-7 |
+| Request vs response header variables | DEC-2, OTW-7; the standard `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_*` answer is in `README_v1.md` |
 | `with` blocks for non-callable code | DEC-19 (`with otel:`), OTW-3 |
 | Generators and context managers | DEC-22, OTW-10 |
 | `varname` | DEC-64 (rejected) |
@@ -87,7 +89,11 @@ decisions' id map is `docs/evidence/decision-id-map-2026-10-18.md`, and the log 
 ## Also changed at adoption
 
 - `tests/`: comments and xfail reasons that cited `PLAN.md` or `HANDOFF.md` sections now cite the records, the
-  evidence docs or "the v0 bug list" (the old `HANDOFF.md`'s TODO section, in the history doc); no test changed.
+  evidence docs or "the v0 bug list" (the old `HANDOFF.md`'s TODO section, in the history doc). One test changed:
+  `test_metrics_exclusion_also_hides_other_routes_containing_slash_metrics` is now `v0_specific`, since v1 excludes
+  the exact path (AC-19) and AC-8 binds every plain test.
+- Criteria AC-25 to AC-27 (exception status, escape hatches and import path, migration warnings) were added from
+  their decisions; DEC-6, DEC-7 and DEC-39 are BUILT (nothing to build).
 - `CLAUDE.md`: the kit block, the overrides of the global rules, the engine env, the gate (with the old "How to
   verify"), the release notes, and the feedback rule.
 

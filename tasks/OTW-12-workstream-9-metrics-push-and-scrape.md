@@ -65,4 +65,4 @@ no request span, while `/api/metrics` does; with two workers, the second warns o
 
 ## Read first
 
-- The decisions: [DEC-27](../docs/decisions/index.md), [DEC-59](../docs/decisions/index.md); [the criteria](../docs/criteria.md)
+- The decisions: [DEC-27](../docs/decisions/DEC-27-configuration-implicit-and-explicit-together.md), [DEC-59](../docs/decisions/DEC-59-environment-variables-standard-names-where-they.md); [the criteria](../docs/criteria.md)
