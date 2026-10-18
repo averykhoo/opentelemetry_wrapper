@@ -97,6 +97,10 @@ Generated from each decision's frontmatter by `context-engine decision index`; n
 - [DEC-78](DEC-78-building-starts-otw-2-is-split-renovate-and.md): Building starts; OTW-2 is split: Renovate and auto-release move to a new item after the strict pins *(owner, 2026-10-18)*
 - [DEC-79](DEC-79-push-close-otw-2-on-green-ci-then-build-the.md): Push, close OTW-2 on green CI, then build the rest with one ultracode agent per task, minimizing tokens *(owner, 2026-10-18)*
 
+### release
+
+- [DEC-84](DEC-84-main-is-the-v1-line-a-v0-only-patch-is-released.md): main is the v1 line; a v0-only patch is released from a branch cut at the last v0 tag *(owner, 2026-10-19)*
+
 ### resources
 
 - [DEC-4](DEC-4-process-executable-name-is-the-base-name-of-sys.md): `process.executable.name` is the base name of `sys.executable` (Q4) *(owner, 2026-10-18)*
