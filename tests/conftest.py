@@ -71,6 +71,9 @@ def otw():
 
 @pytest.fixture(scope='session')
 def _in_memory_exporter(otw):
+    if impl.IMPL == 'v1':  # v1's test sink (OTW-3)
+        yield impl.span_exporter()
+        return
     impl.require_v0('in-process span capture')
     from opentelemetry import trace
     from opentelemetry.sdk.trace import TracerProvider
