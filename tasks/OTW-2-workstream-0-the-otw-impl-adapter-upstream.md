@@ -2,7 +2,7 @@
 type: Task
 id: OTW-2
 title: 'Workstream 0: the OTW_IMPL adapter, upstream canaries and CI'
-brief: Adapter first (OTW_IMPL=v0|v1), then canaries in tests/upstream, then CI; Renovate and auto-release moved to OTW-21
+brief: 'Adapter, canaries, interleaving, benchmark and CI built (2026-10-18k); left: first push and a green CI run'
 pri: NOW
 state: open
 deps: []
@@ -60,11 +60,13 @@ on push.
 
 ## Traps
 
-- **Split (DEC-78):** Renovate and the auto-release (the two bullets below on upstream bumps and auto-release, DEC-54 and DEC-55, criterion AC-24) moved to OTW-21, which waits for the strict pins (OTW-13). OTW-2 is the rest, and is below the design-review threshold.
-- The post-fork resource canary (`_handle_fork`) can only run on Linux CI: there is no fork on Windows.
-- `asyncio.iscoroutinefunction` (v0's `instrument_decorator.py`, `type_checking.py`) is deprecated in Python 3.14, which the CI matrix runs (DEC-56): expect `DeprecationWarning`s there, and errors if warnings are errors (OTW-18).
-- A CI run that collects no tests must fail (pytest exits 5): OTW-21's auto-merge will trust a green run.
-- The evidence scripts this replaces exist only on the author's machine; the claims they checked are in the evidence doc below.
+- **Split (DEC-78):** Renovate and the auto-release (DEC-54, DEC-55, AC-24) moved to OTW-21, which waits for the strict pins (OTW-13). OTW-2 is the rest, and is below the design-review threshold.
+- **Not done until CI has run on a push** (Done when). The push needs the owner's yes; the first run is also the first run of the fork canary (`tests/upstream/test_fork_resource.py`, Linux only, never sabotaged), so read its result, not just the job colour.
+- **CI tests the latest upstream releases:** `requirements.txt` pins nothing until OTW-13, while the canaries were written against SDK 1.44.0 / contrib 0.65b0. A red canary on a newer release is the canary working: record what changed, don't loosen the test.
+- **The extras axis of DEC-56's matrix is not built:** v0 has no optional extras, so it waits for OTW-13 to define them.
+- `asyncio.iscoroutinefunction` (v0) is deprecated in Python 3.14, which CI runs: expect `DeprecationWarning`s there, and errors if warnings are errors (OTW-18).
+- A CI run that collects no tests must fail (pytest exits 5; `ci/test.sh` does not swallow it): OTW-21's auto-merge will trust a green run.
+- The interleaving check (`tests/test_interleaving.py`) runs against the OTel tracer only, until `tests/impl.py` binds v1's `with otel:`.
 
 ## Read first
 

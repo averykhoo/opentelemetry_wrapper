@@ -4,9 +4,29 @@ Append-only, newest first, one entry per session (FRAMEWORK §7.1).
 
 ---
 
-## 2026-10-18k · kind: open
+## 2026-10-18k · kind: close
 
-- **opened:** 2026-10-18T19:36:03+08:00 by claude-code/2.1.287
+- **rows:** OTW-2, OTW-11
+- **receipts:**
+  - guards: gate PASSED in 25.3s (243 passed, 2 skipped, 23 xfailed in 22.99s) on
+    g1/code:3acf814a149e6230; log .context/gate/20261018T195321-19132.log
+  - read: orient, task show OTW-2, docs/evidence/v1-design-evidence-2026-10-18.md, DEC-22, DEC-33,
+    DEC-56, docs/archive/PLAN.md (fork, FastAPI and scrubbing notes)
+  - asked: none
+- **summary** (the owner digest):
+  - OTW-2: canaries in tests/upstream (8 modules, 26 tests, marker upstream), each but the fork one
+    seen red under a monkeypatched upstream break (83070c3)
+  - OTW-2: interleaving test (two tasks plus a thread) against the OTel tracer, the sketch's shared
+    stack as the known-bad control
+  - OTW-2: benchmarks/overhead.py with a smoke test; v0 ~58 us decorated vs ~32 us bare OTel span
+  - OTW-2: CI workflow .github/workflows/tests.yml + ci/test.sh, Linux, Python 3.12-3.14; never run
+    yet (unpushed)
+  - OTW-11: the SDK LoggingHandler is deprecated in 1.44 in favour of contrib's; which handler v1
+    uses is OTW-11's call
+  - Left for the owner: the push (2026-10-18j and k), whose CI run is OTW-2's last step
+- **Still owed:**
+  - the push of 2026-10-18j and 2026-10-18k (owner's yes), its CI run and the fork canary's first
+    result; then close OTW-2
 
 ---
 
