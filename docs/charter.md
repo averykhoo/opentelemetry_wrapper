@@ -15,7 +15,7 @@ are confirmed.
 |---|---|---|
 | G-1 | v1 builds directly on the OpenTelemetry SDK and the contrib instrumentors, plus what neither provides: the `otel` decorator / context manager, idempotent never-crash instrumentation, introspection, class support, Kubernetes resource detection, `x-userinfo` flattening, scrubbing, one-line JSON logs and Prometheus | the epic OTW-1 closes: every workstream's criteria pass and `README_v1.md`'s API works as written |
 | G-2 | Idempotency: every public entry point can be called any number of times, from anywhere, and behaves as if called once, including methods reached through instances | AC-6; the strict xfails for nested spans through instances pass |
-| G-3 | Never crash the application | AC-7, AC-25; no public entry point raises into the app in any test |
+| G-3 | Never crash the application: the wrapper is never the cause of an instrumented app failing; if all else fails, it outputs no spans | AC-7, AC-25; no public entry point raises into the app in any test |
 | G-4 | No telemetry of its own at runtime: warnings only at startup, decoration or instrumentation time, once each; our own entry points emit no spans | AC-22 |
 | G-5 | Introspection: spans name the right code (`co_qualname`, no `cls` heuristics, stable attributes) | AC-10 |
 | G-6 | Class and dataclass support, including library classes (`otel(SortedList)`) | AC-11 |
@@ -26,11 +26,11 @@ are confirmed.
 
 ## Ranked principles
 
-When two goals pull apart, the higher one wins (DEC-72). Items 1-7 are PLAN.md's order; the owner placed 8 and 9.
+When two goals pull apart, the higher one wins (DEC-72). The order is PLAN.md's, with never crash moved to the top and 8 and 9 placed by the owner.
 G-1 is the whole of v1, so it is not ranked.
 
-1. Idempotency (G-2).
-2. Never crash (G-3); the one sanctioned exception is `PYTHONWARNINGS=error` at startup (DEC-8).
+1. Never crash (G-3); the one sanctioned exception is `PYTHONWARNINGS=error` at startup (DEC-8). Whether the wrapper may report its own runtime failure, to be debuggable, is ASK-19.
+2. Idempotency (G-2).
 3. No telemetry of its own (G-4).
 4. Introspection (G-5).
 5. Class and dataclass support (G-6).
