@@ -143,9 +143,9 @@ coverage_maps = ""           # G-D12: a repo-relative glob of frozen, dated cove
 # once the goals, the first stories and their criteria are recorded. A guard is off while a
 # source it needs is unset, but `charter` without `stories`, or `tests` without [working]
 # criteria, is red (half set).
-charter = ""                 # G-I1: the charter (docs/charter.md); its table rows led by a goal id (`| G-1 | ... |`) are the goals a story's `goals` may name
-stories = ""                 # G-I1, G-I2, G-T1, G-T6: the kind holding the stories ("story"); G-T1 and G-T6 also read [working] criteria
-tests = []                   # G-T2: files and directories where tests and drivers claim criteria (e.g. ["tests"])
+charter = "docs/charter.md"   # G-I1: the charter (docs/charter.md); its table rows led by a goal id (`| G-1 | ... |`) are the goals a story's `goals` may name
+stories = "story"            # G-I1, G-I2, G-T1, G-T6: the kind holding the stories ("story"); G-T1 and G-T6 also read [working] criteria
+tests = []                   # G-T2: off until the first criterion is claimed (every AC-n is `planned`; a set source that finds no claim is red); then ["tests"]
 claim = '''criterion(?:\(\s*["']|:\s*)([A-Z]+-[1-9][0-9]*)'''   # G-T2: one group, the claimed id; this default reads `@pytest.mark.criterion("AC-n")` and a `criterion: AC-n` comment
 
 # -- the scoped gate (FRAMEWORK §8.5 G-V1): each gate run recorded against its scopes' content ids --

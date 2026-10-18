@@ -1,19 +1,60 @@
 # Charter
 
-LIVING. About a page, from the owner (FRAMEWORK §3.1): the goals, the anti-goals, and the mandates. It
-is replaced only with the owner's confirmation. A story's `goals:` field names the goal ids
-below, so give every goal one (`G-1`, `G-2`, ...) and never renumber them.
+LIVING. About a page (FRAMEWORK §3.1): the goals, the ranked principles, the anti-goals and the mandates. It is
+replaced only with the owner's confirmation. A story's `goals:` field names the goal ids below; ids are never
+renumbered.
+
+**Unconfirmed:** reconstructed by an agent at adoption (2026-10-18, session 2026-10-18a) from the pre-adoption
+`PLAN.md` (§ Goal, § Principles, § Non-goals, now `docs/archive/PLAN.md`), the decisions and `CLAUDE.md`. The owner
+reviews it; until then, so are the stories that serve it (`story_status: unconfirmed`). G-9 and G-10 are inferred
+from decisions rather than stated as goals anywhere.
 
 ## Goals
 
-| Id | Goal |
-|---|---|
-| G-1 | *(the owner's words)* |
+| Id | Goal | How it is measured |
+|---|---|---|
+| G-1 | v1 builds directly on the OpenTelemetry SDK and the contrib instrumentors, plus what neither provides: the `otel` decorator / context manager, idempotent never-crash instrumentation, introspection, class support, Kubernetes resource detection, `x-userinfo` flattening, scrubbing, one-line JSON logs and Prometheus | the epic OTW-1 closes: every workstream's criteria pass and `README_v1.md`'s API works as written |
+| G-2 | Idempotency: every public entry point can be called any number of times, from anywhere, and behaves as if called once, including methods reached through instances | AC-6; the strict xfails for nested spans through instances pass |
+| G-3 | Never crash the application | AC-7; no public entry point raises into the app in any test |
+| G-4 | No telemetry of its own at runtime: warnings only at startup, decoration or instrumentation time, once each; our own entry points emit no spans | AC-22 |
+| G-5 | Introspection: spans name the right code (`co_qualname`, no `cls` heuristics, stable attributes) | AC-10 |
+| G-6 | Class and dataclass support, including library classes (`otel(SortedList)`) | AC-11 |
+| G-7 | Kubernetes support, as resource detectors | AC-14, AC-16 |
+| G-8 | Machine-readable first: one-line JSON logs, JSON-encode anything | AC-18 |
+| G-9 | Telemetry carries no secrets by default: no arguments on spans, a claim denylist, scrubbing on every exporter we build | AC-12, AC-13, AC-15 |
+| G-10 | Upgrades don't break users: v0 users migrate incrementally, and an OTel release reaches users only once our tests pass on it | AC-8, AC-23, AC-24 |
 
-## Anti-goals
+## Ranked principles
 
-- *(what this repo must never become)*
+When two goals pull apart, the higher one wins. The order is PLAN.md's (unconfirmed as a ranking).
+
+1. Idempotency (G-2).
+2. Never crash (G-3); the one sanctioned exception is `PYTHONWARNINGS=error` at startup (DEC-8).
+3. No telemetry of its own (G-4).
+4. Introspection (G-5).
+5. Class and dataclass support (G-6).
+6. Kubernetes support (G-7).
+7. Machine-readable first (G-8).
+
+## Anti-goals (v1.0)
+
+- gRPC export: OTLP/HTTP only (DEC-36).
+- Logs as spans (DEC-32).
+- Per-span sampling (DEC-23).
+- Global dataclass instrumentation (DEC-42).
+- Auto-tracing a user's package (DEC-60).
+- Un-instrumentation, except the per-test reset in the pytest plugin (DEC-61).
+- Recording function arguments or return values (DEC-26).
+- Type-checking helpers in the public API (DEC-41).
+- A dependency on logfire (DEC-15).
 
 ## Mandates
 
-- *(the owner's standing rules, each with where it is recorded)*
+- Strict OTel pins, capped at the next minor (DEC-57): OTel has shipped breaking changes without warning.
+- Hosting on GitHub and PyPI, CI on GitHub Actions (DEC-40).
+- Automation must act by itself: the owner does not read CI results (DEC-54).
+- The repo's working rules (conda env, scratch space, commits, pushes, CI watching): `CLAUDE.md`.
+
+## Humans
+
+One owner, Avery Khoo (`owner` in records), who gives all intent.
