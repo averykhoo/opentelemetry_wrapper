@@ -414,3 +414,4 @@
 {"at": "2026-10-18T10:36:52+08:00", "session": "2026-10-18a", "actor": "claude-code/2.1.287", "op": "ask.raised", "id": "ASK-17", "path": "tasks/ASK-17-ship-a-v0-patch-release-that-stops-logging-the.md", "fields": ["last_asked", "updated"], "mechanical": false}
 {"at": "2026-10-18T10:36:52+08:00", "session": "2026-10-18a", "actor": "claude-code/2.1.287", "op": "ask.raised", "id": "2026-10-18a", "path": "docs/ledger/session-log.md", "fields": ["asked"], "mechanical": false}
 {"at": "2026-10-18T10:37:26+08:00", "session": "2026-10-18a", "actor": "claude-code/2.1.287", "op": "session.close", "id": "2026-10-18a", "path": "docs/ledger/session-log.md", "fields": ["kind"], "mechanical": false}
+{"at": "2026-10-18T10:37:37+08:00", "session": "2026-10-18a", "actor": "claude-code/2.1.287", "op": "banner.set", "id": "2026-10-18a", "path": "HANDOFF.md", "fields": ["banner"], "mechanical": false}
