@@ -29,6 +29,7 @@ from typing import Optional
 from typing import Sequence
 from typing import Union
 
+from tests.impl import IMPL
 from tests.v0._child import RESULT_MARKER
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -42,13 +43,14 @@ _PRELUDE = 'from tests.v0._child import *  # noqa\n'
 def clean_env(overrides: Optional[Dict[str, Optional[str]]] = None) -> Dict[str, str]:
     """
     environment for a child interpreter: no OTEL_* / LOGFIRE_* config leaking in from the developer's shell
-    (so no OTLP exporter, no prometheus port), repo root importable, utf-8 stdio
+    (so no OTLP exporter, no prometheus port), repo root importable, utf-8 stdio, the same `OTW_IMPL`
     an override of `None` removes the variable
     """
     env = {k: v for k, v in os.environ.items() if not k.upper().startswith(('OTEL_', 'LOGFIRE_'))}
     env['PYTHONPATH'] = str(REPO_ROOT)
     env['PYTHONIOENCODING'] = 'utf-8'
     env['PYTHONUTF8'] = '1'
+    env['OTW_IMPL'] = IMPL  # the child tests the same implementation as pytest
     for k, v in (overrides or {}).items():
         if v is None:
             env.pop(k, None)

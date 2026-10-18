@@ -1,8 +1,8 @@
 ---
 type: Task
 id: OTW-2
-title: 'Workstream 0: the OTW_IMPL adapter, upstream canaries, CI, Renovate and auto-release'
-brief: Renovate must group opentelemetry-*, move the upper cap and accept 0.XbY pre-releases; auto-merge only on green CI
+title: 'Workstream 0: the OTW_IMPL adapter, upstream canaries and CI'
+brief: Adapter first (OTW_IMPL=v0|v1), then canaries in tests/upstream, then CI; Renovate and auto-release moved to OTW-21
 pri: NOW
 state: open
 deps: []
@@ -60,10 +60,10 @@ on push.
 
 ## Traps
 
-- Renovate's config for OTel's contrib packages is unverified: they are PEP 440 pre-releases (`0.66b0`), which Renovate may skip as unstable; SDK and contrib must move in one grouped PR (DEC-54).
+- **Split (DEC-78):** Renovate and the auto-release (the two bullets below on upstream bumps and auto-release, DEC-54 and DEC-55, criterion AC-24) moved to OTW-21, which waits for the strict pins (OTW-13). OTW-2 is the rest, and is below the design-review threshold.
 - The post-fork resource canary (`_handle_fork`) can only run on Linux CI: there is no fork on Windows.
-- Above the design-review threshold (it ships automation that merges and publishes by itself: `shipped`, `write-op`): write its `## Design review` and `task set OTW-2 --set review=[shipped, write-op]` before building (FRAMEWORK §5.2).
 - `asyncio.iscoroutinefunction` (v0's `instrument_decorator.py`, `type_checking.py`) is deprecated in Python 3.14, which the CI matrix runs (DEC-56): expect `DeprecationWarning`s there, and errors if warnings are errors (OTW-18).
+- A CI run that collects no tests must fail (pytest exits 5): OTW-21's auto-merge will trust a green run.
 - The evidence scripts this replaces exist only on the author's machine; the claims they checked are in the evidence doc below.
 
 ## Read first
@@ -78,3 +78,6 @@ on push.
   (2) Automerge needs every status check green, and a PR with no checks is not merged unless ignoreTests is true: fail-safe as long as ignoreTests stays off.
   (3) The pep440 rangeStrategy 'replace' moves a window: '>=1.0.0,<1.1.0' with 1.2.0 becomes '>=1.2.0,<1.3.0' (spec line 169). No Renovate test covers a pre-release window such as '>=0.65b0,<0.66'; still unverified.
   (4) pyproject.toml pins no OTel package yet (strict pins come with OTW-13), so Renovate and auto-release have nothing to bump until then.
+- 2026-10-18j (claude-code/2.1.287): Built the OTW_IMPL adapter (DEC-38): tests/impl.py binds neutral names (decorate, instrument_app, instrument_engine, setup, and the other v0 entry points under their own names) to v0, resolving them lazily; under v1 every name is a stub that raises NotImplementedError, and conftest skips v0_specific tests. Every test and scenario goes through it, except test_public_api, which checks v0's own names on the package itself. Gate: 214 passed, 1 skipped, 23 xfailed. OTW_IMPL=v1: 47 failed, 42 passed, 84 skipped, 20 xfailed, 45 errors (runs to completion).
+  Not marked v0_specific but reaching into v0 internals, to settle when v1's API is: test_v0_extract_json_header.py (the whole module); the test_v0_sqlalchemy.py scenarios importing engine_typedef or instrument_sqlalchemy; test_v0_example_scripts.py (runs the v0 example scripts); every test using the spans fixture or setup_spans() (v0's init_tracer_provider), which is where v1's 45 errors come from.
+  Left in OTW-2: the canaries (tests/upstream), the interleaving tests, the micro-benchmark, CI.

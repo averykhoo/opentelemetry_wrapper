@@ -9,7 +9,7 @@ decision_status: PROVISIONAL
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:c8d5eca09a8a6fd5745753c216709d8f6a41ab285d70b70a42740604712414f7
 tags: [process]
-tasks: [OTW-2]
+tasks: [OTW-2, OTW-21]
 ---
 
 - **Upstream bumps without anyone watching CI** (the author doesn't check CI results; decided 2026-10-18): automation

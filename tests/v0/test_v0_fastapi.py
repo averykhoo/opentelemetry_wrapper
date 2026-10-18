@@ -53,11 +53,11 @@ def server_spans(records):
 
 def test_instrumenting_returns_the_same_app(otw, spans):
     app = make_app()
-    assert otw.instrument_fastapi_app(app) is app
+    assert otw.instrument_app(app) is app
 
 
 def test_request_spans(otw, spans):
-    app = otw.instrument_fastapi_app(make_app())
+    app = otw.instrument_app(make_app())
     spans.clear()
     response = asgi_request(app, '/hello')
     assert response.status == 200
@@ -73,7 +73,7 @@ def test_request_spans(otw, spans):
 
 
 def test_span_name_uses_the_route_template(otw, spans):
-    app = otw.instrument_fastapi_app(make_app())
+    app = otw.instrument_app(make_app())
     spans.clear()
     assert asgi_request(app, '/items/42').status == 200
     (server,) = server_spans(spans.records())
@@ -83,15 +83,15 @@ def test_span_name_uses_the_route_template(otw, spans):
 
 def test_instrumenting_twice_does_not_duplicate_spans_or_raise(otw, spans):
     app = make_app()
-    assert otw.instrument_fastapi_app(app) is app
-    assert otw.instrument_fastapi_app(app) is app
+    assert otw.instrument_app(app) is app
+    assert otw.instrument_app(app) is app
     spans.clear()
     assert asgi_request(app, '/hello').status == 200
     assert sorted(spans.names()) == ['GET /hello', 'GET /hello http send', 'GET /hello http send']
 
 
 def test_handler_exception_marks_server_span_as_error(otw, spans):
-    app = otw.instrument_fastapi_app(make_app())
+    app = otw.instrument_app(make_app())
     spans.clear()
     with pytest.raises(RuntimeError, match='handler failed'):  # no ServerErrorMiddleware response without a server
         asgi_request(app, '/fail')
@@ -102,14 +102,14 @@ def test_handler_exception_marks_server_span_as_error(otw, spans):
 def test_non_fastapi_objects_are_returned_unchanged(otw):
     from starlette.applications import Starlette
     starlette_app = Starlette()
-    assert otw.instrument_fastapi_app(starlette_app) is starlette_app
-    assert otw.instrument_fastapi_app('not an app') == 'not an app'
-    assert otw.instrument_fastapi_app(None) is None
+    assert otw.instrument_app(starlette_app) is starlette_app
+    assert otw.instrument_app('not an app') == 'not an app'
+    assert otw.instrument_app(None) is None
 
 
 @pytest.mark.v0_specific
 def test_instrumenting_emits_a_span_for_the_instrument_call_itself(otw, spans):
-    otw.instrument_fastapi_app(make_app())
+    otw.instrument_app(make_app())
     assert spans.names(include_library_spans=True) == [
         '<opentelemetry_wrapper.v0.dependencies.opentelemetry.instrument_fastapi>.instrument_fastapi_app']
 
@@ -138,7 +138,7 @@ def header_attributes(record):
 
 @pytest.fixture
 def app(otw):
-    return otw.instrument_fastapi_app(make_app())
+    return otw.instrument_app(make_app())
 
 
 def test_base64_userinfo_is_flattened_onto_the_server_span(app, spans):
@@ -229,8 +229,8 @@ def test_metrics_route_is_not_traced(app, spans):
 
 def test_metrics_route_is_added_once_even_when_instrumented_twice(otw):
     app = make_app()
-    otw.instrument_fastapi_app(app)
-    otw.instrument_fastapi_app(app)
+    otw.instrument_app(app)
+    otw.instrument_app(app)
     assert [route.path for route in app.router.routes].count('/metrics') == 1
 
 
@@ -241,7 +241,7 @@ def test_existing_metrics_route_is_not_replaced(otw):
     def custom():
         return 'custom'
 
-    otw.instrument_fastapi_app(app)
+    otw.instrument_app(app)
     assert [route.path for route in app.router.routes].count('/metrics') == 1
     assert asgi_request(app, '/metrics').text == '"custom"'
 
@@ -261,7 +261,7 @@ def test_metrics_exclusion_also_hides_other_routes_containing_slash_metrics(app,
 
 _ENDPOINT_SCRIPT = r'''
 from fastapi import FastAPI
-from opentelemetry_wrapper import instrument_fastapi_app
+from tests.impl import instrument_app
 from tests.v0._harness import asgi_request
 exp = setup_spans()
 app = FastAPI()
@@ -270,7 +270,7 @@ app = FastAPI()
 def hello():
     return 'hi'
 
-instrument_fastapi_app(app)
+instrument_app(app)
 emit('routes', [route.path for route in app.router.routes])
 for path in ('/metrics', '/metrics/', '/hello'):
     response = asgi_request(app, path)

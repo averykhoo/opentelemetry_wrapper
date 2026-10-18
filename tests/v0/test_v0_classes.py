@@ -10,7 +10,7 @@ from tests.v0._harness import scenario
 
 CLASSES = scenario(__name__, 'classes', r'''
 import asyncio, functools, gc, weakref
-from opentelemetry_wrapper import instrument_decorate
+from tests.impl import decorate
 exp = setup_spans()
 
 class First:
@@ -34,7 +34,7 @@ class First:
     def raises(self):
         raise RuntimeError('boom')
 
-    @instrument_decorate  # also decorated explicitly, inside a class that gets instrumented
+    @decorate  # also decorated explicitly, inside a class that gets instrumented
     def predecorated(self):
         return 11
 
@@ -70,8 +70,8 @@ class First:
         def nested_method(self):
             return 10
 
-emit('decorate_returns_same_class', instrument_decorate(First) is First)
-emit('decorate_twice_returns_same_class', instrument_decorate(instrument_decorate(First)) is First)
+emit('decorate_returns_same_class', decorate(First) is First)
+emit('decorate_twice_returns_same_class', decorate(decorate(First)) is First)
 take(exp)
 
 x = First();                        emit('construct', take(exp))
@@ -99,11 +99,11 @@ x.__call__();                       emit('dunder_call_explicit', take(exp))
 x.__enter__();                      emit('dunder_enter_explicit', take(exp))
 assert x.Nested().nested_method() == 10; emit('nested_class', take(exp))
 
-instrument_decorate(First)
+decorate(First)
 y = First(); y.method();            emit('after_decorating_again', take(exp))
 
 # a second, unrelated class
-@instrument_decorate
+@decorate
 class Second:
     def __init__(self):
         pass
@@ -132,8 +132,7 @@ emit('unused_instance_alive_after_del', ref_unused() is not None)
 DATACLASSES = scenario(__name__, 'dataclasses', r'''
 import dataclasses
 from dataclasses import dataclass as dataclass_imported_too_early
-import opentelemetry_wrapper
-from opentelemetry_wrapper import instrument_dataclasses
+from tests.impl import instrument_dataclasses
 exp = setup_spans()
 
 instrument_dataclasses()
@@ -195,12 +194,12 @@ emit('imported_too_early', take(exp))
 
 
 NO_SOURCE = scenario(__name__, 'class_without_source', r'''
-from opentelemetry_wrapper import instrument_decorate
+from tests.impl import decorate
 exp = setup_spans()
 namespace = {}
 source = "class NoSource:\n    def m(self):\n        return 1\n    @property\n    def p(self):\n        return 2\n"
 exec(compile(source, '<generated>', 'exec'), namespace)  # like a frozen app: no source file to read
-NoSource = instrument_decorate(namespace['NoSource'])
+NoSource = decorate(namespace['NoSource'])
 instance = NoSource()
 emit('method', instance.m())
 emit('method_spans', names(exp))

@@ -22,6 +22,9 @@ def setup_spans():
     capture finished spans in memory, using whatever global tracer provider the library under test set up
     v0 installs its own `TracerProvider` the first time anything asks for a tracer
     """
+    from tests.impl import require_v0
+    require_v0('setup_spans')
+
     from opentelemetry import trace
     from opentelemetry.sdk.trace.export import SimpleSpanProcessor
     from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter

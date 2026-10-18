@@ -26,7 +26,9 @@ PUBLIC_NAMES = ('__version__', 'instrument_all', 'instrument_dataclasses', 'inst
                 'instrument_sqlalchemy_engine')
 
 
-def test_public_api(otw):
+def test_public_api():
+    # the package itself, not the OTW_IMPL adapter: these are v0's own names, which must keep working under v1 too
+    import opentelemetry_wrapper as otw
     assert set(PUBLIC_NAMES) <= set(otw.__all__)
     for name in PUBLIC_NAMES:
         assert hasattr(otw, name), name
@@ -43,15 +45,15 @@ def test_public_api(otw):
 INSTRUMENT_ALL = scenario(__name__, 'instrument_all_twice', r'''
 import dataclasses, logging
 original_dataclass = dataclasses.dataclass
-from opentelemetry_wrapper import instrument_all
+from tests.impl import setup
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
 from opentelemetry.instrumentation.system_metrics import SystemMetricsInstrumentor
 
 root = logging.getLogger()
 before = len(root.handlers)
-emit('first_call_returns', instrument_all())
-emit('second_call_returns', instrument_all())
+emit('first_call_returns', setup())
+emit('second_call_returns', setup())
 emit('handlers_added', len(root.handlers) - before)
 emit('dataclasses_patched', dataclasses.dataclass is not original_dataclass)
 emit('requests_instrumented', RequestsInstrumentor().is_instrumented_by_opentelemetry)
@@ -116,7 +118,8 @@ def test_instrument_all_does_not_log_otlp_header_values(instrument_all_result):
 DISABLED = scenario(__name__, 'disabled', r'''
 import asyncio, dataclasses, logging
 original_dataclass = dataclasses.dataclass
-import opentelemetry_wrapper as otw
+from tests import impl as otw
+otw.load()
 from fastapi import FastAPI
 from sqlalchemy import create_engine
 exp = setup_spans()
@@ -131,24 +134,24 @@ class C:
     def m(self):
         return 3
 
-emit('function_returned_unchanged', otw.instrument_decorate(f) is f)
-emit('coroutine_returned_unchanged', otw.instrument_decorate(g) is g)
-emit('class_returned_unchanged', otw.instrument_decorate(C) is C
+emit('function_returned_unchanged', otw.decorate(f) is f)
+emit('coroutine_returned_unchanged', otw.decorate(g) is g)
+emit('class_returned_unchanged', otw.decorate(C) is C
                                  and C.__getattribute__ is object.__getattribute__)
-otw.instrument_decorate(f)(); asyncio.run(otw.instrument_decorate(g)()); otw.instrument_decorate(C)().m()
+otw.decorate(f)(); asyncio.run(otw.decorate(g)()); otw.decorate(C)().m()
 
 root = logging.getLogger()
 before = len(root.handlers)
-otw.instrument_all()
+otw.setup()
 otw.instrument_logging()
 emit('handlers_added', len(root.handlers) - before)
 emit('dataclasses_patched', dataclasses.dataclass is not original_dataclass)
 
 app = FastAPI()
-emit('app_returned_unchanged', otw.instrument_fastapi_app(app) is app)
+emit('app_returned_unchanged', otw.instrument_app(app) is app)
 emit('metrics_route_added', any(route.path == '/metrics' for route in app.router.routes))
 engine = create_engine('sqlite://')
-emit('engine_returned_unchanged', otw.instrument_sqlalchemy_engine(engine) is engine)
+emit('engine_returned_unchanged', otw.instrument_engine(engine) is engine)
 otw.instrument_sqlalchemy(); otw.instrument_requests(); otw.instrument_dataclasses()
 emit('spans', take(exp, include_library_spans=True))
 ''', env={'OTEL_WRAPPER_DISABLED': ' True '})
@@ -173,7 +176,8 @@ def test_disabled_makes_every_entry_point_a_no_op():
 
 _RESOURCE_SCRIPT = r'''
 from opentelemetry import trace
-import opentelemetry_wrapper  # installs the tracer provider
+from tests import impl
+impl.load()  # installs the tracer provider
 emit('resource', dict(trace.get_tracer_provider().resource.attributes))
 '''
 
@@ -213,7 +217,7 @@ def test_default_service_name_is_user_at_host_and_main_file():
 
 _PORT_SCRIPT = r'''
 import os, socket, urllib.request
-from opentelemetry_wrapper import instrument_requests
+from tests.impl import instrument_requests
 instrument_requests()  # initialises the meter provider, which starts the prometheus server
 port = int(os.environ['OTEL_EXPORTER_PROMETHEUS_PORT'])
 for path in ('/', '/metrics', '/anything/at/all'):

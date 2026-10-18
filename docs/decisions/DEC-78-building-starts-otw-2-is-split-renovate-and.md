@@ -5,7 +5,7 @@ title: 'Building starts; OTW-2 is split: Renovate and auto-release move to a new
 actor: owner
 decided: 2026-10-18
 decision_status: PROVISIONAL
-tasks: [OTW-2]
+tasks: [OTW-2, OTW-21]
 tags: [process]
 session: 2026-10-18j
 body_sha: sha256:808c4d1a0224f22cf3ff393d2d7d847d38e3a9f41834d29edd521749238d050e

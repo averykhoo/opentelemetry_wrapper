@@ -27,11 +27,21 @@ if str(_REPO_ROOT) not in sys.path:
 
 import pytest  # noqa: E402
 
+from tests import impl  # noqa: E402
 from tests.v0 import _harness  # noqa: E402
 
 
 def pytest_configure(config):
     config.addinivalue_line('markers', 'v0_specific: pins a v0 detail that v1 is expected to change (docs/decisions)')
+
+
+def pytest_collection_modifyitems(config, items):
+    # v0_specific tests pin v0 details, so they only run against v0 (DEC-38)
+    if impl.IMPL != 'v0':
+        skip = pytest.mark.skip(reason=f'v0_specific: pins a v0 detail, and OTW_IMPL={impl.IMPL}')
+        for item in items:
+            if item.get_closest_marker('v0_specific'):
+                item.add_marker(skip)
 
 
 def pytest_collection_finish(session):
@@ -47,13 +57,13 @@ def pytest_sessionfinish(session, exitstatus):
 
 @pytest.fixture(scope='session')
 def otw():
-    """the public API of the package under test"""
-    import opentelemetry_wrapper
-    return opentelemetry_wrapper
+    """the public API of the package under test, through the OTW_IMPL adapter (`tests/impl.py`)"""
+    return impl
 
 
 @pytest.fixture(scope='session')
 def _in_memory_exporter(otw):
+    impl.require_v0('in-process span capture')
     from opentelemetry import trace
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import SimpleSpanProcessor

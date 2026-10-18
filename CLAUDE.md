@@ -67,10 +67,16 @@ or renumber an id. The pre-adoption design ids (PLAN.md's Q1-Q16, proposals 1-11
 the repo root. Run it as `context-engine gate run` (`[gate]` in `context.toml`, scope `code`: everything but the
 records and the prose); before a commit touching code or tests, `context-engine gate status --require code`.
 
-- **Baseline:** `203 passed, 23 xfailed` in about 22 s. `tests/v0` characterizes v0 so v1 can be checked against it:
-  plain tests pin behaviour v1 keeps; known bugs are `xfail(strict=True)` tests asserting the correct behaviour, so
-  they error once fixed; `@pytest.mark.v0_specific` marks v0 details v1 changes. Global OTel state is isolated by
-  running scenarios in subprocesses (`tests/v0/_harness.py`).
+- **Baseline:** `214 passed, 1 skipped, 23 xfailed` in about 22 s (`203 passed, 23 xfailed` before the adapter).
+  `tests/v0` characterizes v0 so v1 can be checked against it: plain tests pin behaviour v1 keeps; known bugs are
+  `xfail(strict=True)` tests asserting the correct behaviour, so they error once fixed; `@pytest.mark.v0_specific`
+  marks v0 details v1 changes. Global OTel state is isolated by running scenarios in subprocesses
+  (`tests/v0/_harness.py`).
+- **`OTW_IMPL=v0|v1`** (DEC-38, default `v0`; since 2026-10-18j): the tests reach the package only through the
+  adapter `tests/impl.py`, and under `v1` the `v0_specific` tests are skipped (the one v0 skip is a v1-only
+  adapter test). `OTW_IMPL=v1` runs to completion with failures until v1 exists
+  (`47 failed, 42 passed, 84 skipped, 20 xfailed, 45 errors`); its xfails say nothing about v1, since they hit the
+  adapter's `NotImplementedError`.
 - **Outside the gate** (by hand, repo root on `PYTHONPATH`; all passed 2026-10-04):
 
 | Check | Expected |

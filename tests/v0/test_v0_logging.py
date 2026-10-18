@@ -14,7 +14,7 @@ SERVICE_NAME = 'characterization-test-service'
 
 BASIC = scenario(__name__, 'logging_basic', r'''
 import logging
-from opentelemetry_wrapper import instrument_decorate, instrument_logging
+from tests.impl import decorate, instrument_logging
 exp = setup_spans()
 
 root = logging.getLogger()
@@ -30,11 +30,11 @@ take(exp)
 
 logging.info('outside any span')
 
-@instrument_decorate
+@decorate
 def work():
     logging.warning('inside a span %s', 'with-arg')
 
-@instrument_decorate
+@decorate
 async def async_work():
     logging.error('inside an async span')
 
@@ -54,26 +54,26 @@ logging.info('x' * 20000)
 
 TZ_NEGATIVE = scenario(__name__, 'logging_tz_negative', r'''
 import logging
-from opentelemetry_wrapper import instrument_logging
+from tests.impl import instrument_logging
 instrument_logging()
 logging.warning('tz check')
 ''', env={'TZ': 'EST+5'})  # POSIX-style: UTC-5, no DST rule (honoured by the MSVC runtime on Windows too)
 
 TZ_POSITIVE = scenario(__name__, 'logging_tz_positive', r'''
 import logging
-from opentelemetry_wrapper import instrument_logging
+from tests.impl import instrument_logging
 instrument_logging()
 logging.warning('tz check')
 ''', env={'TZ': 'XYZ-8'})  # UTC+8
 
 TEXT_AND_STREAM = scenario(__name__, 'logging_text_and_stream', r'''
 import io, logging
-from opentelemetry_wrapper import instrument_decorate, instrument_logging
+from tests.impl import decorate, instrument_logging
 exp = setup_spans()
 
 instrument_logging(print_json=False)
 
-@instrument_decorate
+@decorate
 def work():
     logging.warning('text mode line')
 
@@ -88,7 +88,7 @@ emit('stream_contents', buffer.getvalue())
 
 CLOBBER = scenario(__name__, 'logging_clobber', r'''
 import io, logging
-from opentelemetry_wrapper import instrument_logging
+from tests.impl import instrument_logging
 
 noisy = logging.getLogger('noisy')
 own_stream = io.StringIO()

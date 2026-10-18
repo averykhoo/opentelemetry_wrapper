@@ -13,7 +13,7 @@ pytest.importorskip('sqlalchemy')
 
 ONE_ENGINE = scenario(__name__, 'sqlalchemy_one_engine', r'''
 from sqlalchemy import create_engine, text
-from opentelemetry_wrapper import instrument_sqlalchemy_engine
+from tests.impl import instrument_engine
 from opentelemetry_wrapper.v0.dependencies.sqlalchemy.engine_typedef import (
     is_sqlalchemy_engine, is_sqlalchemy_sync_engine, is_sqlalchemy_async_engine)
 exp = setup_spans()
@@ -21,9 +21,9 @@ exp = setup_spans()
 engine = create_engine('sqlite:///:memory:')
 emit('engine_type_checks', [is_sqlalchemy_engine(engine), is_sqlalchemy_sync_engine(engine),
                             is_sqlalchemy_async_engine(engine)])
-emit('returns_same_engine', instrument_sqlalchemy_engine(engine) is engine)
-emit('second_call_returns_same_engine', instrument_sqlalchemy_engine(engine) is engine)
-emit('non_engine_passthrough', instrument_sqlalchemy_engine('not an engine'))
+emit('returns_same_engine', instrument_engine(engine) is engine)
+emit('second_call_returns_same_engine', instrument_engine(engine) is engine)
+emit('non_engine_passthrough', instrument_engine('not an engine'))
 take(exp)
 
 with engine.connect() as conn:
@@ -38,14 +38,14 @@ emit('two_more_queries', take(exp))
 
 TWO_ENGINES = scenario(__name__, 'sqlalchemy_two_engines', r'''
 from sqlalchemy import create_engine, text
-from opentelemetry_wrapper import instrument_sqlalchemy_engine
+from tests.impl import instrument_engine
 exp = setup_spans()
 
 # both engines exist before either is instrumented (the usual case: engines are module-level globals)
 e1 = create_engine('sqlite:///:memory:')
 e2 = create_engine('sqlite:///file:e2?mode=memory&uri=true')
-instrument_sqlalchemy_engine(e1)
-instrument_sqlalchemy_engine(e2)
+instrument_engine(e1)
+instrument_engine(e2)
 take(exp)
 for key, engine in (('e1', e1), ('e2', e2)):
     with engine.connect() as conn:
@@ -56,7 +56,7 @@ for key, engine in (('e1', e1), ('e2', e2)):
 GLOBAL = scenario(__name__, 'sqlalchemy_global', r'''
 import sqlalchemy
 from sqlalchemy import create_engine as create_engine_imported_early, text
-from opentelemetry_wrapper import instrument_sqlalchemy
+from tests.impl import instrument_sqlalchemy
 exp = setup_spans()
 
 before = sqlalchemy.create_engine('sqlite://')
@@ -76,7 +76,8 @@ for key, engine in (('created_after', after), ('created_before', before),
 NO_ASYNCIO_EXTENSION = scenario(__name__, 'sqlalchemy_no_asyncio_extension', r'''
 import sys
 sys.modules['sqlalchemy.ext.asyncio'] = None  # e.g. sqlalchemy 2.1 without greenlet: importing it fails
-import opentelemetry_wrapper
+from tests import impl
+impl.load()
 from opentelemetry_wrapper.v0.dependencies.sqlalchemy.engine_typedef import (
     is_sqlalchemy_engine, is_sqlalchemy_sync_engine, is_sqlalchemy_async_engine)
 from sqlalchemy import create_engine, text
@@ -84,7 +85,7 @@ exp = setup_spans()
 engine = create_engine('sqlite:///:memory:')
 emit('checks', [is_sqlalchemy_engine(engine), is_sqlalchemy_sync_engine(engine), is_sqlalchemy_async_engine(engine)])
 try:
-    opentelemetry_wrapper.instrument_sqlalchemy_engine(engine)
+    impl.instrument_engine(engine)
 except Exception as e:
     emit('instrument_error', f'{type(e).__name__}: {e}')
 take(exp)
@@ -101,13 +102,13 @@ module.get_dependency_conflicts = lambda deps: ('DependencyConflict: requested: 
                                                 'but found: "sqlalchemy 2.1.3"')
 import sqlalchemy
 from sqlalchemy import text
-from opentelemetry_wrapper import instrument_sqlalchemy, instrument_sqlalchemy_engine
+from tests.impl import instrument_sqlalchemy, instrument_engine
 exp = setup_spans()
 engine = sqlalchemy.create_engine('sqlite://')
 with warnings.catch_warnings(record=True) as caught:
     warnings.simplefilter('always')
-    emit('returned_engine', instrument_sqlalchemy_engine(engine) is engine)
-    instrument_sqlalchemy_engine(engine)
+    emit('returned_engine', instrument_engine(engine) is engine)
+    instrument_engine(engine)
     instrument_sqlalchemy()
 emit('warnings', [str(w.message) for w in caught])
 take(exp)
