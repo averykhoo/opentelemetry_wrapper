@@ -3,7 +3,7 @@ type: Story
 id: STORY-10
 title: Upgrading, from v0 or to a newer OTel, never breaks a user
 actor: agent (reconstructed from PLAN.md § Decided (Process) and § Workstreams 0)
-story_status: unconfirmed
+story_status: live
 goals: [G-10]
 date: 2026-10-18
 via: adoption, session 2026-10-18a

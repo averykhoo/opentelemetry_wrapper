@@ -3,7 +3,7 @@ type: Story
 id: STORY-4
 title: The wrapper emits no telemetry of its own at runtime
 actor: agent (reconstructed from PLAN.md § Principles, item 3)
-story_status: unconfirmed
+story_status: live
 goals: [G-4]
 date: 2026-10-18
 via: adoption, session 2026-10-18a

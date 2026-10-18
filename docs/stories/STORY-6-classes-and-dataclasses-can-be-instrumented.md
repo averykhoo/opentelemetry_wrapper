@@ -3,7 +3,7 @@ type: Story
 id: STORY-6
 title: Classes and dataclasses can be instrumented, including library classes
 actor: agent (reconstructed from PLAN.md § Principles, item 5)
-story_status: unconfirmed
+story_status: live
 goals: [G-6]
 date: 2026-10-18
 via: adoption, session 2026-10-18a

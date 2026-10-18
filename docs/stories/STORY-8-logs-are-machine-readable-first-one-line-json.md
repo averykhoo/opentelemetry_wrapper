@@ -3,7 +3,7 @@ type: Story
 id: STORY-8
 title: 'Logs are machine-readable first: one-line JSON, anything JSON-encoded'
 actor: agent (reconstructed from PLAN.md § Principles, item 7)
-story_status: unconfirmed
+story_status: live
 goals: [G-8]
 date: 2026-10-18
 via: adoption, session 2026-10-18a

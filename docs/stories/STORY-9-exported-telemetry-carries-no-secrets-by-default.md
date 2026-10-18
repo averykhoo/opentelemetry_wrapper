@@ -3,7 +3,7 @@ type: Story
 id: STORY-9
 title: Exported telemetry carries no secrets by default
 actor: agent (reconstructed from PLAN.md § v0 lessons and § Workstreams 5b)
-story_status: unconfirmed
+story_status: live
 goals: [G-9]
 date: 2026-10-18
 via: adoption, session 2026-10-18a

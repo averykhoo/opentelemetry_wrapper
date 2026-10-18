@@ -3,7 +3,7 @@ type: Story
 id: STORY-1
 title: v1 apps and libraries get traces, logs and metrics from one `otel` object on the plain OTel SDK
 actor: agent (reconstructed from PLAN.md § Goal)
-story_status: unconfirmed
+story_status: live
 goals: [G-1]
 date: 2026-10-18
 via: adoption, session 2026-10-18a

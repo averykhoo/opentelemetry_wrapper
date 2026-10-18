@@ -3,7 +3,7 @@ type: Story
 id: STORY-2
 title: Instrumenting anything twice behaves as instrumenting it once
 actor: agent (reconstructed from PLAN.md § Principles, item 1)
-story_status: unconfirmed
+story_status: live
 goals: [G-2]
 date: 2026-10-18
 via: adoption, session 2026-10-18a

@@ -1,13 +1,13 @@
 # Charter
 
-LIVING. About a page (FRAMEWORK §3.1): the goals, the ranked principles, the anti-goals and the mandates. It is
+LIVING. About a page (FRAMEWORK §3.1): the goals, the ranked principles, what is not in the plan and the mandates. It is
 replaced only with the owner's confirmation. A story's `goals:` field names the goal ids below; ids are never
 renumbered.
 
-**Unconfirmed:** reconstructed by an agent at adoption (2026-10-18, session 2026-10-18a) from the pre-adoption
-`PLAN.md` (§ Goal, § Principles, § Non-goals, now `docs/archive/PLAN.md`), the decisions and `CLAUDE.md`. The owner
-reviews it; until then, so are the stories that serve it (`story_status: unconfirmed`). G-9 and G-10 are inferred
-from decisions rather than stated as goals anywhere.
+Reconstructed by an agent at adoption (2026-10-18, session 2026-10-18a) from the pre-adoption `PLAN.md` (§ Goal,
+§ Principles, § Non-goals, now `docs/archive/PLAN.md`), the decisions and `CLAUDE.md`; **reviewed by the owner in
+session 2026-10-18e (DEC-72)**, which made the principles a ranking and placed G-9 and G-10 in it. STORY-5 (G-5)
+is still unconfirmed.
 
 ## Goals
 
@@ -26,7 +26,8 @@ from decisions rather than stated as goals anywhere.
 
 ## Ranked principles
 
-When two goals pull apart, the higher one wins. The order is PLAN.md's (unconfirmed as a ranking).
+When two goals pull apart, the higher one wins (DEC-72). Items 1-7 are PLAN.md's order; the owner placed 8 and 9.
+G-1 is the whole of v1, so it is not ranked.
 
 1. Idempotency (G-2).
 2. Never crash (G-3); the one sanctioned exception is `PYTHONWARNINGS=error` at startup (DEC-8).
@@ -35,8 +36,18 @@ When two goals pull apart, the higher one wins. The order is PLAN.md's (unconfir
 5. Class and dataclass support (G-6).
 6. Kubernetes support (G-7).
 7. Machine-readable first (G-8).
+8. Upgrades don't break users (G-10): versions stay pinned (DEC-57), and releases try to follow semver to signal
+   compatibility.
+9. No secrets by default (G-9).
 
-## Anti-goals (v1.0)
+**Example: scrubbing fails on export.** Never crash comes first, then the telemetry still goes out, then
+secrets (DEC-72). AC-13 drops just the value that failed to scrub, notes it in `opentelemetry_wrapper.scrubbed` and
+exports the rest of the record, so nothing crashes, the record goes out and no unscrubbed value leaves. Whether that
+stands is ASK-18.
+
+## Not in the v1.0 plan
+
+Not all of these are ruled out for good; they are not in the current plan (DEC-72).
 
 - gRPC export: OTLP/HTTP only (DEC-36).
 - Logs as spans (DEC-32).
@@ -45,14 +56,15 @@ When two goals pull apart, the higher one wins. The order is PLAN.md's (unconfir
 - Auto-tracing a user's package (DEC-60).
 - Un-instrumentation, except the per-test reset in the pytest plugin (DEC-61).
 - Recording function arguments or return values (DEC-26).
-- Type-checking helpers in the public API (DEC-41).
+- Type-checking helpers in the public API (DEC-41): `type_checking.py` is useful and stays, in v0 for now.
 - A dependency on logfire (DEC-15).
 
 ## Mandates
 
 - Strict OTel pins, capped at the next minor (DEC-57): OTel has shipped breaking changes without warning.
 - Hosting on GitHub and PyPI, CI on GitHub Actions (DEC-40).
-- Automation must act by itself: the owner does not read CI results (DEC-54).
+- Automation must act by itself: the owner does not read CI results (DEC-54), which is why every push gets a CI
+  watcher (DEC-72).
 - The repo's working rules (conda env, scratch space, commits, pushes, CI watching): `CLAUDE.md`.
 
 ## Humans

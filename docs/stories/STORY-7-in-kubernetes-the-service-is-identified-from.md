@@ -3,7 +3,7 @@ type: Story
 id: STORY-7
 title: In Kubernetes, the service is identified from the pod without extra configuration
 actor: agent (reconstructed from PLAN.md § Principles, item 6)
-story_status: unconfirmed
+story_status: live
 goals: [G-7]
 date: 2026-10-18
 via: adoption, session 2026-10-18a

@@ -3,7 +3,7 @@ type: Story
 id: STORY-3
 title: The wrapper never crashes the application
 actor: agent (reconstructed from PLAN.md § Principles, item 2)
-story_status: unconfirmed
+story_status: live
 goals: [G-3]
 date: 2026-10-18
 via: adoption, session 2026-10-18a
