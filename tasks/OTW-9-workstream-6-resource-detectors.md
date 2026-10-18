@@ -9,7 +9,7 @@ deps: [OTW-2, OTW-8]
 source: session 2026-10-18a
 created: 2026-10-18
 moved: 2026-10-18a
-updated: 2026-10-18a
+updated: 2026-10-18l
 aliases: [WS6]
 labels: [v1]
 ---
@@ -154,3 +154,7 @@ faked Downward API volume (including escaped values), and a missing volume is si
 
 - The decisions: [DEC-4](../docs/decisions/DEC-4-process-executable-name-is-the-base-name-of-sys.md), [DEC-12](../docs/decisions/DEC-12-no-kubernetes-api-calls-labels-and-annotations.md), [DEC-29](../docs/decisions/DEC-29-service-name-follows-semconv-v0-s-readable-name.md), [DEC-30](../docs/decisions/DEC-30-record-the-full-command-line-as-process-command.md), [DEC-33](../docs/decisions/DEC-33-resource-precedence-our-detectors-otel-service.md); [the criteria](../docs/criteria.md)
 - [v1 design evidence](../docs/evidence/v1-design-evidence-2026-10-18.md): Resources
+
+## Log
+
+- 2026-10-18l (claude-code/2.1.287): 7fcaacf (merged): v1/_resources.py (KubernetesResourceDetector from inside the pod, DEC-12; WrapperProcessResourceDetector with sys.orig_argv through scrub_argv; ForkAwareResource refreshes process.pid/parent_pid at read time and keeps its class through merge), _config._resource uses Resource(explicit) so a detected service.name is not overridden by unknown_service; 62 tests, sabotaged (AC-14, AC-15, AC-16). Entry points under opentelemetry_resource_detector added in pyproject (otel_wrapper_k8s, otel_wrapper_process) with a packaging test. Left: the Linux fork test's first run in CI (not sabotaged). As the item says: container.id left to the contrib detector; Downward API values arrive via OTEL_RESOURCE_ATTRIBUTES, no new env var names. Risks: host.name from HOSTNAME/COMPUTERNAME/gethostname (no getfqdn: DNS could exceed the 5 s detector timeout); an annotation-set service.instance.id is overwritten by the SDK fork hook in children.

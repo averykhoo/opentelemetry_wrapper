@@ -141,6 +141,18 @@ def test_pytest_plugin_entry_point():  # DEC-27: `-p no:opentelemetry_wrapper` n
     assert (ROOT / 'opentelemetry_wrapper' / 'v1' / 'pytest_plugin.py').is_file()
 
 
+def test_resource_detector_entry_points_resolve_to_detectors():  # OTW-9: usable from plain OpenTelemetry too
+    import importlib
+
+    from opentelemetry.sdk.resources import ResourceDetector
+    detectors = PYPROJECT['entry-points']['opentelemetry_resource_detector']
+    assert set(detectors) == {'otel_wrapper_k8s', 'otel_wrapper_process'}
+    for target in detectors.values():
+        module, _, name = target.partition(':')
+        detector = getattr(importlib.import_module(module), name)()  # no-argument constructors, as the SDK calls them
+        assert isinstance(detector, ResourceDetector)
+
+
 def test_py_typed_ships_with_the_package():
     assert (ROOT / 'opentelemetry_wrapper' / 'py.typed').is_file()
     assert 'Typing :: Typed' in PYPROJECT['classifiers']

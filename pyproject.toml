@@ -88,5 +88,10 @@ dev = [
 # DEC-27: passive until a test asks for a fixture; `pytest -p no:opentelemetry_wrapper` turns it off
 opentelemetry_wrapper = "opentelemetry_wrapper.v1.pytest_plugin"
 
+[project.entry-points.opentelemetry_resource_detector]
+# OTW-9: so plain OpenTelemetry can use them too (`OTEL_EXPERIMENTAL_RESOURCE_DETECTORS=otel_wrapper_k8s,...`)
+otel_wrapper_k8s = "opentelemetry_wrapper.v1._resources:KubernetesResourceDetector"
+otel_wrapper_process = "opentelemetry_wrapper.v1._resources:WrapperProcessResourceDetector"
+
 [project.urls]
 Home = "https://github.com/averykhoo/opentelemetry_wrapper"
