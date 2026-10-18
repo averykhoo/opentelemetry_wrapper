@@ -16,3 +16,7 @@ tasks: [OTW-13]
   `[grpc]` extra can come later if someone needs it.
 
 *Imported at adoption (2026-10-18) from `PLAN.md` § Decided, as committed at `24a0430`; now at `docs/archive/PLAN.md`.*
+
+## Amendments
+
+- **2026-10-18l (claude-code/2.1.287):** 2026-10-19 (session 2026-10-18l, recorded by the agent): the owner's DEC-80 keeps v0's dependencies core until v0 is deleted at 1.0.0, and v0 imports opentelemetry.exporter.otlp.proto.grpc, so the gRPC exporter stays a core dependency until 1.0.0. v1 itself exports over HTTP only; the opentelemetry-exporter-otlp meta package is dropped now (OTW-13).
