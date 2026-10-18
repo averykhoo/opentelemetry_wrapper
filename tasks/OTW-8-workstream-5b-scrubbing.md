@@ -68,7 +68,9 @@ unscrubbed; README says so.
   overlap, resolved by rule order). `re2` has ~4 µs fixed overhead per call, hence the hybrid. Prefilter at 32
   characters costs nothing measurable on short strings and is 15x faster on trigger-free bodies. Possessive
   quantifiers / atomic groups and Hyperscan were measured too; engine choice and numbers: Q16.
-- Never crash: if scrubbing a value fails, drop it (fail closed) and note it. Redactions are listed in an
+- Never crash: if scrubbing a value fails, drop it (fail closed) and note it. *(DEC-74, 2026-10-18e)* The value is
+  replaced by its own placeholder, `[REDACTED: scrubbing failed]`, not the normal `[REDACTED]`, and the note names the
+  failure. Redactions are listed in an
   `opentelemetry_wrapper.scrubbed` attribute (paths and rule names, never the values).
 
 **Done when:** every must-redact and must-keep example passes; the stderr JSON logs, the in-memory test exporters and
@@ -80,4 +82,4 @@ unscrubbed; README says so.
 
 ## Read first
 
-- The decisions: [DEC-16](../docs/decisions/DEC-16-scrubbing-engine-stdlib-re-by-default-hyperscan.md), [DEC-18](../docs/decisions/DEC-18-scrubbing-s-optional-fast-engine-is-an-re2.md), [DEC-58](../docs/decisions/DEC-58-v1-scrubs-exported-telemetry-with-its-own-rules.md); [the criteria](../docs/criteria.md)
+- The decisions: [DEC-16](../docs/decisions/DEC-16-scrubbing-engine-stdlib-re-by-default-hyperscan.md), [DEC-18](../docs/decisions/DEC-18-scrubbing-s-optional-fast-engine-is-an-re2.md), [DEC-58](../docs/decisions/DEC-58-v1-scrubs-exported-telemetry-with-its-own-rules.md), [DEC-74](../docs/decisions/DEC-74-a-value-that-fails-to-scrub-is-dropped-and.md); [the criteria](../docs/criteria.md)

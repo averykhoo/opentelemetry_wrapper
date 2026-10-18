@@ -26,7 +26,7 @@ one-line JSON logs on stderr for a log shipper and serve metrics for Prometheus 
 | G-1 | v1 builds directly on the OpenTelemetry SDK and the contrib instrumentors, plus what neither provides: the `otel` decorator / context manager, idempotent never-crash instrumentation, introspection, class support, Kubernetes resource detection, `x-userinfo` flattening, scrubbing, one-line JSON logs and Prometheus | the epic OTW-1 closes: every workstream's criteria pass and `README_v1.md`'s API works as written |
 | G-2 | Idempotency: every public entry point can be called any number of times, from anywhere, and behaves as if called once, including methods reached through instances | AC-6; the strict xfails for nested spans through instances pass |
 | G-3 | Never crash the application: the wrapper is never the cause of an instrumented app failing; if all else fails, it outputs no spans | AC-7, AC-25; no public entry point raises into the app in any test |
-| G-4 | No telemetry of its own at runtime: warnings only at startup, decoration or instrumentation time, once each; our own entry points emit no spans | AC-22 |
+| G-4 | No telemetry of its own at runtime: warnings only at startup, decoration or instrumentation time, once each; our own entry points emit no spans; the one runtime output is a swallowed internal failure, one stderr JSON line per site (DEC-75) | AC-22 |
 | G-5 | Introspection: spans name the right code (`co_qualname`, no `cls` heuristics, stable attributes) | AC-10 |
 | G-6 | Class and dataclass support, including library classes (`otel(SortedList)`) | AC-11 |
 | G-7 | Kubernetes support, as resource detectors | AC-14, AC-16 |
@@ -42,7 +42,7 @@ When two goals pull apart, the higher one wins (DEC-72). The order is PLAN.md's,
 G-11 and G-12 sit in the deck's own tier, "Unsurprising", after G-4 (the agent's placement, DEC-73). G-1 is the
 whole of v1, so it is not ranked.
 
-1. Never crash (G-3); the one sanctioned exception is `PYTHONWARNINGS=error` at startup (DEC-8). Whether the wrapper may report its own runtime failure, to be debuggable, is ASK-19.
+1. Never crash (G-3); the one sanctioned exception is `PYTHONWARNINGS=error` at startup (DEC-8). To stay debuggable, it reports its own swallowed failures on stderr instead of raising (DEC-75).
 2. Idempotency (G-2).
 3. No telemetry of its own (G-4).
 4. Simple, idiomatic, succinct and pretty (G-11).
@@ -56,9 +56,9 @@ whole of v1, so it is not ranked.
     compatibility.
 
 **Example: scrubbing fails on export.** Never crash comes first, then the telemetry still goes out, then
-secrets (DEC-72). AC-13 drops just the value that failed to scrub, notes it in `opentelemetry_wrapper.scrubbed` and
-exports the rest of the record, so nothing crashes, the record goes out and no unscrubbed value leaves. Whether that
-stands is ASK-18.
+secrets (DEC-72). AC-13 drops just the value that failed to scrub and replaces it with its own placeholder,
+`[REDACTED: scrubbing failed]`, not the normal `[REDACTED]`. It names the failure in `opentelemetry_wrapper.scrubbed`
+and exports the rest of the record. So nothing crashes, the record goes out and no unscrubbed value leaves (DEC-74).
 
 ## Not in the v1.0 plan
 
