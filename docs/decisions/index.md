@@ -122,6 +122,7 @@ Generated from each decision's frontmatter by `context-engine decision index`; n
 ### untagged
 
 - [DEC-71](DEC-71-no-v0-patch-release-v0-is-not-touched.md): No v0 patch release: v0 is not touched *(owner, 2026-10-18)*
+- [DEC-72](DEC-72-charter-review-the-principles-are-a-ranking.md): Charter review: the principles are a ranking; never crash first, no secrets last *(owner, 2026-10-18)*
 
 ## DEFERRED
 
