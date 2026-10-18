@@ -5,6 +5,25 @@ the engine repo (`averykhoo/context-engine`). Every session appends at its clean
 feedback): after-action reviews, frictions, tokens spent on ceremony, engine bugs and refusals with a bad remedy,
 and simplifications that would help. Newest first; each entry dated, with its session key.
 
+## 2026-10-18j: building starts; OTW-2 split (DEC-78); the OTW_IMPL adapter
+
+### What worked
+
+- **The trap that named the design-review threshold made the split happen.** Before writing the review, the
+  session looked at what it would cover and found that the self-acting automation had nothing to act on yet (no OTel
+  pins until OTW-13), so the owner split the item off rather than reviewing a design against pins that don't exist.
+
+### Friction
+
+- **`record new decision` refused for a missing `decision_status`** without naming its allowed values or a default.
+  Every owner decision here is `PROVISIONAL` at first: a default, or the enum in the remedy, would save a round trip.
+- **`commit` adds `Session:` but not the harness's `Co-Authored-By:` trailer**, so an agent commit through it lacks
+  the attribution the harness asks for (574b025 here) unless the message carries it. The contract says the trailer
+  paragraph holds both; `commit` could take `--trailer` or keep a `Co-Authored-By:` line the message ends with.
+- **Lint's G-D1 width check found a long line only after a commit attempt**, twice in a row, because the line was
+  wrapped by hand. A `lint --fix` for prose width, or the engine reporting every over-wide line rather than the
+  first, would save a cycle.
+
 ## 2026-10-18i: fast-forward main, prune merged branches, push
 
 ### Friction
