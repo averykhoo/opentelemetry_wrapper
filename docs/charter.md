@@ -7,7 +7,17 @@ renumbered.
 Reconstructed by an agent at adoption (2026-10-18, session 2026-10-18a) from the pre-adoption `PLAN.md` (§ Goal,
 § Principles, § Non-goals, now `docs/archive/PLAN.md`), the decisions and `CLAUDE.md`; **reviewed by the owner in
 session 2026-10-18e (DEC-72)**, which made the principles a ranking and placed G-9 and G-10 in it; all ten stories
-are confirmed.
+are confirmed. The purpose, G-11 and G-12 come from the owner's v0 talk (27 May 2024; summary in
+`docs/evidence/v0-talk-deck-2026-10-18.md`), added in the same review (DEC-73).
+
+## Purpose
+
+Standardize telemetry across a team's Python services: the v0 talk's library "is only maintained to standardize our
+internal logging, although it's available for anyone to use". It makes manual instrumentation almost effortless.
+Manual instrumentation gives more than zero-effort auto-instrumentation: control over what is traced, nested spans
+for the calls that matter, and application context such as the calling user. Here it takes a fraction of the plain
+OTel SDK's code. Apps push OTLP to a collector named by one environment variable. Without a collector, they write
+one-line JSON logs on stderr for a log shipper and serve metrics for Prometheus to scrape.
 
 ## Goals
 
@@ -23,22 +33,27 @@ are confirmed.
 | G-8 | Machine-readable first: one-line JSON logs, JSON-encode anything | AC-18 |
 | G-9 | Telemetry carries no secrets by default: no arguments on spans, a claim denylist, scrubbing on every exporter we build | AC-12, AC-13, AC-15 |
 | G-10 | Upgrades don't break users: v0 users migrate incrementally, and an OTel release reaches users only once our tests pass on it | AC-8, AC-23, AC-24, AC-27 |
+| G-11 | Simple, idiomatic, succinct and pretty: far less code than the plain OTel SDK, and no SDK internals in user code | AC-28 |
+| G-12 | Reasonable documented defaults: reasonable behaviour with minimal configuration, and every default written down | AC-29 |
 
 ## Ranked principles
 
-When two goals pull apart, the higher one wins (DEC-72). The order is PLAN.md's, with never crash moved to the top and 8 and 9 placed by the owner.
-G-1 is the whole of v1, so it is not ranked.
+When two goals pull apart, the higher one wins (DEC-72). The order is PLAN.md's, with never crash moved to the top and G-9 and G-10 placed by the owner.
+G-11 and G-12 sit in the deck's own tier, "Unsurprising", after G-4 (the agent's placement, DEC-73). G-1 is the
+whole of v1, so it is not ranked.
 
 1. Never crash (G-3); the one sanctioned exception is `PYTHONWARNINGS=error` at startup (DEC-8). Whether the wrapper may report its own runtime failure, to be debuggable, is ASK-19.
 2. Idempotency (G-2).
 3. No telemetry of its own (G-4).
-4. Introspection (G-5).
-5. Class and dataclass support (G-6).
-6. Kubernetes support (G-7).
-7. Machine-readable first (G-8).
-8. No secrets by default (G-9).
-9. Upgrades don't break users (G-10): versions stay pinned (DEC-57), and releases try to follow semver to signal
-   compatibility.
+4. Simple, idiomatic, succinct and pretty (G-11).
+5. Reasonable documented defaults (G-12).
+6. Introspection (G-5).
+7. Class and dataclass support (G-6).
+8. Kubernetes support (G-7).
+9. Machine-readable first (G-8).
+10. No secrets by default (G-9).
+11. Upgrades don't break users (G-10): versions stay pinned (DEC-57), and releases try to follow semver to signal
+    compatibility.
 
 **Example: scrubbing fails on export.** Never crash comes first, then the telemetry still goes out, then
 secrets (DEC-72). AC-13 drops just the value that failed to scrub, notes it in `opentelemetry_wrapper.scrubbed` and
