@@ -5,6 +5,22 @@ the engine repo (`averykhoo/context-engine`). Every session appends at its clean
 feedback): after-action reviews, frictions, tokens spent on ceremony, engine bugs and refusals with a bad remedy,
 and simplifications that would help. Newest first; each entry dated, with its session key.
 
+## 2026-10-18k: OTW-2's canaries, interleaving tests, benchmark and CI
+
+### What worked
+
+- **The item's Traps and the frozen evidence doc were enough to start.** `task show OTW-2` plus the evidence doc
+  named every canary; no other orientation read was needed beyond `CLAUDE.md` and the harness.
+- **The sabotage runbook's fresh-bytecode trap was easy to honour** with `PYTHONPYCACHEPREFIX=$(mktemp -d)` per run,
+  and running the breaks in a scratch worktree kept the shared tree clean. One break was mis-aimed (it targeted a
+  dedup mechanism upstream does not use) and stayed green: reading why led to a correct break and a better comment.
+
+### Friction
+
+- **`task set --set brief=...` refused at 137 characters with "cut it to 120"**: a good remedy, but the limit is not
+  in `task set --help`, so the first try is a guess.
+- **The `commit` trailer gap (2026-10-18j) still applies:** the message had to carry `Co-Authored-By:` itself.
+
 ## 2026-10-18j: building starts; OTW-2 split (DEC-78); the OTW_IMPL adapter
 
 ### What worked
