@@ -4,18 +4,17 @@ LIVING. Orientation note (FRAMEWORK §5.1): what is true now, the next session's
 derivable from the code. The board is `context-engine task list`; this note keeps no copy of it. The banner is
 written at each clean close by `context-engine banner set`.
 
-## Banner (2026-10-18e)
+## Banner (2026-10-18f)
 
 - **Engine mode since 2026-10-18a** (engine `7fd3997`, framework 0.5): the v1 design is records now (DEC-n, the
   board, AC-n); `docs/evidence/adoption-map-2026-10-18.md` maps the archived `PLAN.md` / `TODO.md` onto them.
 - **The charter is the owner's since 2026-10-18e** (DEC-72, DEC-73): the higher goal wins, never crash first; a
-  Purpose section and G-11/G-12 from the owner's v0 talk (`docs/evidence/v0-talk-deck-2026-10-18.md`); all twelve
+  Purpose section and G-11 to G-13 from the owner's v0 talk (`docs/evidence/v0-talk-deck-2026-10-18.md`); all thirteen
   stories are live. Scrub failures get their own placeholder (DEC-74); the wrapper reports swallowed runtime
   failures on stderr (DEC-75).
 - **v0 is not touched** (DEC-71). **v1 is the epic OTW-1**; OTW-2 (workstream 0: `OTW_IMPL` adapter, canaries, CI,
   Renovate) is NOW and needs its design review first (its traps say why).
-- **Open with the owner:** whether to add G-13 (application context), proposed in 2026-10-18e but not answered;
-  pushing `adopt-context-engine` (unpushed since 2026-10-18c). OTW-19 holds the rest of the migration leftovers.
+- **On `main` and pushed since 2026-10-18f.** OTW-19 holds the rest of the migration leftovers.
 - **Commits are automatic here, pushes are not** (DEC-70, `CLAUDE.md` § Overrides). Every clean close appends to
   `context-engine-feedback.md`.
 

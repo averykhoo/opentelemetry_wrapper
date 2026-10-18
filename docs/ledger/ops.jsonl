@@ -479,3 +479,4 @@
 {"at": "2026-10-18T15:15:56+08:00", "session": "2026-10-18f", "actor": "claude-code/2.1.287", "op": "new", "id": "STORY-13", "path": "docs/stories/STORY-13-telemetry-carries-the-application-context-of.md", "fields": ["type", "id", "title", "actor", "story_status", "goals", "via", "date", "body_sha"], "mechanical": false}
 {"at": "2026-10-18T15:16:07+08:00", "session": "2026-10-18f", "actor": "claude-code/2.1.287", "op": "comment", "id": "OTW-7", "path": "tasks/OTW-7-workstream-5-headers.md", "fields": ["updated", "body"], "mechanical": false}
 {"at": "2026-10-18T15:17:22+08:00", "session": "2026-10-18f", "actor": "claude-code/2.1.287", "op": "session.close", "id": "2026-10-18f", "path": "docs/ledger/session-log.md", "fields": ["kind"], "mechanical": false}
+{"at": "2026-10-18T15:17:38+08:00", "session": "2026-10-18f", "actor": "claude-code/2.1.287", "op": "banner.set", "id": "2026-10-18f", "path": "HANDOFF.md", "fields": ["banner"], "mechanical": false}
