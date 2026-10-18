@@ -1,28 +1,32 @@
 # Handoff
 
-Working notes for picking this repo back up. Last updated 2026-10-08.
+Working notes for picking this repo back up. Last updated 2026-10-18.
 
 ## State
 
 - **Committed 2026-10-08 on branch `v1-plan`** (not pushed, not merged into `main`), as three commits: the v0 fixes
-  below, the `tests/` suite, and the docs.
-- **Docs:** `PLAN.md` (v1 design, reviewed 2026-10-07/08 and updated with the author's answers), `README_v1.md`
-  (draft v1 API, matching what's decided), `CLAUDE.md` (conda env, scratch space, CI-watching rule). `.gitignore`
-  ignores `.scratch/`, local scratch space holding the evidence scripts, the ergonomics review and the v0 deck
-  transcript (nothing tracked refers to it).
-- **v1 status:** design only, no v1 code. Decided: everything under "Decided" and proposals 3-8, 10, 11 in
-  `PLAN.md`. Open: `PLAN.md` "Questions for later". The ones that block work:
-  - **Q15, keep logfire at all?** v1 now uses little of it (see the question). Suggested next step: a short spike of
-    `configure` on the plain OTel SDK with our own scrubbing exporter wrapper, then decide. Proposal 9, Q6, Q7 and
-    some canaries depend on the answer.
-  - **Q3, exception status policy:** a suggested table is in `PLAN.md`, awaiting the author's OK.
-  - **Q2 default denylist** for `x-userinfo` claims, awaiting confirmation.
-  - Q4-Q13 have suggested defaults to use if nobody decides otherwise.
+  below, the `tests/` suite, and the docs. The 2026-10-17/18 doc updates (logfire dropped, questions answered) are
+  not committed yet.
+- **Docs:** `PLAN.md` (v1 design, reviewed 2026-10-07/08, updated with the author's answers and, 2026-10-17/18, the
+  move to the plain OTel SDK), `README_v1.md` (draft v1 API, matching what's decided), `CLAUDE.md` (conda env,
+  scratch space, CI-watching rule). `.gitignore` ignores `.scratch/`, local scratch space holding the evidence
+  scripts, the Q15 spike, the scrubbing prototype, the ergonomics review and the v0 deck transcript (nothing tracked
+  refers to it).
+- **v1 status:** design only, no v1 code. **Logfire is dropped** (Q15, 2026-10-17): v1 builds on the plain OTel SDK +
+  contrib instrumentors; `PLAN.md` "Why not logfire" has the evidence. Decided: everything under "Decided", proposals
+  3-8, 10, 11, and Q1-Q5, Q9-Q11, Q13. Still open in `PLAN.md` "Questions for later":
+  - Q8, Q12 and Q16 were decided 2026-10-18 (accept `PYTHONWARNINGS=error` crashes; no Kubernetes API calls, Downward
+    API volume instead; stdlib `re` by default + an optional `[hyperscan]` extra; possessive quantifiers measured
+    and rejected).
+  - **Upstream bumps** (decided 2026-10-18): Renovate PRs that raise the OTel caps and auto-merge when CI passes, then
+    an automatic patch release to PyPI for dependency-only merges (`PLAN.md` workstream 0). Renovate's config for
+    OTel's pre-release-numbered contrib packages is unverified.
 - **Decisions from the review that aren't obvious from the docs alone:** hosting stays on GitHub (the v0 deck's move
   to GitLab + Artifactory is off); `type_checking.py` stays in the repo, working, but v1 doesn't import or export it;
-  logs are real OTel log records (logs-as-spans was never the intent).
+  logs are real OTel log records (logs-as-spans was never the intent); OTel stays strictly pinned, as in v0, because
+  OTel has shipped breaking changes without warning (twice during v0).
 - **Next steps:** workstream 0 in `PLAN.md`: the `OTW_IMPL=v0|v1` adapter in the test harness, canary tests in
-  `tests/upstream/`, a GitHub Actions workflow; then the Q15 spike before workstream 1.
+  `tests/upstream/`, a GitHub Actions workflow, Renovate + the auto-release workflow; then workstream 1.
 - **v0 fixes** (committed 2026-10-08, first commit):
   - `engine_typedef.py`: sync/async engine detection imported separately, so a missing asyncio extension
     (e.g. sqlalchemy 2.1 without greenlet) no longer breaks `import opentelemetry_wrapper`
@@ -35,7 +39,9 @@ Working notes for picking this repo back up. Last updated 2026-10-08.
     (it is deliberately not exported from the package)
   - `requirements.txt` / `pyproject.toml`: `sqlalchemy` -> `sqlalchemy[asyncio]<2.1` (temporary pin, see below)
 - **Conda env** `opentelemetry_wrapper` was rebuilt on **Python 3.12.15** (was 3.8.19) with `requirements.txt`, plus
-  `logfire`, `pytest`, `flake8`, `mypy`, `types-requests` (the extras are not in `requirements.txt`).
+  `logfire`, `pytest`, `flake8`, `mypy`, `types-requests` (the extras are not in `requirements.txt`). Added
+  2026-10-18 for the scrubbing-engine benchmark only: `greenery` 4.2.2, `interegular` 0.3.3, `regex` 2026.9.29,
+  `google-re2` 1.1.20251105, `hyperscan` 0.9.1. `logfire` is no longer needed by the design (it was kept for the Q15 comparison).
   Notable versions: opentelemetry 1.44.0 / 0.65b0, sqlalchemy 2.0.54, fastapi 0.142.2, pydantic 2.13.5.
 
 ## How to verify
@@ -151,15 +157,8 @@ All of the above passed on 2026-10-04.
 ### Bigger picture
 
 - [ ] Real pytest suite + CI (also in `TODO.md` as "CICD the tests"); the example scripts above are a starting point.
-- [ ] Rebuild on the Logfire SDK: **decided, see `PLAN.md`** (keep list, evidence, workstreams), though since the
-  2026-10-07 review v1 uses little of logfire and keeping it is open again (`PLAN.md` Q15). Original notes,
-  keeping only what it lacks: k8s service naming, `x-userinfo` header flattening, Prometheus `/metrics` on FastAPI, one-line JSON
-  logs to stderr, Kong/Envoy response headers, gRPC export. Notes:
-  - logfire 5.1.1 requires Python >= 3.10; it exports OTLP over **HTTP/protobuf only** (port 4318, not gRPC 4317)
-  - it already records `code.filepath` / `code.lineno` / `code.function` (qualname on 3.11+) on spans and logs
-  - no plugin system; extend via `additional_span_processors` (mutable span in `on_start`), `resource_attributes`,
-    `scrubbing=ScrubbingOptions(callback=...)`, `add_non_user_code_prefix()`; avoid patching `logfire._internal`
-  - its default scrubbing may redact `x-userinfo` fields
+- [ ] v1 rebuild: **design in `PLAN.md`**. Originally planned on the Logfire SDK; since 2026-10-17 on the plain OTel
+  SDK + contrib instrumentors (`PLAN.md` "Why not logfire").
 
 See also `TODO.md` for the existing longer-term ideas (env var renames, context-manager spans, generators,
 etc.), which are not duplicated here.

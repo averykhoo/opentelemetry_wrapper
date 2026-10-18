@@ -1,14 +1,15 @@
-# v1 plan: rebuild on the Logfire SDK
+# v1 plan: rebuild on the plain OpenTelemetry SDK
 
-Started 2026-10-04, last updated 2026-10-08. This is the design for the next major version ("v1"; the current code is
-v0), written to be reviewed cold. The title reflects the starting point; whether to keep logfire at all is now Q15.
+Started 2026-10-04, last updated 2026-10-18. This is the design for the next major version ("v1"; the current code is
+v0), written to be reviewed cold. It started as a rebuild on the Logfire SDK; the 2026-10-17 spike (Q15) showed v1
+used little of it, and logfire was dropped (see "Why not logfire").
 
 ## For the reviewer
 
 - **State:** design only; no v1 code exists. Committed 2026-10-08 together with `README_v1.md`, `HANDOFF.md`,
   `CLAUDE.md`, the `tests/v0` suite and the v0 fixes listed in `HANDOFF.md`. Reviewed 2026-10-07 (two independent
-  reviews, merged); the author's answers (2026-10-07/08) are folded into "Decided", the proposals and the
-  workstreams. What's still undecided is in "Questions for later".
+  reviews, merged); the author's answers (2026-10-07/08, and 2026-10-17/18 after the Q15 spike) are folded into
+  "Decided", the proposals and the workstreams. What's still undecided is in "Questions for later".
 - **Related files:**
   - `README_v1.md`: draft user-facing API. It reflects the **decided** items below (including proposals 3-8, 10, 11),
     not the open questions.
@@ -18,15 +19,17 @@ v0), written to be reviewed cold. The title reflects the starting point; whether
   - The author's local, untracked notes: the evidence scripts, the full ergonomics review and the v0 talk deck
     transcript. Everything needed from them is summarised here, and the evidence scripts are to become canary tests
     (workstream 0) so they stop depending on one machine.
-- **Verified vs opinion:** claims marked *verified* were run against logfire 5.1.1, OTel SDK 1.44.0 / contrib
-  0.65b0, mypy 2.4, Python 3.12.15 (Windows). Everything else is design opinion.
+- **Verified vs opinion:** claims marked *verified* were run against OTel SDK 1.44.0 / contrib 0.65b0 (and logfire
+  5.1.1 where logfire is discussed), mypy 2.4, Python 3.12.15 (Windows). Everything else is design opinion.
 - **What to check:** (1) the evidence still holds, (2) the decisions are consistent with each other and with
   `README_v1.md`, (3) the proposals, (4) anything missing (compare with `HANDOFF.md` and the v0 deck's to-do list).
 
 ## Goal
 
-Use the Logfire SDK (`logfire.configure(send_to_logfire=False, ...)`) for providers, exporters and the stock
-instrumentations, and keep only what it lacks or gets wrong. Python floor: **3.12** (logfire itself needs >= 3.10).
+Build directly on the OpenTelemetry SDK (providers, OTLP/HTTP exporters, samplers, resources) and the contrib
+instrumentors, plus what neither provides: the `otel` decorator / context manager, idempotent never-crash
+instrumentation, introspection, class support, Kubernetes resource detection, `x-userinfo` flattening, scrubbing,
+one-line JSON logs and Prometheus. Python floor: **3.12** (the SDK itself needs >= 3.10).
 
 ## Principles (kept from v0)
 
@@ -55,51 +58,51 @@ API:
   Instead, code info is looked up at run time from the target: the decorated function's code object at decoration
   time, the caller's frame (`f_code`, `f_lineno`) at `__enter__`, cached by code object + line, never stored on `otel`.
 - **Generators and context managers** as in workstream 7 (author approved the prototype).
-- **No per-span sampling.** Sampling is decided at the root span; use `OTEL_TRACES_SAMPLER_ARG` (logfire reads it as a
-  parent-based trace-id ratio, per its source).
+- **No per-span sampling.** Sampling is decided at the root span, via the standard `OTEL_TRACES_SAMPLER` /
+  `OTEL_TRACES_SAMPLER_ARG`, which the SDK reads itself (all standard samplers; *verified*: `always_off` exports 0,
+  `always_on` with an ARG exports everything).
 - **`OTEL_WRAPPER_DISABLED`** means no telemetry at all, for test envs with nowhere to export, where only stack traces
   matter: decorators return the target unchanged (no wrapper frames in tracebacks), `otel.instrument` is a no-op, and
   `with otel as span` yields OTel's standard `NonRecordingSpan` (`trace.INVALID_SPAN`). *Verified:* every method
   works and records nothing, and exceptions propagate untouched. It's read at decoration time, so wrappers that
   already exist also check it at call time (e.g. a test that sets it after import).
-- **Our spans come from the OTel tracer, not `logfire.span` / `logfire.instrument`.** Logfire is used for
-  configuration, exporters, scrubbing and the stock instrumentations; our decorator and `with otel:` call
-  `trace.get_tracer(...)`, which goes through logfire's provider and processors anyway. *Verified:* a plain OTel span
-  gets only `logfire.span_type` and `logfire.msg` added and none of logfire's deprecated `code.*` keys, while
-  `logfire.span` walks the stack per call and adds five `logfire.*` attributes. So the exposed span type is OTel's
-  `trace.Span` (was proposal 2), the same in enabled and disabled mode. To check: how `OTEL_WRAPPER_LOG_FORMAT=pretty`
-  renders spans without `logfire.msg_template`.
-- **No arguments or return values on spans.** *Verified:* `logfire.instrument` records **every argument** by default
-  as a top-level attribute named after the parameter (`n = 3`; `password` survives only because the scrubber matches
-  its name), and the return value only with `record_return=True`. Ours records neither: PII, payload size, and
-  parameter names colliding with real attribute keys. Users add what they need via `attributes={...}` or the span.
-- **Configuration: implicit and explicit together** (was proposal 1, with the review's changes).
+- **Our spans come from the OTel tracer** (`trace.get_tracer(...)`), and the exposed span type is OTel's `trace.Span`
+  (was proposal 2), the same in enabled and disabled mode.
+- **No arguments or return values on spans.** PII, payload size, and parameter names colliding with real attribute
+  keys. (*Verified* counter-example: `logfire.instrument` records every argument by default as a top-level attribute
+  named after the parameter.) Users add what they need via `attributes={...}` or the span.
+- **Configuration: implicit and explicit together** (was proposal 1, with the review's changes; rule 2 changed
+  2026-10-17 with the move to the plain SDK).
   1. Decorating never configures anything, so import order doesn't matter. The first span configures from env vars,
-     **only if nothing has configured yet** (us, the test plugin, or the app calling `logfire.configure` directly;
-     detect via `logfire.DEFAULT_LOGFIRE_INSTANCE.config._initialized`, which is private, so pin and test it).
-     `otel.instrument(...)` configures **eagerly**, since nearly every app calls it at startup; that keeps
-     configuration (file reads, a possible k8s API call, exporter threads, a port bind) off the first request and out
-     of the event loop. A lock makes "configure if not yet configured" atomic across threads.
+     **only if nothing has configured yet** (tracked in our own state, under a lock so "configure if not yet
+     configured" is atomic across threads). `otel.instrument(...)` configures **eagerly**, since nearly every app
+     calls it at startup; that keeps configuration (file reads, exporter threads, a port bind) off the first request
+     and out of the event loop.
   2. `otel.configure(...)` takes a typed signature (not "env var names in lowercase"). Explicit > env > default. Same
-     arguments again (normalised, env-derived defaults included): no-op. **Configuration is final once the first span
-     exists**: a later call with different arguments warns once and is ignored, except for a small allowlist of
-     settings that can change safely (see "Questions for later"). *Verified* reasons: logfire's reconfigure shuts the
-     old tracer and meter providers down (open spans end into dead processors; the meter shutdown can time out), a
-     Prometheus port can't be bound twice, and a second `PrometheusMetricReader` collides in the global registry.
-  3. Test capture survives configuration. *Verified* problem: the `capfire` fixture from logfire works, but a later
-     `logfire.configure()` (what implicit configuration does) silently drops every subsequent span from the capture.
-     Fix: a pytest plugin (`pytest11` entry point, loads before app code) that doesn't call `logfire.configure`
-     itself but registers in-memory span and log processors **with us**; every configure we do re-includes them.
-     Because a `pytest11` plugin loads in **every** project that installs the package, auto-loading is passive: it
-     only registers the `otel_spans` / `otel_logs` fixtures (reset per test). Exporters, Prometheus and console are
-     switched off only when a test opts in (see "Questions for later" for the trigger). Document
-     `-p no:opentelemetry_wrapper`, use the SDK's `InMemorySpanExporter` (logfire's `TestExporter` also receives
-     pending spans), and define what happens next to logfire's own `capfire` plugin.
+     arguments again (normalised, env-derived defaults included): no-op. **Configuration is final once built** (by
+     `otel.configure`, `otel.instrument` or the first span): a later call with different arguments warns once and is
+     ignored, except for the log level (Q9). So `otel.configure(...)` goes before `otel.instrument(...)`, or
+     configuration comes from env vars alone; the README says so. Reasons: the SDK's global providers can be set only
+     once (replacing them means proxy providers for all three signals, ~800 lines in logfire), a Prometheus port can't
+     be bound twice, and a second `PrometheusMetricReader` collides in the global registry. Instrumenting before
+     configuring loses nothing: *verified*, contrib instrumentors created before any provider get the API's
+     `ProxyTracer`, which picks up the provider set later.
+  3. Test capture survives configuration: a pytest plugin (`pytest11` entry point, loads before app code) registers
+     in-memory span and log processors **with us** (the SDK's `InMemorySpanExporter` / `InMemoryLogRecordExporter`,
+     behind the same scrubbing wrapper as the real exporters, so tests see what would be exported). Because a
+     `pytest11` plugin loads in **every** project that installs the package, auto-loading is passive: it only
+     registers the `otel_spans` / `otel_logs` fixtures (reset per test). Exporters and Prometheus are switched off
+     only when a test opts in (Q10), by swapping the sinks of our own span and log processors (public SDK API; works
+     after configuration). Document `-p no:opentelemetry_wrapper`.
   4. `otel.config`: a read-only view of the effective configuration, secrets redacted (v0 logged its config and
      leaked the OTLP auth header).
-- **Logfire options set explicitly:** `send_to_logfire=False`, `console=False`, `distributed_tracing=True`
-  (if proposal 9 is signed off), `add_baggage_to_attributes` per Q6, `emit_configuration_span=False` (otherwise the `LOGFIRE_EMIT_CONFIGURATION_SPAN` env var could make us
-  emit a span of our own), `inspect_arguments=False`.
+  5. **Someone else configured first** (the app called `logfire.configure()`, or set its own provider): *verified*
+     (second review, 2026-10-17), the SDK refuses a second `set_tracer_provider` with a log line, so either order gives two
+     pipelines, never a crash. Policy: warn once; if the existing provider is an SDK `TracerProvider` /
+     `LoggerProvider`, attach our processors to it, otherwise leave it alone.
+- **Exporters from the standard env vars:** `OTEL_EXPORTER_OTLP_{,TRACES_,METRICS_,LOGS_}ENDPOINT`, `..._HEADERS`,
+  `..._TIMEOUT`, and `OTEL_{TRACES,METRICS,LOGS}_EXPORTER` (`otlp`, `console`, `none`). The OTLP exporters read most of
+  these themselves; we only decide which exporters to build.
 
 Telemetry content:
 
@@ -109,35 +112,33 @@ Telemetry content:
 - **Full command line** recorded as `process.command_args` (from `sys.orig_argv`, sanitized), plus our
   `opentelemetry_wrapper.python.environment` (conda / venv / system / pyodide / frozen), so it's clear which
   interpreter ran the process.
-- **Stable semconv `code.*` keys** everywhere (workstream 3). Logfire's deprecated keys don't appear, because we
-  don't use the logfire APIs that write them (see Evidence).
-- **Logs are real OTel log records**, via the SDK's `LoggingHandler`, never spans. Use the logs, traces and metrics
-  signals as OTel intends. (An earlier draft kept logfire's logs-as-spans model; that was never the intent.) *Verified:*
-  logfire installs a global `LoggerProvider` whenever an OTLP endpoint is set, so `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`
-  works. A record logged inside a span carries that span's `trace_id` / `span_id` (that's how backends show it on
-  the span: it's correlated, not a child in the span tree), `extra={...}` becomes attributes, and the code location
-  uses the stable keys. Logs are **not** affected by head sampling: at a 0% ratio the spans are dropped but every log
-  record is still exported (with `trace_flags=0`), and a log outside any span has no trace ids. `LogfireLoggingHandler`
-  is not used. Both span and log capture are tested through the same pytest plugin.
-- **Resource precedence is resolved by us.** `OTEL_SERVICE_NAME` / `OTEL_RESOURCE_ATTRIBUTES` must beat our detectors,
-  but *verified*: logfire merges `AdvancedOptions.resource_detectors` **after** the env vars
-  (`_internal/config.py`, `Resource.create()` first, detectors on top), so registering our detectors there would
-  let a k8s guess override `OTEL_SERVICE_NAME`. Instead, run our detectors, merge the env vars on top ourselves, and
-  pass the result as `resource_attributes`. Test: `OTEL_SERVICE_NAME` wins in k8s. Side effect to know about: with no
-  `service_version`, logfire runs `git rev-parse` at configure time and uses the hash as `service.version` (locally,
-  possibly the wrong repo).
+- **Stable semconv `code.*` keys** everywhere (workstream 3).
+- **Logs are real OTel log records**, never spans: a handler on the root logger feeding a `LoggerProvider` we always
+  install (exporter only when an endpoint is set). The handler is the one from `opentelemetry-instrumentation-logging`
+  (decided 2026-10-17): *verified*, the SDK's own `LoggingHandler` emits a `DeprecationWarning` at construction in
+  1.44 pointing there. A record logged inside a span carries that span's `trace_id` / `span_id` (that's how backends
+  show it on the span: it's correlated, not a child in the span tree), `extra={...}` becomes attributes, and the code
+  location uses the stable keys (*verified* with the SDK handler; re-check with the contrib one). Logs are **not**
+  affected by head sampling: at a 0% ratio the spans are dropped but every log record is still exported (with
+  `trace_flags=0`), and a log outside any span has no trace ids. Both span and log capture are tested through the same
+  pytest plugin.
+- **Resource precedence:** our detectors (guesses) < `OTEL_SERVICE_NAME` / `OTEL_RESOURCE_ATTRIBUTES` < explicit
+  `otel.configure(...)` arguments. *Verified* in the spike (`Resource.create()`, then our detectors, then
+  `OTELResourceDetector().detect()`, then the explicit attributes): `OTEL_SERVICE_NAME` beats a k8s guess, and an
+  explicit `service_name` beats `OTEL_SERVICE_NAME`. Test: `OTEL_SERVICE_NAME` wins in k8s.
 
 Output and dependencies:
 
-- **Console:** ours (one-line JSON) replaces logfire's; logfire's pretty console only on request
-  (`OTEL_WRAPPER_LOG_FORMAT=pretty`).
-- **Pydantic 2 only, optional, detected at startup.** `try: import pydantic` once at startup; if it's v2, register
-  encoders for its real types (`isinstance` / type lookup, no duck typing), e.g. `BaseModel` ->
-  `model_dump(mode="json")`. Pydantic 1 counts as absent (warn once at startup); `pydantic.v1` models get the generic
-  encoder. This is what logfire's own `_internal/json_encoder.py` does, and it costs nothing extra: *verified*,
-  `import logfire` already imports pydantic when installed (~120 ms), although pydantic isn't a logfire requirement.
-  FastAPI 0.142 requires `pydantic>=2.9` anyway. v0 keeps supporting both.
-- **gRPC export dropped** for now (logfire is HTTP-only; collectors listen on 4318 by default).
+- **Console:** one-line JSON logs on stderr (`OTEL_WRAPPER_LOG_FORMAT=json|off`). No pretty console in 1.0 (decided
+  2026-10-17; it was logfire's); for local debugging of spans, `OTEL_TRACES_EXPORTER=console` gives the SDK's
+  `ConsoleSpanExporter`.
+- **Pydantic 2 only, optional, never imported by us.** Pydantic models can only exist if the app imported pydantic, so
+  the encoder checks `sys.modules.get('pydantic')` when it meets an unknown object instead of importing it (~120 ms)
+  at startup. If it's v2, use encoders for its real types (`isinstance` / type lookup, no duck typing), e.g.
+  `BaseModel` -> `model_dump(mode="json")`. Pydantic 1 counts as absent (warn once); `pydantic.v1` models get the
+  generic encoder. FastAPI 0.142 requires `pydantic>=2.9` anyway. v0 keeps supporting both.
+- **gRPC export dropped** for now: OTLP/HTTP only (collectors listen on 4318 by default), which avoids `grpcio`. A
+  `[grpc]` extra can come later if someone needs it.
 
 Process:
 
@@ -162,7 +163,7 @@ Process:
 
 ## Non-goals (for v1.0)
 
-- gRPC export (logfire is HTTP-only).
+- gRPC export (OTLP/HTTP only, see "Decided").
 - Logs as spans.
 - Per-span sampling.
 - Global dataclass instrumentation.
@@ -173,18 +174,15 @@ Process:
 - Recording function arguments or return values.
 - Type-checking helpers in the public API.
 
-## Proposals (signed off 2026-10-08, except 9)
+## Proposals (signed off 2026-10-08; 9 withdrawn 2026-10-17)
 
 From the planning session and from an ergonomics review of `README_v1.md` (findings F1-F12; F1, the disabled-mode
 part of F2, and F11 are already decided above). Items 1 and 2 have moved to "Decided"; the numbering is kept because
 workstreams refer to it. Amendments from the 2026-10-07 review are marked *(review)*. The author signed off 3-8, 10
-and 11 as written here, so they count as decided. 9 waits on Q15: it's a logfire option and goes away if logfire does.
+and 11 as written here, so they count as decided. 9 was a logfire option and went with logfire.
 
 1. *Decided* ("Configuration").
-2. *Decided* ("Our spans come from the OTel tracer"): the exposed span type is OTel's `trace.Span`. Background,
-   *verified*: `logfire.span()` returns a `LogfireSpan`, which is *not* an OTel `Span`; it wraps logfire's
-   `_LogfireWrappedSpan` (an OTel `Span` subclass, the same object `trace.get_current_span()` returns), which wraps
-   the SDK's `_Span`.
+2. *Decided* ("Our spans come from the OTel tracer"): the exposed span type is OTel's `trace.Span`.
 3. **Escape hatches** (F4): `otel.span` (current span; a no-op span when there is none, never `None`), `otel.trace_id`
    / `otel.span_id` (hex strings, e.g. to return in an HTTP 500 body; all zeros when there's no span or telemetry is
    disabled). Document `record_exception`, `add_event`, marking a span failed without raising, and stdlib `logging`
@@ -202,13 +200,19 @@ and 11 as written here, so they count as decided. 9 waits on Q15: it's a logfire
    orders, and v1 handles both at runtime.
 7. **Warning channel** (F8): one `OtelWrapperWarning(UserWarning)` via `warnings.warn(..., stacklevel=2)`, only on
    startup paths (decoration, `instrument`, `configure`, env var parsing), never through `logging` and never per call.
-   The default filter shows each message once per call site, and `-W error::...OtelWrapperWarning` in CI turns misuse
-   into a test failure without ever crashing production. *(review)* Call `warnings.warn` outside our own
-   `try`/`except` blocks so an error-filtered warning isn't swallowed; whether `PYTHONWARNINGS=error` in production
-   may crash at startup is in "Questions for later".
+   The default filter shows each message once per call site, and an error filter in CI turns misuse into a test
+   failure without ever crashing production. The CI recipe is pytest's `filterwarnings =
+   error::opentelemetry_wrapper.OtelWrapperWarning` (ini) or `pytest -W error::...`, **not** `python -W
+   error::opentelemetry_wrapper.OtelWrapperWarning` / `PYTHONWARNINGS=...`: *verified* (2026-10-18), the interpreter
+   parses `-W` before `site` adds site-packages, so a category from an installed package prints `Invalid -W option
+   ignored` and the run exits 0. *(review)* Call `warnings.warn` outside our own `try`/`except` blocks so an
+   error-filtered warning isn't swallowed, and only once state is consistent (collect warnings during `configure` /
+   decoration and emit them at the end), so an error filter can't leave configuration half-built. Whether
+   `PYTHONWARNINGS=error` in production may crash at startup is Q8.
 8. **`@otel()` and `with otel():`** (F10) mean the same as `@otel` / `with otel:`, silently (v0's sketch warned).
-9. *(Pending Q15.)* **Distributed tracing on** (`distributed_tracing=True`). *Verified:* by default logfire continues an incoming
-   `traceparent` but emits `RuntimeWarning: Found propagated trace context`; with it on, same trace, no warning.
+9. *Withdrawn with logfire.* It was logfire's `distributed_tracing=True`. On the plain SDK an incoming `traceparent`
+   is simply continued (the default W3C propagator), *verified*: same trace id, no warning. (Logfire without the option
+   also exported a log span of its own, "Found propagated trace context".)
 10. **Migration** (F9):
     - old env var names read for one release, with a startup warning. *(review)* Except `OTEL_LOG_LEVEL`: it's the
       SDK's own variable, so honouring it would keep the collision alive. Warn when it's set and
@@ -217,8 +221,6 @@ and 11 as written here, so they count as decided. 9 waits on Q15: it's a logfire
       exporter posting to a gRPC port fails on every batch, visible only in the SDK's internal logger). *(review)*
       Same warning for `OTEL_EXPORTER_OTLP_PROTOCOL=grpc` and `OTEL_EXPORTER_OTLP_INSECURE`, both of which v0 users
       may have set;
-    - *(review)* warn when `OTEL_TRACES_SAMPLER` is set: logfire reads only `OTEL_TRACES_SAMPLER_ARG` (*verified*), so
-      e.g. `always_off` would be silently ignored;
     - *(review)* `OTEL_EXPORTER_OTLP_HEADERS` values are URL-decoded (*verified*, `opentelemetry/util/re.py`), so
       v0's `Authorization: Basic abc==` becomes `Authorization=Basic%20abc==` (the `=` padding is fine: it splits on
       the first `=`). Say so in "Upgrading";
@@ -232,7 +234,8 @@ and 11 as written here, so they count as decided. 9 waits on Q15: it's a logfire
       versions). Never `__repr__`, `__eq__`, `__hash__` etc.: they're noisy and can recurse (a span attribute that
       calls `repr(self)`);
     - *(review)* a per-method opt-out for hot methods inside an instrumented class, e.g. `@otel.ignore`;
-    - say `OTEL_TRACES_SAMPLER_ARG` means `parentbased_traceidratio`;
+    - document the standard sampler variables (`OTEL_TRACES_SAMPLER=parentbased_traceidratio` +
+      `OTEL_TRACES_SAMPLER_ARG=0.1` for 10%);
     - `attributes={...}` as a dict (not `**kwargs`), so it can't collide with options.
 
 ## Questions for later (need the author's input)
@@ -245,8 +248,9 @@ Each question below has a suggested default, used if nobody decides otherwise.
   instruments globally (later engines included, `connect` spans on); `otel.instrument(engine)` instruments that engine
   only, without `connect` spans; the engine docs state this.
 - **Q2. `x-userinfo` by default.** *Decided 2026-10-07*, see workstream 5: capture every claim except a denylist.
-  Still to confirm: the default denylist given there.
-- **Q3. Exception status.** *Suggested* policy (needs the author's OK):
+  Default denylist confirmed 2026-10-18 (`*token*,at_hash,c_hash,nonce,session_state,sid`; personal data captured
+  unless added).
+- **Q3. Exception status.** *Decided 2026-10-18* as follows:
 
   | raised through the span | status | recorded |
   |---|---|---|
@@ -263,42 +267,75 @@ Each question below has a suggested default, used if nobody decides otherwise.
   timeout causes it, `asyncio.timeout` turns it into `TimeoutError` at the scope that set the timeout, and that span
   is ERROR. "Already recorded" is a marker attribute set on the exception object (*verified*: exceptions accept
   attributes but not weak references; `error.type` and `process.exit.code` are semconv constants). Spans always end in `finally`, and exceptions are re-raised with a bare `raise`.
-- **Q4. `process.executable.name` on Windows:** `python.exe` (what the file is called) or `python`? It also decides
-  the fallback `service.name` (`unknown_service:python.exe` vs `unknown_service:python`; `README_v1.md` says the
-  latter).
-- **Q5. `OTEL_SDK_DISABLED=true`** (standard; the SDK already honours it with a no-op tracer): should it also mean
-  `OTEL_WRAPPER_DISABLED` (no wrapper frames at all)? *Suggested:* yes.
-- **Q6. Logfire's `add_baggage_to_attributes`** (default on) copies W3C baggage onto every span: a possible leak of
-  whatever upstream services put in baggage. Keep or switch off? *Suggested:* off.
-- **Q7. `LOGFIRE_*` env vars** still influence `logfire.configure` (e.g. `LOGFIRE_TRACE_SAMPLE_RATE` is read before
-  `OTEL_TRACES_SAMPLER_ARG`). Document them as honoured, or warn and ignore? *Suggested:* warn at startup when any is
-  set.
+- **Q4. `process.executable.name`.** *Decided 2026-10-18:* `os.path.basename(sys.executable)` (*verified*:
+  `python.exe` on Windows, same as `psutil.Process().name()`), or `python` when that's empty (e.g. Pyodide). The
+  fallback `service.name` is therefore `unknown_service:python.exe` on Windows; `README_v1.md` to match.
+- **Q5. `OTEL_SDK_DISABLED=true`** (standard) also means `OTEL_WRAPPER_DISABLED`. *Decided 2026-10-18.*
+- **Q6, Q7.** *Obsolete* (logfire's `add_baggage_to_attributes` and `LOGFIRE_*` env vars). Baggage is never copied
+  onto spans.
 - **Q8. `PYTHONWARNINGS=error` in production** turns our startup warnings into exceptions. Accept that as the one
-  sanctioned exception to "never crash" (the user asked for it), or catch it? *Suggested:* accept and document.
-- **Q9. Which settings may change after the first span** (configuration rule 2)? *Suggested:* the log level only.
-- **Q10. Pytest plugin opt-in trigger** for switching exporters/console/Prometheus off: requesting the `otel_spans` /
-  `otel_logs` fixture, an ini option, or both? *Suggested:* the fixture, plus an ini option for whole-suite use.
-- **Q11. `otel.instrument()` with no arguments**: confirm the set: logging, requests, system metrics (needs
-  `logfire[system-metrics]`); never apps, engines or SQLAlchemy globally.
-- **Q12. The k8s API lookup** (pod labels/annotations, one HTTPS call at startup): on by default with a ~1 s cap and
-  `OTEL_WRAPPER_K8S_API=false` to switch it off, or off by default? Some clusters flag pods that call the API server.
-- **Q13. Function name on log records**: the SDK's `LoggingHandler` writes `code.function.name` as the bare
-  `record.funcName` (`<module>`, `load_config`), while semconv wants it fully qualified. Accept, or rewrite it in a
-  log processor?
-- **Q14. Sign-off on proposals 3-11.** *Decided 2026-10-08:* 3-8, 10 and 11 signed off as amended; 9 waits on Q15.
-- **Q15. Is logfire still worth depending on?** After the review, v1 uses none of logfire's span, instrument, log
-  handler or console APIs (console only for `pretty`), works around its resource precedence, idempotency, `LOGFIRE_*`
-  env vars and `x-userinfo` scrubbing, bypasses its SQLAlchemy integration, and its `instrument_requests` is a plain
-  pass-through to `RequestsInstrumentor` (*verified* in source). Its `instrument_fastapi` records the endpoint's
-  resolved arguments by default, including the parsed request body and dependency results (read in source, not run),
-  which conflicts with "no arguments on spans". What it still provides: provider/exporter/sampler setup (which the SDK
-  mostly does from env vars on its own, and v0 already has), **scrubbing** of span attributes and log records (no SDK
-  equivalent), the `pretty` console, and post-fork `process.pid` fixing. Costs: it pins `opentelemetry-sdk<1.45`,
-  adds `logfire.span_type` / `logfire.msg` to every span, pulls in `rich` and `executing`, auto-loads two pytest
-  plugins, runs `git rev-parse`, and needs the `_initialized` private attribute. The alternative is the plain OTel SDK
-  + contrib instrumentors + our own small scrubbing exporter wrapper (we'd construct the exporters, so wrapping them
-  is public API). *Suggested:* a short spike: `configure` on the plain SDK, scrubbing included, then decide. Many
-  items above (Q6, Q7, proposal 9, the logfire options, the `_initialized` canary) disappear if logfire goes.
+  sanctioned exception to "never crash" (the user asked for it), or catch it? *Suggested:* accept and document. The
+  author finds it defensible; the second opinion (2026-10-18) agrees, with high confidence: a startup crash is
+  deterministic and happens before readiness, so a rollout halts without dropping traffic (true only because our
+  warnings never fire lazily on a request); catching or downgrading would second-guess an explicit operator request,
+  and `warnings.catch_warnings` isn't thread-safe. Mainstream libraries (requests, urllib3, SQLAlchemy, pydantic) use
+  plain `warnings.warn`; the OTel SDK mostly uses `logging`, so proposal 7 is a deliberate departure. *Decided
+  2026-10-18:* accepted, with proposal 7's amendments (emit after state is consistent; the pytest CI recipe).
+- **Q9. Settings that may change after configuration is built:** the log level only. *Decided 2026-10-18.*
+- **Q10. Pytest plugin opt-in trigger:** requesting the `otel_spans` / `otel_logs` fixture, plus an ini option for
+  whole-suite use. *Decided 2026-10-18.*
+- **Q11. `otel.instrument()` with no arguments:** logging, requests, system metrics (the `[system-metrics]` extra);
+  never apps, engines or SQLAlchemy. That's v0's `instrument_all()` set minus global dataclass instrumentation
+  (dropped). *Decided 2026-10-18.*
+- **Q12. The k8s API lookup** (pod labels/annotations, one HTTPS call at startup). *Verified 2026-10-18:* Falco's
+  default stable ruleset has "Contact K8S API Server From Container" (any container connecting to the API server,
+  minus a short image allowlist), and Elastic Security ships "Kubernetes Denied Service Account Request" (medium) for
+  exactly the usual 403. CIS 5.1.5/5.1.6 recommend `automountServiceAccountToken: false`, so in hardened clusters
+  there's no token at all. Nobody comparable reads the API from inside the application: the OTel Operator computes
+  `service.*` in its admission webhook and injects Downward API env vars, `k8sattributes` runs in the Collector, and
+  Datadog uses `fieldRef` labels or its admission controller (second review, from their docs and source). AWS's EKS
+  detectors do call the API, but only when configured to. The alternative needs no API: a **Downward API volume**
+  exposes the full `metadata.labels` / `metadata.annotations` maps as files (one `key="Go-quoted value"` per line,
+  sorted, updated atomically), and single labels can be `fieldRef` env vars. *Suggested* (second review,
+  medium-high confidence): **no API calls at all**, read labels/annotations from the volume (e.g.
+  `OTEL_WRAPPER_PODINFO_DIR`, default `/etc/podinfo`) and ship the snippet in the README; an opt-in API lookup needs
+  a Role + RoleBinding, the same manifest edit as adding the volume, for more risk. *Decided 2026-10-18:* no
+  Kubernetes API calls; labels and annotations from the Downward API volume or `fieldRef` env vars (workstream 6).
+  May be revisited as an explicit opt-in if a user asks.
+- **Q13. Function name on log records:** accept the bare `record.funcName` the handler writes (`load_config`); a log
+  record doesn't carry the qualified name, and rebuilding it means a stack walk per log call. *Decided 2026-10-18.*
+- **Q14. Sign-off on proposals 3-11.** *Decided 2026-10-08:* 3-8, 10 and 11 signed off as amended; 9 withdrawn with
+  logfire.
+- **Q15. Is logfire still worth depending on?** *Decided 2026-10-17: no*, see "Why not logfire".
+- **Q16. Scrubbing engine** (benchmark in workstream 5b). *Decided 2026-10-18:* stdlib `re` by default (factored
+  alternation, no groups, 32-character prefilter), plus an optional fast engine. First decided as an `[re2]` hybrid
+  (`re` for short strings, `re2` for long ones: same speed on attributes, 10-20x faster on log bodies), then replaced
+  by `[hyperscan]` (below). Greenery not at runtime; `interegular` as a test-time lint (dev dependency).
+  Follow-ups measured the same day (µs per call; 10 attributes / 2 KB "password" body / 2 KB secret body / argv /
+  2 KB adversarial body):
+
+  | engine | attrs | "password" | secret | argv | adversarial |
+  |---|--:|--:|--:|--:|--:|
+  | `re` default | 88 | 421 | 388 | 47 | 257 |
+  | `re2` hybrid | 100 | 17 | 108 | 69 | 169 |
+  | Hyperscan alone | 81 | 14 | 40 | 74 | 137 |
+
+  - **Possessive quantifiers / atomic groups** (an `re`-engine rewrite, no change in any match): 30-45% *slower*
+    under `re`, even on the adversarial input, because CPython compiles a plain character-class run to a
+    specialised opcode and the possessive form goes through a generic loop; neutral under `regex`. Not used.
+  - **Hyperscan** (`hyperscan` 0.9.1 on PyPI, MIT, statically links Vectorscan, the open-source fork; wheels for
+    Linux, macOS and Windows): every rule expressible, output identical to `re` on every test including non-ASCII.
+    Its fixed cost per call is the lowest (2.5 µs vs `re` 4.0, `re2` 6.8), so it needs no hybrid. Engine notes: it
+    reports every end offset and only the leftmost start, so the engine takes the leftmost start, lets `re` decide
+    the exact span, rule and post-match check, and rescans from there; ASCII `\w`/`\s` are widened so it can only
+    over-report; database compile ~0.8 s, once; one scratch space per thread.
+  - *Decided 2026-10-18:* `[hyperscan]` is the optional fast engine, **replacing `[re2]`** (faster everywhere except
+    argv-sized strings, one engine fewer to maintain); the engine is picked once at configure time from what's
+    installed, falling back to stdlib `re`. There's no official Vectorscan package on PyPI; `hyperscan`
+    (darvid/python-hyperscan) is the de facto binding, maintained by one person, which is acceptable for an optional
+    extra with a fallback. Keeping `[re2]` as well adds little: *verified* (PyPI, cp312), `hyperscan` has wheels for
+    Linux x86_64/aarch64 on both glibc (manylinux2014) and musl (Alpine), macOS and Windows amd64, while `google-re2`
+    has no musl wheels and only adds win32 / win_arm64.
 
 ## v0 lessons (from `tests/v0`, 2026-10-07)
 
@@ -321,10 +358,60 @@ Bugs and surprises in v0 that v1's design must avoid; details in `HANDOFF.md`.
   crashes without sqlalchemy's asyncio extension).
 - **Never log secrets** (v0's `instrument_all()` logs the OTLP auth header).
 
-## Evidence (logfire 5.1.1, OTel SDK 1.44.0 / contrib 0.65b0, Python 3.12.15)
+## Why not logfire (Q15, decided 2026-10-17)
+
+A spike built `configure` on the plain SDK (~300 lines, scrubbing included) and ran the same scenarios against it and
+against `logfire.configure(send_to_logfire=False, console=False, ...)`, each in a fresh subprocess (logfire 5.1.1, SDK
+1.44.0 / contrib 0.65b0). A second, independent review agreed (dropping it, ~80% confidence). All *verified* unless
+noted.
+
+What logfire did for v1, and the replacement:
+
+- **Exporters:** for a generic collector logfire builds exactly `BatchSpanProcessor(OTLPSpanExporter())` and the log /
+  metric equivalents; its retrying, disk-buffering exporters are only for Logfire's own backend. Replacement: the same
+  three lines per signal.
+- **Scrubbing:** the only real feature. Replacement: our own rules (workstream 5b), applied in an exporter wrapper (public
+  API, off the caller thread).
+- **Reconfigure before the first span** (its proxy providers): replaced by "configuration is final once built"
+  (configuration rule 2).
+- **Post-fork resource fix:** the SDK (1.44) does it itself. Its providers register `os.register_at_fork` hooks that
+  re-run the process-dependent detectors (by default `service.instance.id`) and update existing tracers. Not run (no
+  fork on Windows): our own detector's `process.pid` is not among the re-run detectors unless registered through the
+  SDK's mechanism (workstream 6).
+- **Flushing forked children:** logfire **replaces `os._exit` process-wide at `import logfire`** (atexit doesn't run
+  in a forked `multiprocessing` child, which ends with `os._exit`). Replacement: a `multiprocessing.util.Finalize` with
+  an exit priority, which `_bootstrap` runs before `os._exit` (read in CPython's source; covers `multiprocessing` only,
+  not run).
+- **Pretty console:** dropped for 1.0.
+
+What it cost:
+
+- **Per-span overhead** (BatchSpanProcessor + no-op exporter, 3 attributes): caller thread ~45 µs bare SDK, ~70 µs
+  with our scrubbing wrapper, ~120 µs logfire without scrubbing, ~200-250 µs logfire default; total CPU ~2.8x ours.
+  Logfire rebuilds every span as a dict, runs ~10 rewrite passes and scrubs, synchronously in `on_end`. (Windows; the
+  ratios matter, not the absolute numbers.)
+- **Import:** ~1 s / 546 modules vs ~0.5 s / 371 for the SDK + OTLP exporters (pydantic, rich, pygments, executing
+  among them). Two `pytest11` plugins auto-loading in every project that installs us. Extra dependencies: logfire,
+  executing, rich, pygments, markdown-it-py, mdurl.
+- **Sampler semantics:** with `OTEL_TRACES_SAMPLER_ARG` < 1, logfire forces a parent-based ratio and ignores
+  `OTEL_TRACES_SAMPLER` (`always_off` + `ARG=0.5` exported 95/200 spans); without ARG the SDK reads the sampler itself.
+- **Telemetry changes:** `logfire.span_type` / `logfire.msg` / `logfire.level_num` / `logfire.json_schema` on stock
+  spans (`logfire.msg` repeats the query string, unscrubbed), renamed HTTP spans, `service.version` from `git
+  rev-parse` of the cwd, `instrument_fastapi` recording endpoint arguments **including dependency results**, and a log
+  span of its own for an incoming `traceparent` unless `distributed_tracing=True`.
+- **Maintenance:** ~200 releases, a 4 -> 5 major in Sept 2026 and 6.0 betas splitting the distribution
+  (`logfire-sdk` + `logfire-cli`); upper caps on the OTel packages that lifted 18 days after SDK 1.45, so our users
+  couldn't take a newer OTel release until logfire did; private attributes we'd have had to canary (`_initialized`).
+
+What we now own instead: configure, the scrubber, swappable span and log sinks, the at-exit flush for forked children
+and our own OTel pins (workstream 10), all on the SDK's public API (`opentelemetry.sdk._logs` is private-named, but
+unavoidable either way).
+
+## Evidence (OTel SDK 1.44.0 / contrib 0.65b0, logfire 5.1.1, Python 3.12.15)
 
 All reproduced by running small scripts; results recorded here because the scripts were throwaway (kept locally,
-untracked). Workstream 0 turns the ones about upstream behaviour into canary tests.
+untracked). Workstream 0 turns the ones about upstream behaviour into canary tests. The logfire comparisons predate the
+Q15 decision and are kept as background: v1 doesn't use logfire.
 
 ### Idempotency: logfire's isn't
 
@@ -372,20 +459,7 @@ stdlib/site-packages/logfire (`_internal/stack_info.py`) and record the **call s
 
 Logfire writes the **deprecated** keys `code.filepath` (relative to cwd) / `code.lineno` / `code.function` (qualname,
 no module). Stable semconv is `code.function.name` (fully qualified), `code.file.path` (absolute preferred),
-`code.line.number`, `code.column.number`, `code.stacktrace`.
-
-Where they come from, and whether they can be removed (*verified* 2026-10-07):
-
-- Only logfire's own APIs write them: `logfire.span` / `logfire.info` etc., `logfire.instrument`,
-  `LogfireLoggingHandler`, and the opt-in slow-async-callback detector. A span from the plain OTel tracer has none,
-  and the SDK's `LoggingHandler` writes the stable keys (`code.file.path`, `code.function.name`, `code.line.number`).
-  Since v1 uses neither `logfire.span` nor `LogfireLoggingHandler`, there's nothing to remove.
-- `span.set_attribute('code.filepath', None)` in a processor's `on_start` does **not** remove it: `None` is an invalid
-  attribute value, so the SDK logs a warning and keeps the old value.
-- A resource detector can't help: resource attributes are a separate level from span attributes, and `None` values
-  are dropped there too (same warning).
-- `span._attributes.pop('code.filepath', None)` in `on_start` **does** remove it (private API; only needed if a
-  logfire API that writes them is ever used).
+`code.line.number`, `code.column.number`, `code.stacktrace`. The SDK's `LoggingHandler` writes the stable keys.
 
 ### Arguments and return values: logfire records arguments by default
 
@@ -462,16 +536,32 @@ tests (79) mark intended changes; strict xfails are v0 bugs. v1 tests come after
 scenarios (and the subprocess harness in `tests/v0/_harness.py`).
 
 - Add the `OTW_IMPL=v0|v1` adapter (see "Decided", Process).
-- **Canary tests** (`tests/upstream/`): one test per upstream behaviour or private API we rely on, so a logfire or
-  OTel upgrade fails a test instead of production: `config._initialized`; the `EngineTracer` import path and
-  signature; `span._attributes` if it's ever used; the `contextmanager` shared-`__code__` trick; resource precedence
-  in `logfire.configure`; logfire's non-idempotent `instrument*` (if logfire fixes it, we can simplify). These
+- **Canary tests** (`tests/upstream/`): one test per upstream behaviour or semi-private API we rely on, so an OTel
+  upgrade fails a test instead of production: the `EngineTracer` import path and signature; the `contextmanager`
+  shared-`__code__` trick; `ReadableSpan(...)` constructor kwargs and the `opentelemetry.sdk._logs` names the
+  scrubbing wrappers use; the SDK's post-fork resource update (`_handle_fork`, Linux CI only); `ProxyTracer` picking up
+  a later provider; resource precedence; `FastAPIInstrumentor.instrument_app` idempotency and `exclude_spans`. These
   replace the local evidence scripts.
-- In-process fixtures must strip `LOGFIRE_*` as well as `OTEL_*` (`tests/conftest.py` strips only `OTEL_*`; the
-  subprocess harness already does both).
+- **Upstream bumps without anyone watching CI** (the author doesn't check CI results; decided 2026-10-18): automation
+  is only worth having if it updates the repo by itself. Use **Renovate** (GitHub app) rather than a home-grown job:
+  it opens a PR that raises the OTel caps, the PR's CI runs the suite and the canaries, and Renovate **auto-merges
+  only if everything passes**; a failing PR just sits there and the old pins keep protecting users. OTel has shipped
+  breaking changes without warning (twice during v0), which is why the pins stay strict (workstream 10). Config to
+  get right (not verified yet): group all `opentelemetry-*` packages into one PR (SDK and contrib release in
+  lockstep); a range strategy that moves the upper cap (`<1.45` -> `<1.46`); contrib versions like `0.66b0` are PEP
+  440 pre-releases, so Renovate must not ignore them as unstable.
+- **Auto-release of dependency-only bumps** (decided 2026-10-18): when such a PR merges, a release workflow bumps the
+  patch version and publishes to PyPI (trusted publishing, no stored token). Only for merges that change nothing but
+  dependency specifiers; anything else is released by hand. A patch release (not `.postN`) is the conventional
+  signal, and both are picked up by default. If a bump should ever be opt-in, publish it as a pre-release (`rcN` /
+  `.devN`), which pip skips unless asked (`--pre` or an explicit pre-release specifier); *verified* with `packaging`'s
+  filtering. Local versions (`+tag`) can't be uploaded to PyPI.
+- Without Renovate, the same check runs locally as `pytest -m upstream` whenever someone works on the repo.
+- In-process fixtures strip `OTEL_*` (`tests/conftest.py` already does).
 - Tests for the two-tasks-plus-a-thread interleaving from "Public API notes".
 - A micro-benchmark of per-call overhead (v0 vs v1, with and without an exporter), so a regression is visible.
-- **CI:** GitHub Actions (none yet; `.github/workflows/` doesn't exist). Matrix: Python 3.12 / 3.13 / 3.14 × with and
+- **CI:** GitHub Actions on push and on pull requests (none yet; `.github/workflows/` doesn't exist). Kept
+  (decided 2026-10-18): Renovate's auto-merge depends on it, and whoever pushes watches the run. Matrix: Python 3.12 / 3.13 / 3.14 × with and
   without the optional extras, so "optional at call time" is actually exercised. Keep the steps in a script so the
   workflow file stays thin.
 
@@ -481,12 +571,19 @@ OTel, testable alone) and 10-11 alongside 1. Each workstream ends with a one-lin
 **Done when:** the suite is committed, `OTW_IMPL=v1` runs (failures expected until v1 exists), canaries pass, CI runs
 on push.
 
-### 1. Idempotent, never-crash wrappers over logfire
+### 1. Configure, and idempotent, never-crash wrappers over the SDK and contrib
 
+- `configure`: providers for all three signals, OTLP/HTTP exporters per the standard env vars (only when an endpoint
+  is set), the SDK's own sampler handling, resources per "Resource precedence", the scrubbing exporter wrappers
+  (workstream 5b), swappable span and log sinks for the pytest plugin, the "someone else configured first" policy,
+  a bounded shutdown (workstream 9), and an at-exit flush for forked `multiprocessing` children
+  (`multiprocessing.util.Finalize`). Global providers are set once, under the configuration lock. Expect ~450 lines.
 - One function per integration (`fastapi`, `requests`, `sqlalchemy`, `logging`, system metrics) that records what it
   already instrumented (weakref where the target is an object) and swallows/warns-once on failure, at instrumentation
   time only. Also warn once when an instrumentor hits a `DependencyConflict`: upstream only logs it and produces no
   spans (`HANDOFF.md`, the sqlalchemy and requests cases), which isn't an exception we'd catch.
+- FastAPI: `FastAPIInstrumentor.instrument_app(app, exclude_spans=['send', 'receive'], ...)` (*verified*: only the
+  server span remains, and a second call neither raises nor duplicates spans).
 - `otel.instrument(app)` after the app has started can't add middleware (Starlette raises): warn once, return the app.
 - Our own decorator creates spans with the OTel tracer and `CodeInfo` attributes (see "Decided"), and keeps the
   "already instrumented, return the cached wrapper" logic, keyed on the underlying function (see "v0 lessons").
@@ -496,14 +593,11 @@ on push.
 - `with otel:` keeps its state in a `ContextVar` holding an immutable value: `set()` on enter, `reset(token)` on
   exit. Never a list that gets mutated: `copy_context()` copies the mapping, not the values, so a mutated list leaks
   between tasks.
-- Call `logfire.add_non_user_code_prefix()` on our package path so our frames are not reported as user code (only
-  matters when it isn't installed in site-packages, e.g. local dev).
-- `logfire.configure(...)` with the options under "Decided", run under the configuration lock.
 - Exception handling per Q3; re-raise with a bare `raise` so tracebacks are untouched, and set `__tracebackhide__`
   (pytest) / `__traceback_hide__` (Sentry and others) in wrapper frames.
 
-**Done when:** functions (sync, async), `with otel:` / `with otel('x'):`, configure (implicit, explicit, final after
-the first span), disabled mode and the pytest plugin pass their tests; the plain `tests/v0` decorator tests pass under
+**Done when:** functions (sync, async), `with otel:` / `with otel('x'):`, configure (implicit, explicit, final once
+built, someone-else-configured-first), disabled mode and the pytest plugin pass their tests; the plain `tests/v0` decorator tests pass under
 `OTW_IMPL=v1`.
 
 ### 2. SQLAlchemy
@@ -537,9 +631,8 @@ warning, no crash.
 
 The `CodeInfo` rewrite in `HANDOFF.md`. Emit stable `code.*` keys, using the constants in
 `opentelemetry.semconv.attributes.code_attributes` rather than string literals; put extras (wrapper chain,
-`is_class`, end line) under our own prefix, e.g. `opentelemetry_wrapper.code.*`. Logfire's deprecated keys need no
-handling: v1 never calls the logfire APIs that write them (Evidence, "Introspection"). Auto-name `with otel:` blocks
-from the call site (see proposal 5 for the naming), which logfire can't do.
+`is_class`, end line) under our own prefix, e.g. `opentelemetry_wrapper.code.*`. Auto-name `with otel:` blocks from
+the call site (see proposal 5 for the naming).
 
 **Done when:** every row of the Evidence introspection table gives the right name, file and line (including callable
 instances and decorators that set `__wrapped__` without `@wraps`); no source needed; no strong references to user
@@ -570,36 +663,97 @@ out of `capture_headers` (e.g. by adding it to the sanitize-fields list).
 `employee_id` come through without being named anywhere. The denylist is
 `OTEL_WRAPPER_HEADER_ATTRIBUTES_EXCLUDE`: comma-separated glob patterns matched against the flattened claim path
 (`realm_access.roles`, `email`). Denied claims are **dropped** before they're recorded, not scrubbed with a marker.
-Everything else is recorded as-is, so the scrubber has to let all remaining `x-userinfo.*` attributes through:
-logfire's would otherwise mangle `auth_time`, `session_state` and `iss` (Evidence). Suggested default, to confirm:
-credentials and session handles, `*token*,at_hash,c_hash,nonce,session_state,sid`. Personal data (`email`, `name`)
-is captured unless added to the list; README says so.
+Everything else is recorded as-is, so the scrubber lets all remaining `http.request.header.x-userinfo.*` attributes
+through (a generic scrubber would mangle `auth_time`, `session_state` and `iss`; see Evidence). Default (confirmed
+2026-10-18): credentials and session handles, `*token*,at_hash,c_hash,nonce,session_state,sid`. Personal data
+(`email`, `name`) is captured unless added to the list; README says so.
 
 Response headers: `OTEL_WRAPPER_RESPONSE_HEADER_ATTRIBUTES`, symmetric with the request-header variable, defaulting to
 v0's hardcoded Kong / Envoy list (`instrument_requests.py`, including `X-Envoy-Upstream-Service-Time` as upstream
-latency), via `logfire.instrument_requests(response_hook=...)`.
+latency), via `RequestsInstrumentor().instrument(response_hook=...)`.
 
 **Done when:** a Keycloak-style header of every base64 length decodes; a custom claim (`employee_id`) and the
-claims logfire would scrub (`auth_time`, `iss`) are recorded unchanged; denylisted claims are absent; the raw base64
-value never appears, including with `capture_headers=True`.
+claims a generic scrubber would mangle (`auth_time`, `iss`) are recorded unchanged; denylisted claims are absent; the
+raw base64 value never appears, including with header capture on.
+
+### 5b. Scrubbing
+
+Our own rules, designed from examples (2026-10-18), not copied from logfire's list. Applied in wrappers around every
+exporter we build (spans: attributes, event and link attributes; logs: attributes and body; the in-memory test
+exporters too), on the exporter thread, so the cost stays off the caller's path; also to the stderr JSON logs
+(decided 2026-10-17) and, via `scrub_argv`, to `process.command_args`. Defence in depth: the primary controls remain
+"no arguments on spans" and the header denylist. Anything not behind our wrappers (a user's own processors) is
+unscrubbed; README says so.
+
+- **Two kinds of rules.** Key rules: the key's last word names a secret (`password`, `client_secret`,
+  `authorization`, `cookie`, ...) -> the whole value is redacted. Value rules: the value *looks like* a secret by
+  format, whatever its key (Vault `hvs.`/`hvb.`/`hvr.`, GitHub / GitLab / Slack / Stripe / AWS / Google keys, JWTs,
+  `Bearer` / `Basic` credentials, PEM private keys, passwords in URL userinfo, secret-named URL query parameters,
+  inline `key=value`) -> only the secret part is redacted (`Bearer [REDACTED]`, `postgresql://user:[REDACTED]@db`,
+  `password=[REDACTED]`), so messages stay readable. Rules may have a post-match check (e.g. `Basic` must decode to
+  `user:pass`), which keeps false positives like "Basic configuration" out.
+- **Not redacted:** `input_tokens`, `tokenizer`, `token_count`, `password_policy`, `passwordless`, trace ids, UUIDs,
+  digests. SQL keeps its statement with literals redacted. Exception messages and stack traces get value rules only.
+  Command line: `--token abc` redacts the next argument (2+ character flags only; `-p hunter2` is ambiguous).
+- **Known false positives** (accepted for now; all verified on the prototype):
+  - keys: pagination cursors (`next_token`, `page_token`, `continuation_token`), `cancellation_token`, boolean flags
+    (`is_secret`, `has_password`), `access_key` (often a key *id*);
+  - inline text: bare `token:` (`token: 7`, `Token: Expired`), prose after a secret name (`password: The password
+    must...` redacts "The"), `pwd: /home/bob`, `private_key: /path/to/key.pem`;
+  - URL query parameters: `?key=`, `?auth=`, `?page_token=`;
+  - value formats: `sk-` slugs (`sk-blue-widget-2024-edition-pro`), 20-character all-caps words starting `ASIA`
+    (`ASIAPACIFICREGION123`).
+- AWS (`AKIA`/`ASIA`) and Google (`AIza`) keys must end at a word boundary, so a longer run isn't truncated and
+  partly redacted.
+- **Engine:** rules live in a registry and compile into one matcher behind a small engine interface, so the engine can
+  change without touching the rules or callers. Rules stay in a regex subset an automaton library can handle (no
+  backreferences, no lookarounds), enforced by a test; which rule fired is found by re-testing the rules on the matched
+  text only. Benchmark (2026-10-18, µs per call; 10 attributes / 2 KB body containing "password" / 2 KB body with a
+  secret):
+
+  | engine | attrs | "password" body | secret body |
+  |---|--:|--:|--:|
+  | one `re` per rule | 137 | 1075 | 991 |
+  | `re` alternation, named groups | 191 | 1890 | 2070 |
+  | `re` alternation, factored, no groups, 32-char prefilter (stdlib default) | 99 | 480 | 480 |
+  | greenery automaton union, run on `re` | 94 | 382 | 402 |
+  | `re2`, factored, named groups | 151 | 20 | 94 |
+  | hybrid: `re` below 256 chars, `re2` above | 78 | 17 | 103 |
+
+  Findings: under `re`, named groups cost ~2x on bodies and ~40% on attributes, and a plain alternation is *slower*
+  than one regex per rule (factoring the shared boundaries and dropping groups is what wins). Under `re2`, groups cost
+  nothing. The `regex` module is 1.5-2x slower than `re` everywhere. A greenery union only gains ~25% over the
+  factored `re` alternation, takes ~3 s to build and can't express `\A`/`\Z`, lazy quantifiers or named groups:
+  keep it out of the runtime. `interegular` is useful as a **test-time lint** for overlapping rules (it found one
+  overlap, resolved by rule order). `re2` has ~4 µs fixed overhead per call, hence the hybrid. Prefilter at 32
+  characters costs nothing measurable on short strings and is 15x faster on trigger-free bodies. Possessive
+  quantifiers / atomic groups and Hyperscan were measured too; engine choice and numbers: Q16.
+- Never crash: if scrubbing a value fails, drop it (fail closed) and note it. Redactions are listed in an
+  `opentelemetry_wrapper.scrubbed` attribute (paths and rule names, never the values).
+
+**Done when:** every must-redact and must-keep example passes; the stderr JSON logs, the in-memory test exporters and
+`process.command_args` go through the same scrubber; the per-span overhead benchmark (workstream 0) includes it.
 
 ### 6. Resource detectors
 
 Everything that describes *the process* (computed once at startup, attached to every export) becomes a
-`ResourceDetector` registered under the `opentelemetry_resource_detector` entry-point group, so it works in plain OTel
-(`OTEL_EXPERIMENTAL_RESOURCE_DETECTORS=...`) and in logfire. Here we don't register them through logfire: we run them
-ourselves and pass the merged result as `resource_attributes` (see "Decided", resource precedence).
-Per-call things (code info, headers, log format, Prometheus, class instrumentation) are not resources.
+`ResourceDetector` registered under the `opentelemetry_resource_detector` entry-point group, so it also works in plain
+OTel without our `configure` (`OTEL_EXPERIMENTAL_RESOURCE_DETECTORS=...`). Our `configure` runs them itself and merges
+per "Decided", resource precedence. Per-call things (code info, headers, log format, Prometheus, class
+instrumentation) are not resources.
 
-Constraints: `OTEL_SERVICE_NAME` / `OTEL_RESOURCE_ATTRIBUTES` must override our guesses (merge them on top ourselves;
-in plain OTel the SDK already merges its `otel` detector last, *verified*); `detect()` must finish well inside
-`get_aggregated_resources`' 5 s timeout; resource attributes reach Prometheus only as `target_info`, not as labels on
-each series.
+Constraints: `OTEL_SERVICE_NAME` / `OTEL_RESOURCE_ATTRIBUTES` must override our guesses (*verified* in the Q15 spike);
+`detect()` must finish well inside `get_aggregated_resources`' 5 s timeout; resource attributes reach Prometheus only
+as `target_info`, not as labels on each series.
 
 **Fork:** if configuration runs before a fork (gunicorn `--preload`, or a module-level `otel.instrument(app)` in the
-master), every worker would share one `service.instance.id`. Logfire already patches `process.pid` into the
-providers' resources after a fork and reseeds its id generator (*verified* in its source); register an
-`os.register_at_fork(after_in_child=...)` hook that does the same for `service.instance.id`.
+master), the workers inherit the master's resource. The SDK (1.44) handles most of it: its providers register
+`os.register_at_fork` hooks that re-run the *process-dependent* detectors it builds from env vars (by default the
+`service.instance.id` one) and update existing tracers (*read in source*, not run: no fork on Windows). Our own
+detectors' process-dependent values (`process.pid`) aren't re-run that way. Check on Linux CI; if they're stale,
+correct the resource in our exporter wrappers (public API) rather than writing to providers' private attributes.
+Batch processors restart their threads after a fork themselves. The at-exit flush for forked children is in
+workstream 1.
 
 **Testability:** the detectors take an injectable filesystem root and environment mapping, so tests can fake
 `/var/run/secrets/...`, `/etc/hostname` and the cgroup files. The pod-name table is a pure function with
@@ -623,16 +777,23 @@ What a pod can see without the collector:
 | `k8s.pod.name` | Downward API env var if set, else the token payload (reliable), else `HOSTNAME` / `/etc/hostname` (wrong under `hostNetwork` or `spec.hostname`) |
 | `k8s.pod.uid` | token payload |
 | workload name | guessed from the pod name (below) |
-| labels, annotations | only if the service account may `get pods`: one `GET /api/v1/namespaces/{ns}/pods/{name}` with the token, short timeout, startup only, silent on failure (usually 403) |
+| labels, annotations | a Downward API volume (`OTEL_WRAPPER_PODINFO_DIR`, default `/etc/podinfo`, files `labels` / `annotations`), or single-key `fieldRef` env vars. Never the Kubernetes API (Q12) |
 | `k8s.container.name` | not available (Downward API env var only) |
 | `container.id` | cgroup / mountinfo (contrib `containerid` detector) |
 
-We don't control the collector, but nothing stops it from also running `k8sattributes`; trying here is harmless.
+We don't control the collector, and nothing stops it from also running `k8sattributes`. We never call the Kubernetes
+API ourselves (Q12: security tooling flags both the connection and the usual 403).
+
+Downward API volume files: one `key="value"` per line, keys sorted, values quoted with Go's `strconv.Quote`, the
+directory updated atomically through a `..data` symlink (*verified* in the Kubernetes docs and
+`pkg/fieldpath/fieldpath.go`, second review). Parse each value with `ast.literal_eval` (Go quoting is compatible with
+Python string escapes for valid UTF-8, *not run*), falling back to the raw text. A missing directory is normal and
+silent.
 
 The token payload has `kubernetes.io.pod.name` / `uid` only in bound (projected) tokens, the default since k8s 1.21;
 legacy secret-based tokens don't. With `automountServiceAccountToken: false` the whole directory is missing,
-namespace file included, hence the Downward API and hostname fallbacks. The API lookup is capped at about 1 s
-including connect, and may be switched off (Q12). Detecting "in k8s" at all: `KUBERNETES_SERVICE_HOST` is set.
+namespace file included, hence the Downward API and hostname fallbacks. Detecting "in k8s" at all:
+`KUBERNETES_SERVICE_HOST` is set.
 
 Pod-name parsing (generated parts use the alphabet `bcdfghjklmnpqrstvwxz2456789`); **never strip to empty**:
 
@@ -660,18 +821,18 @@ and corrects what it gets wrong, rather than reimplementing it. The result, all 
 | `process.command_args` | `sys.orig_argv` (3.10+): the real argv, **including the interpreter, its flags and `-m`** | `[...\python.exe, -X, utf8, -m, pytest, -q]` |
 | `process.command` | `sys.orig_argv[0]` | |
 | `process.args_count` | `len(sys.orig_argv)` | |
-| `process.executable.path` / `.name` | `sys.executable` / its base name (`python`, `pypy3`, ...; `sys.implementation.name` when empty, e.g. Pyodide) | |
-| `process.runtime.name` / `.version` / `.description` | already set by logfire: `cpython`/`pypy`, version, `sys.version` (includes e.g. "packaged by Anaconda") | |
+| `process.executable.path` / `.name` | `sys.executable` / its base name (Q4: `python.exe` on Windows, `python3.12`, `pypy3`, ...; `python` when empty, e.g. Pyodide) | |
+| `process.runtime.name` / `.version` / `.description` | from the SDK detector (*verified* it sets them): `cpython`/`pypy`, version, `sys.version` (includes e.g. "packaged by Anaconda") | |
 | `process.owner`, `process.working_directory`, `host.name` | | |
 
 `process.command_line` is left unset (semconv: don't assemble it, use `command_args`). Semconv says args SHOULD NOT be
-collected without sanitization, and logfire's scrubbing doesn't touch resources, so sanitize ourselves: logfire's
-default patterns **plus `token`**, and also redact the *next* arg when a matching flag has no `=`. Also redact the
-password in any URL-shaped argument (`--db-url postgresql://user:pass@host/db` -> `postgresql://user:REDACTED@...`),
-which flag-name patterns can't see. `OTEL_WRAPPER_CAPTURE_COMMAND_ARGS=false` drops args entirely.
+collected without sanitization, and exporter-side scrubbing doesn't see resources, so the detector runs the scrubber's
+`scrub_argv` (workstream 5b): secret-named flags, the *next* arg when such a flag has no `=`, and the password in any
+URL-shaped argument (`--db-url postgresql://user:pass@host/db` -> `postgresql://user:[REDACTED]@...`).
+`OTEL_WRAPPER_CAPTURE_COMMAND_ARGS=false` drops args entirely.
 
 `process.owner`: `getpass.getuser()` raises when the UID has no passwd entry (arbitrary UIDs, e.g. OpenShift); fall
-back to the numeric UID. `process.executable.name` on Windows: Q4.
+back to the numeric UID.
 
 No semconv attribute says which Python environment it is, so add ours:
 `opentelemetry_wrapper.python.environment` = `pyodide` (`sys.platform == 'emscripten'`) | `frozen` (`sys.frozen`) |
@@ -698,9 +859,9 @@ evidence). PyPy shows up as `process.runtime.name = pypy`; free-threaded builds 
   `service.namespace/service.name` and `instance` from `service.instance.id`, per the OTel spec (not verified here).
 
 **Done when:** with faked filesystems, each row of the pod-name table and each fallback gives the expected
-attributes; `OTEL_SERVICE_NAME` beats the k8s derivation through `logfire.configure`; no k8s API access -> no delay
-beyond the cap and no warning; argv secrets (flag, next-arg, URL password) are redacted; forked workers get distinct
-`service.instance.id`s.
+attributes; `OTEL_SERVICE_NAME` beats the k8s derivation through `configure`; labels and annotations are read from a
+faked Downward API volume (including escaped values), and a missing volume is silent; argv secrets (flag, next-arg, URL password) are redacted; forked workers get distinct
+`service.instance.id`s and their own `process.pid` (Linux CI).
 
 ### 7. Generators and context managers
 
@@ -733,17 +894,19 @@ decorated with `@otel`.
 
 Two handlers on the root logger, nothing else:
 
-- **OTLP:** the SDK's `LoggingHandler`, using logfire's global `LoggerProvider` (see "Decided" and Evidence). Not
-  `LogfireLoggingHandler`.
+- **OTLP:** the `LoggingHandler` from `opentelemetry-instrumentation-logging` (the SDK's own is deprecated in 1.44,
+  see "Decided"), on our `LoggerProvider`. Use only its handler, not `LoggingInstrumentor`'s record-factory
+  injection. Re-check with this handler what PLAN verified with the SDK one (ids, extras, stable `code.*` keys).
 - **stderr:** one-line JSON logs with `otelTraceID` / `otelSpanID` (for log pipelines that aren't OTLP, e.g.
   fluentd/Loki), plus v0's `otelTraceSampled`, `tz_name`, `tz_utc_offset_seconds` and local ISO `asctime`. The ids
   come from a `logging.Filter` on this handler that reads `trace.get_current_span().get_span_context()`: no global
-  log record factory (v0's needs an `update_wrapper` workaround) and no `opentelemetry-instrumentation-logging`.
+  log record factory (v0's needs an `update_wrapper` workaround). The line goes through the scrubber (workstream 5b)
+  before it's written.
 
 Keep v0's "JSON-encode anything" (NaN/inf, complex, Decimal, modules, functions, classes, extra args; pydantic per the
 decision) and long-string truncation. Fix the negative-UTC-offset bug (and recompute the offset per record, for DST).
-Logfire's console off unless `OTEL_WRAPPER_LOG_FORMAT=pretty`. v0's `clobber_other_log_handlers` has no equivalent
-yet; if needed, `otel.configure(replace_log_handlers=True)`.
+`OTEL_WRAPPER_LOG_FORMAT=off` turns the stderr handler off. v0's `clobber_other_log_handlers` has no equivalent yet;
+if needed, `otel.configure(replace_log_handlers=True)`.
 
 `uvicorn.access` logs duplicate the request spans: leave them on stderr but don't send them over OTLP by default.
 
@@ -755,8 +918,9 @@ handlers, not four; `tests/v0` logging tests pass under `OTW_IMPL=v1`.
 
 We don't control the platform, so support both and let it choose:
 
-- **Push (OTLP)**: logfire already does this when `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` (or the generic endpoint) is
-  set. Works with a collector or Prometheus 3's OTLP receiver (`/api/v1/otlp/v1/metrics`).
+- **Push (OTLP)**: a `PeriodicExportingMetricReader(OTLPMetricExporter())` when `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`
+  (or the generic endpoint) is set. Works with a collector or Prometheus 3's OTLP receiver (`/api/v1/otlp/v1/metrics`).
+  The SDK default temporality (cumulative) is what Prometheus' OTLP receiver expects.
 - **Scrape (Prometheus pull)**: keep both v0 modes:
   - standalone server on `OTEL_EXPORTER_PROMETHEUS_PORT` (standard, default 9464), **bound to
     `OTEL_EXPORTER_PROMETHEUS_HOST`** (standard, default `localhost`) instead of v0's hardcoded `localhost`. In k8s it
@@ -765,13 +929,15 @@ We don't control the platform, so support both and let it choose:
     port; excluded from request spans by exact path. Use `app.add_route(path, ...)`, not `app.mount`: a mount also
     serves everything under `/metrics/` and redirects `/metrics` there, which an exact-path exclusion would miss
     (the v0 `TODO.md` notes the trailing-slash behaviour).
-- Our reader goes in via `logfire.configure(metrics=MetricsOptions(additional_readers=[PrometheusMetricReader()]))`.
+- Our `PrometheusMetricReader` goes into the `MeterProvider`'s readers at configure time (readers can't be added
+  later, one more reason configuration is final once built). *Verified* in the spike: `target_info` is served.
 - **Several workers per container** (uvicorn/gunicorn `--workers N`): each worker has its own metrics, but only one
   can bind the Prometheus port (the others get "address in use": warn once, carry on), and the FastAPI route answers
   from whichever worker took the request. That's the `prometheus_client` multiprocess problem. Document: in
   multi-worker deployments use push, or one worker per container.
 - **Shutdown:** an unreachable collector can delay process exit while exports retry. Bound the flush at exit (e.g.
   via `OTEL_EXPORTER_OTLP_TIMEOUT`), so a missing collector never holds up a pod's termination or a CLI's exit.
+  (*Verified* in the spike: with a dead collector and a 1 s timeout, shutdown took ~2 s.)
 
 Background, verified:
 
@@ -787,9 +953,6 @@ Background, verified:
 - Trade-off: scrape needs every pod reachable from Prometheus plus discovery config (annotations / ServiceMonitor) but
   gives a free `up` health signal; push only needs outbound access to one known address, but a silent pod looks the
   same as an idle one.
-- Logfire's delta temporality preference applies only to its own exporter when sending to Logfire; the exporter built
-  from `OTEL_EXPORTER_OTLP_*` uses the SDK default (cumulative), which Prometheus' OTLP receiver expects (*verified*
-  in logfire's `config.py`).
 
 **Done when:** standalone server binds `OTEL_EXPORTER_PROMETHEUS_HOST`; `/metrics` on FastAPI returns 200 and makes
 no request span, while `/api/metrics` does; with two workers, the second warns once and doesn't crash.
@@ -797,13 +960,18 @@ no request span, while `/api/metrics` does; with two workers, the second warns o
 ### 10. Packaging
 
 - `requires-python = ">=3.12"` (v0's `">3.8.0"` also excluded 3.8.0 by accident). Side-by-side means v0 users get the
-  3.12 floor and logfire in the same release: make that a minor-version bump with a clear note, and the v0 deletion
-  1.0.0.
-- Core dependencies: `logfire` and the OTel pieces it doesn't bring. Integrations become extras (`[fastapi]`,
-  `[sqlalchemy]`, `[requests]`, `[system-metrics]`, mapping onto logfire's own extras) instead of hard dependencies on
-  fastapi, uvicorn, sqlalchemy, requests and pydantic. Drop `opentelemetry-exporter-otlp` (it pulls in gRPC).
-- Pin `logfire>=5.1,<6`: v1 relies on a few private logfire details, guarded by the canary tests. Logfire itself pins
-  `opentelemetry-sdk<1.45`, so our OTel pins follow its.
+  3.12 floor in that release: make it a minor-version bump with a clear note, and the v0 deletion 1.0.0.
+- Core dependencies: `opentelemetry-api`, `-sdk`, `-exporter-otlp-proto-http`, `-semantic-conventions`,
+  `-instrumentation-logging` (its handler, see workstream 8) and `-exporter-prometheus`. Integrations become extras
+  (`[fastapi]`, `[sqlalchemy]`, `[requests]`, `[system-metrics]`, each pulling the matching contrib instrumentor),
+  plus `[hyperscan]` (the faster scrubbing engine, Q16), instead of hard dependencies on
+  fastapi, uvicorn, sqlalchemy, requests and pydantic. Dev dependencies add `interegular` (rule-overlap lint). Drop
+  `opentelemetry-exporter-otlp` (it pulls in gRPC).
+- **Strict OTel pins, as in v0** (decided 2026-10-18): OTel has shipped breaking changes without warning, twice
+  during v0's development. Cap the SDK family at the next minor (e.g. `opentelemetry-sdk>=1.44,<1.45`) and pin the
+  contrib packages to the matching `0.XbY` window (they release in lockstep). Renovate's auto-merged bump PRs
+  (workstream 0) and the canaries decide when a cap moves; the difference from logfire's caps is that we set the
+  pace.
 - `py.typed`.
 
 **Done when:** `pip install opentelemetry_wrapper` without extras imports and runs `@otel`, and each extra enables
@@ -821,7 +989,7 @@ overloads, so mypy and pyright see the original signature (and the original clas
 
 `README_v1.md` is the draft. Background from reviewing the original sketch (`next_version_intended_usage.py`):
 
-- **The one-object shape fits logfire well.** Type dispatch puts the idempotency registry and the never-crash handling
+- **The one-object shape fits.** Type dispatch puts the idempotency registry and the never-crash handling
   in one place: function/class -> our decorator over the OTel tracer; app/module/engine -> the idempotent wrappers;
   `with otel:` -> the OTel tracer; integrations go through `otel.instrument`. Unsupported targets are returned
   unchanged with one warning at decoration time.
@@ -842,17 +1010,17 @@ overloads, so mypy and pyright see the original signature (and the original clas
 
 | item | status |
 |---|---|
-| multiple OTLP headers, escaping | use standard `OTEL_EXPORTER_OTLP_HEADERS` (logfire reads it); drop custom `OTEL_EXPORTER_OTLP_HEADER` |
-| separate endpoints per signal, rename to `OTEL_COLLECTOR_*` | standard `OTEL_EXPORTER_OTLP_{TRACES,METRICS,LOGS}_ENDPOINT` exist and logfire reads them; gRPC dropped |
+| multiple OTLP headers, escaping | use standard `OTEL_EXPORTER_OTLP_HEADERS` (the OTLP exporters read it); drop custom `OTEL_EXPORTER_OTLP_HEADER` |
+| separate endpoints per signal, rename to `OTEL_COLLECTOR_*` | standard `OTEL_EXPORTER_OTLP_{TRACES,METRICS,LOGS}_ENDPOINT` exist and the exporters read them; gRPC dropped |
 | rename env vars to `OTEL_WRAPPER_*` | yes, for the non-standard ones only (table below) |
-| env var for console printing | `OTEL_WRAPPER_LOG_FORMAT=json|pretty|off` for logs. The v0 deck also wants local printing of traces and metrics: `pretty` (logfire's console) shows spans; metrics have no local printing yet |
+| env var for console printing | `OTEL_WRAPPER_LOG_FORMAT=json|off` for logs. The v0 deck also wants local printing of traces and metrics: the standard `OTEL_TRACES_EXPORTER=console` / `OTEL_METRICS_EXPORTER=console` (SDK console exporters) |
 | request headers vs `requests` response headers | standard `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_{SERVER,CLIENT}_{REQUEST,RESPONSE}` + `..._SANITIZE_FIELDS`; only the JSON flattening stays ours |
 | `asyncio.iscoroutinefunction` -> `inspect` | trivial with a 3.12 floor |
 | generators and context managers | decided, workstream 7 |
 | `with` blocks, `__tracebackhide__`, CI, docs | still ours |
 | `varname` | drop; `co_qualname` covers most of the value |
 | detect infinite recursion | low priority |
-| won't do: sanitizer, sampling | both now come with logfire (scrubbing, `SamplingOptions`); scrubbing does mangle `x-userinfo`, fix in workstream 5 |
+| won't do: sanitizer, sampling | sampling: the SDK's standard samplers. Sanitizer: now done after all (workstream 5b), because spans and logs from instrumentors carry headers, URLs and extras we don't control |
 
 ## Environment variables
 
@@ -871,9 +1039,11 @@ overloads, so mypy and pyright see the original signature (and the original clas
 | (new) | `OTEL_WRAPPER_HEADER_ATTRIBUTES_EXCLUDE` | ours; claim denylist, workstream 5 |
 | (hardcoded in v0) | `OTEL_WRAPPER_RESPONSE_HEADER_ATTRIBUTES` | ours; `requests` response headers, default v0's Kong / Envoy list |
 | `OTEL_WRAPPER_DISABLED` | same | ours |
-| (new) | `OTEL_WRAPPER_LOG_FORMAT` | `json` / `pretty` / `off` |
+| (new) | `OTEL_WRAPPER_LOG_FORMAT` | `json` / `off` |
 | (new) | `OTEL_WRAPPER_CAPTURE_COMMAND_ARGS` | default `true` |
-| (new) | `OTEL_TRACES_SAMPLER_ARG` | standard; head sampling ratio |
+| (new) | `OTEL_WRAPPER_PODINFO_DIR` | ours; Downward API volume with `labels` / `annotations`, default `/etc/podinfo` |
+| (new) | `OTEL_TRACES_SAMPLER` / `OTEL_TRACES_SAMPLER_ARG` | standard; read by the SDK |
+| (new) | `OTEL_{TRACES,METRICS,LOGS}_EXPORTER` | standard; `otlp` (default when an endpoint is set), `console`, `none` |
 
 Old names are read for one release with a deprecation warning at startup (except `OTEL_LOG_LEVEL`, see above).
-`OTEL_SDK_DISABLED` (standard) is honoured by the SDK; whether it also implies `OTEL_WRAPPER_DISABLED` is Q5.
+`OTEL_SDK_DISABLED=true` (standard) also means `OTEL_WRAPPER_DISABLED` (Q5).

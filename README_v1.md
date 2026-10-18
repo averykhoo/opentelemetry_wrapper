@@ -1,8 +1,7 @@
 # opentelemetry_wrapper v1 (draft)
 
-OpenTelemetry tracing, logs and metrics for Python apps with one object, `otel`. It's built on the
-[Logfire SDK](https://logfire.pydantic.dev/docs/) (without sending anything to Logfire) and follows the OpenTelemetry
-semantic conventions.
+OpenTelemetry tracing, logs and metrics for Python apps with one object, `otel`. It's built on the OpenTelemetry
+SDK and the standard OpenTelemetry instrumentations, and follows the OpenTelemetry semantic conventions.
 
 ```python
 from opentelemetry_wrapper import otel
@@ -204,19 +203,21 @@ and `name` is recorded unless you add it to that list.
 
 Everything is configured with environment variables, using the standard OpenTelemetry names wherever one exists.
 Nothing needs to be set up before using `otel`: `otel.instrument(...)` configures it, and otherwise the first span
-does. To set options in code instead, call `otel.configure(...)` at startup, before the first span (e.g.
-`otel.configure(service_name='checkout', log_format='pretty')`); explicit options beat environment variables.
-Configuration is fixed once the first span exists: a later call with different options is ignored, with a warning.
+does. To set options in code instead, call `otel.configure(...)` at startup, **before `otel.instrument(...)`** and
+before the first span (e.g. `otel.configure(service_name='checkout')`); explicit options beat environment variables.
+Configuration is fixed once it's been set up: a later call with different options is ignored, with a warning (only
+the log level can still change).
 
 **Standard OpenTelemetry variables**
 
 | Variable | Effect | Default |
 |---|---|---|
-| `OTEL_SERVICE_NAME` | `service.name` | in Kubernetes, the workload name (Deployment, StatefulSet, ...); otherwise `unknown_service:python` |
+| `OTEL_SERVICE_NAME` | `service.name` | in Kubernetes, the workload name (Deployment, StatefulSet, ...); otherwise `unknown_service:<executable>`, e.g. `unknown_service:python3.12` or `unknown_service:python.exe` |
 | `OTEL_RESOURCE_ATTRIBUTES` | extra resource attributes, e.g. `service.namespace=shop,service.version=1.2.0` | detected Kubernetes, process and host attributes (below) |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | where to push traces, logs and metrics (OTLP over HTTP, usually port 4318). Logs are OTel log records carrying the current span's trace and span ids. Per-signal variants `OTEL_EXPORTER_OTLP_{TRACES,LOGS,METRICS}_ENDPOINT` override it | nothing is exported |
 | `OTEL_EXPORTER_OTLP_HEADERS` | headers sent to the endpoint: `key=value,key2=value2` | none |
-| `OTEL_TRACES_SAMPLER_ARG` | fraction of traces to keep, decided at the root span and followed by its children (the standard `parentbased_traceidratio` sampler; `OTEL_TRACES_SAMPLER` itself is not read, and setting it gives a warning) | `1.0` |
+| `OTEL_TRACES_SAMPLER` / `OTEL_TRACES_SAMPLER_ARG` | which traces to keep, decided at the root span and followed by its children. To keep 10%: `OTEL_TRACES_SAMPLER=parentbased_traceidratio` and `OTEL_TRACES_SAMPLER_ARG=0.1` | keep everything |
+| `OTEL_TRACES_EXPORTER` / `OTEL_LOGS_EXPORTER` / `OTEL_METRICS_EXPORTER` | `otlp`, `console` (print to the terminal, for local debugging) or `none` | `otlp` when an endpoint is set |
 | `OTEL_EXPORTER_PROMETHEUS_PORT` / `_HOST` | serve metrics for Prometheus on this port and interface. In Kubernetes, set `_HOST=0.0.0.0` | not served (host defaults to `localhost`) |
 | `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_*` | record raw request/response headers as span attributes | none |
 
@@ -226,18 +227,39 @@ Configuration is fixed once the first span exists: a later call with different o
 |---|---|---|
 | `OTEL_WRAPPER_DISABLED` | `true` turns everything into a no-op: decorators return your function unchanged (so tracebacks are exactly your code's), `otel.instrument` does nothing, and `with otel as span` gives a span that accepts every call and records nothing | `false` |
 | `OTEL_WRAPPER_LOG_LEVEL` | log level set by `otel.instrument(logging)` | `info` |
-| `OTEL_WRAPPER_LOG_FORMAT` | console output: `json` (one line per log), `pretty` (Logfire's human-readable console), or `off` | `json` |
+| `OTEL_WRAPPER_LOG_FORMAT` | log output on stderr: `json` (one line per log, secrets redacted) or `off` | `json` |
 | `OTEL_WRAPPER_HEADER_ATTRIBUTES` | comma-separated request headers to decode (base64 / JSON) and flatten into span attributes; the raw header is not recorded | `x-userinfo` |
 | `OTEL_WRAPPER_HEADER_ATTRIBUTES_EXCLUDE` | comma-separated glob patterns of decoded claims to leave out, matched against the flattened name (e.g. `realm_access.roles`, `email`) | `*token*,at_hash,c_hash,nonce,session_state,sid` |
 | `OTEL_WRAPPER_RESPONSE_HEADER_ATTRIBUTES` | comma-separated response headers from `requests` calls to record on the client span | Kong and Envoy headers, e.g. `X-Envoy-Upstream-Service-Time` |
 | `OTEL_WRAPPER_PROMETHEUS_PATH` | path for the `/metrics` route added to FastAPI apps; empty to disable | `/metrics` |
 | `OTEL_WRAPPER_CAPTURE_COMMAND_ARGS` | record the process's full command line (secrets redacted); `false` to leave it out | `true` |
+| `OTEL_WRAPPER_PODINFO_DIR` | where the pod's labels and annotations are mounted (Downward API volume, see below) | `/etc/podinfo` |
 
 **Detected automatically** (resource attributes, attached to every span, log and metric):
 
-- **Kubernetes:** namespace, pod and workload, read from inside the pod with no configuration needed. If the pod's
-  service account may `get` its own pod, labels and annotations are used too, e.g. `app.kubernetes.io/name` for
-  `service.name`, or `resource.opentelemetry.io/service.name` to set it explicitly.
+- **Kubernetes:** namespace, pod and workload, read from inside the pod with no configuration needed. The Kubernetes
+  API is never called. To use the pod's labels and annotations too (e.g. `app.kubernetes.io/name` for
+  `service.name`, or `resource.opentelemetry.io/service.name` to set it explicitly), mount them with the Downward
+  API at `/etc/podinfo` (or set `OTEL_WRAPPER_PODINFO_DIR`):
+
+  ```yaml
+  spec:
+    containers:
+      - name: app
+        volumeMounts:
+          - name: podinfo
+            mountPath: /etc/podinfo
+    volumes:
+      - name: podinfo
+        downwardAPI:
+          items:
+            - path: labels
+              fieldRef:
+                fieldPath: metadata.labels
+            - path: annotations
+              fieldRef:
+                fieldPath: metadata.annotations
+  ```
 - **Process:** the full command line including the interpreter and its flags (`process.command_args`, e.g.
   `python -X utf8 -m uvicorn app:app`), the interpreter path, the runtime (`cpython`, `pypy`, ...), and which Python
   environment it runs in (`opentelemetry_wrapper.python.environment`: `conda`, `venv`, `system`, `pyodide` or
