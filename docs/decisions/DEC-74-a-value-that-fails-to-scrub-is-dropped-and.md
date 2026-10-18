@@ -8,6 +8,8 @@ session: 2026-10-18e
 decision_status: PROVISIONAL
 answers: ASK-18
 body_sha: sha256:47cfbcf80991b5c7f28a1472ab209491b84f02cebefe3f4e2391a70a5586cdce
+amends: [DEC-58]
+tasks: [OTW-8]
 ---
 
 Owner, answering ASK-18: *"Owner, 2026-10-18e, answering ASK-18 (when scrubbing a value fails on export: drop it, as AC-13 says, or send it unscrubbed; the agent recommended dropping just that value and still exporting the record): *"If scrubbing fails, drop anyway - okay but the scrubbed value should say as such, not merely the same truncated or sanitized placeholder, it should also say scrubbing failed"*

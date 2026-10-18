@@ -10,6 +10,7 @@ imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:83f920a010e392ac6eb3e209e57cf7d10969accf2633554820cfb43925212e4f
 tags: [api]
 tasks: [OTW-3]
+narrowed_by: [DEC-75]
 ---
 
 7. **Warning channel** (F8): one `OtelWrapperWarning(UserWarning)` via `warnings.warn(..., stacklevel=2)`, only on
@@ -25,3 +26,7 @@ tasks: [OTW-3]
    `PYTHONWARNINGS=error` in production may crash at startup is Q8.
 
 *Imported at adoption (2026-10-18) from `PLAN.md` § Proposals, as committed at `24a0430`; now at `docs/archive/PLAN.md`.*
+
+## Amendments
+
+- **2026-10-18e (claude-code/2.1.287):** **2026-10-18e:** relaxed by DEC-75 (owner, answering ASK-19). At runtime, a swallowed internal failure is now reported: one stderr JSON line per failure site, never through `warnings` or `logging`, with tracebacks behind an opt-in env var. Startup warnings are unchanged.
