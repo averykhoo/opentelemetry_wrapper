@@ -8,7 +8,7 @@ Append-only, newest first, one entry per session (FRAMEWORK §7.1).
 
 - **rows:** ASK-17
 - **receipts:**
-  - guards: gate PASSED in 22.4s (203 passed, 23 xfailed in 20.12s) on g1/code:912d9e4af5fe1d93;
+  - guards: gate PASSED in 22.2s (203 passed, 23 xfailed in 19.98s) on g1/code:912d9e4af5fe1d93;
     lint: clean
   - read: none beyond CLAUDE.md and orient
   - asked: ASK-17

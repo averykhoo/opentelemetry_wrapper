@@ -90,6 +90,9 @@ whole migration against the originals; its findings are folded in.
   and `enabledPlugins` were in place, but nothing was installed until `claude plugin marketplace add` and
   `claude plugin install --scope project` ran by hand (which also reformatted the settings file). Its MCP server
   then connected first time. The kit README could say the settings alone don't install it on an existing machine.
+- **The close's gate receipt is typed by hand:** `session close --guards` takes free text, and the engine already
+  holds the run in `.context/gate/runs.jsonl`. In 2026-10-18b the receipt was typed before the run finished and
+  recorded the wrong timings (fixed by hand in the ledger). Suggest `--guards last-gate` filling it from the run.
 - **The kit omits `.gitattributes`** (`docs/ledger/ops.jsonl merge=union`, CE-53): added by hand.
 - **The runbooks are expensive to read:** FRAMEWORK.md is 158 KB, manual-mode 97 KB, procedures 36 KB, and the
   procedures tables put each step in a single row of 500-plus characters. An adopter greps rather than reads; a short
