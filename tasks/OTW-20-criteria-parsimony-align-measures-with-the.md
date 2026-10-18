@@ -4,12 +4,14 @@ id: OTW-20
 title: 'Criteria parsimony: align measures with the Story column, add the G-8 and DEC-26 criteria, remove overlaps'
 brief: Charter measures and criteria Story column must match; wait for ASK-20
 pri: LATER
-state: open
+state: closed
 deps: [ASK-20]
 source: session 2026-10-18g
 created: 2026-10-18
-moved: 2026-10-18g
-updated: 2026-10-18g
+moved: 2026-10-18h
+updated: 2026-10-18h
+status: deprecated
+closed: 2026-10-18h
 ---
 
 Agent-level fixes from `docs/evidence/parsimony-review-2026-10-18.md` (findings 2, 3, 4, 8, 9). None of them changes owner words. Do them after ASK-20 is answered, so that the criteria's Story column and the charter's measures move together.
@@ -19,3 +21,7 @@ Agent-level fixes from `docs/evidence/parsimony-review-2026-10-18.md` (findings 
 - Remove the overlaps. AC-11 keeps only its strict-xfail part (its plain class tests are inside AC-8). AC-1 says "named per AC-10". The instrument-twice clauses of AC-9 and AC-18 point at AC-6. AC-30 says "claims as in AC-12". Split AC-12: decoding and flattening claim STORY-13; the denylist and the raw base64 claim STORY-9.
 - Cut the criteria footer to one line.
 - Fold in OTW-19's criteria bullet: the `sqlalchemy.ext.asyncio` extension goes into AC-9, and the negative UTC offset into AC-18.
+
+## Log
+
+- 2026-10-18h (claude-code/2.1.287): closed: OTW-20: criteria aligned with the charter's measures (DEC-77)
