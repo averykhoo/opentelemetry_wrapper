@@ -101,3 +101,31 @@ def test_disabled_switch(environ, expected):  # AC-4 (DEC-24, DEC-5)
 def test_an_unknown_configure_option_is_a_type_error():  # AC-3 (typed signature)
     with pytest.raises(TypeError, match='servce_name'):
         resolve({'servce_name': 'x'})
+
+
+# review fixes (OTW-3, session 2026-10-18l)
+
+def test_wrong_types_and_an_invalid_log_level_warn_and_fall_back_without_raising():  # AC-7 (DEC-49)
+    bad = {'log_level': 'loud', 'service_name': 5, 'otlp_headers': 7, 'traces_exporter': 3, 'prometheus_path': 9,
+           'header_attributes': 4, 'resource_attributes': 'x', 'otlp_endpoint': ['a'], 'log_format': 1}
+    settings, notes = resolve(bad)
+    assert settings == resolve()[0]  # every one of them fell back to what it would have been without it
+    assert len(notes) == len(bad)
+    for option in bad:
+        assert len([n for n in notes if option in n]) == 1, (option, notes)
+
+
+def test_an_invalid_log_level_from_the_environment_warns_and_falls_back():  # AC-7 (DEC-49)
+    settings, notes = resolve(OTEL_WRAPPER_LOG_LEVEL='loud')
+    assert settings.log_level == 'info'
+    assert len(notes) == 1 and 'loud' in notes[0]
+    settings, notes = resolve({'log_level': 'loud'}, OTEL_WRAPPER_LOG_LEVEL='debug')
+    assert settings.log_level == 'debug' and len(notes) == 1  # the explicit value is ignored, not the environment
+    assert resolve({'log_level': 'Warn'}) == (resolve()[0].__class__(log_level='warn'), [])
+
+
+def test_endpoint_and_service_name_are_normalised():  # AC-3 (DEC-27 rule 2)
+    a, _ = resolve({'service_name': ' svc ', 'otlp_endpoint': ' http://h:4318/ '})
+    b, _ = resolve({'service_name': 'svc', 'otlp_endpoint': 'http://h:4318'})
+    assert a == b and (a.service_name, a.otlp_endpoint) == ('svc', 'http://h:4318')
+    assert resolve({'service_name': '  ', 'otlp_endpoint': ' / '})[0] == resolve()[0]

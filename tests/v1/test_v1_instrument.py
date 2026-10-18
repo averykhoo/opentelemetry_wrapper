@@ -352,3 +352,58 @@ def test_disabled_instruments_nothing_and_configures_nothing(which):  # AC-4
     assert r['handlers_added'] == 0
     assert r['configured'] is False
     assert r['warnings'] == []
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# review fixes (OTW-3, session 2026-10-18l)
+# ----------------------------------------------------------------------------------------------------------------------
+
+FAILING_INTEGRATION = scenario(__name__, 'v1_instrument_no_argument_guards', PRELUDE + r'''
+from opentelemetry_wrapper.v1 import _instrument
+calls = []
+
+
+def fine(name):
+    def run(notes):
+        calls.append(name)
+    return run
+
+
+def broken(notes):
+    calls.append('requests')
+    raise RuntimeError('requests is broken')
+
+
+_instrument._installed = lambda *modules: True
+_instrument.instrument_logging = fine('logging')
+_instrument.instrument_requests = broken
+_instrument.instrument_system_metrics = fine('system_metrics')
+with Warned() as w:
+    otel.instrument()
+emit('calls', calls)
+emit('warnings', w.messages)
+''')
+
+
+def test_one_failing_integration_does_not_skip_the_rest_of_instrument_with_no_argument():  # AC-7
+    r = FAILING_INTEGRATION.result()
+    assert r['calls'] == ['logging', 'requests', 'system_metrics']
+    assert len(r['warnings']) == 1 and 'requests is broken' in r['warnings'][0]
+
+
+FUNCTION_FIRST = scenario(__name__, 'v1_instrument_function_before_call', PRELUDE + r'''
+def f():
+    return 1
+
+
+wrapped = otel.instrument(f)
+emit('configured_by_decorating', _config.is_configured())
+otel.instrument(logging)
+emit('configured_by_a_library', _config.is_configured())
+''')
+
+
+def test_instrumenting_a_function_decorates_without_configuring():  # AC-3 (DEC-27 rule 1)
+    r = FUNCTION_FIRST.result()
+    assert r['configured_by_decorating'] is False
+    assert r['configured_by_a_library'] is True

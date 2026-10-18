@@ -30,7 +30,10 @@ def instrument(target: Any = MISSING) -> Any:
     """instrument a library, an app or an engine (or, with no argument, everything global that's installed)"""
     if _env.disabled():
         return None if target is MISSING else target
-    _config.ensure_configured()  # eagerly: off the first request and out of the event loop (DEC-27)
+    if target is MISSING or _is_integration_target(target) or not callable(target):
+        # eagerly: off the first request and out of the event loop (DEC-27). decorating a function or class is the
+        # same as `@otel` and never configures. outside the `try` below: its warnings may be error-filtered (DEC-49)
+        _config.ensure_configured()
     notes: List[str] = []
     try:
         result = _dispatch(target, notes)
@@ -63,13 +66,29 @@ def _isinstance_of(target: Any, module: str, name: str) -> bool:
     return isinstance(cls, type) and isinstance(target, cls)
 
 
+def _guarded(label: str, step: Any, notes: List[str]) -> None:
+    """one integration: a failure in it is one warning, and the next integration still runs"""
+    try:
+        step(notes)
+    except Exception as e:
+        notes.append(f'otel.instrument(): {label} failed and was skipped: {type(e).__name__}: {e}')
+
+
+def _is_integration_target(target: Any) -> bool:
+    """a module, an app or an engine: what `instrument` configures for, as opposed to a function or class"""
+    return (isinstance(target, types.ModuleType)
+            or _isinstance_of(target, 'starlette.applications', 'Starlette')
+            or _isinstance_of(target, 'sqlalchemy.engine', 'Engine')
+            or _isinstance_of(target, 'sqlalchemy.ext.asyncio', 'AsyncEngine'))
+
+
 def _dispatch(target: Any, notes: List[str]) -> Any:
     if target is MISSING:  # DEC-11: logging, requests, system metrics; never apps, engines or SQLAlchemy
-        instrument_logging(notes)
+        _guarded('logging', instrument_logging, notes)
         if _installed('requests', 'opentelemetry.instrumentation.requests'):
-            instrument_requests(notes)
+            _guarded('requests', instrument_requests, notes)
         if _installed('psutil', 'opentelemetry.instrumentation.system_metrics'):
-            instrument_system_metrics(notes)
+            _guarded('system metrics', instrument_system_metrics, notes)
         return None
     if isinstance(target, types.ModuleType):
         handler = {'logging': instrument_logging, 'requests': instrument_requests,
