@@ -23,3 +23,7 @@ unscrubbed; README says so.
 | won't do: sanitizer, sampling | sampling: the SDK's standard samplers. Sanitizer: now done after all (workstream 5b), because spans and logs from instrumentors carry headers, URLs and extras we don't control |
 
 *Imported at adoption (2026-10-18) from `PLAN.md` § Workstreams § 5b. Scrubbing, `PLAN.md` § `TODO.md` triage against the rebuild, as committed at `24a0430`; now at `docs/archive/PLAN.md`.*
+
+## Amendments
+
+- **2026-10-18e (claude-code/2.1.287):** **2026-10-18e:** amended by DEC-74 (owner, answering ASK-18). A value that fails to scrub is dropped and replaced by its own placeholder, `[REDACTED: scrubbing failed]`, not the normal `[REDACTED]`; `opentelemetry_wrapper.scrubbed` names the failure too.
