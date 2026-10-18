@@ -1,3 +1,5 @@
+ARCHIVED 2026-10-18 (session 2026-10-18a), from TODO.md.
+
 ## Testing
 
 ```shell

@@ -1,6 +1,7 @@
 """
-`instrument_logging`: one-line JSON logs on stderr carrying `otelTraceID` / `otelSpanID` (PLAN.md workstream 7 keeps
-this). each scenario runs in a fresh interpreter, since it reconfigures the root logger and the log record factory
+`instrument_logging`: one-line JSON logs on stderr carrying `otelTraceID` / `otelSpanID` (v1 keeps
+this: DEC-34, OTW-11).
+each scenario runs in a fresh interpreter, since it reconfigures the root logger and the log record factory
 """
 import json
 import re
@@ -205,7 +206,7 @@ def test_long_strings_are_truncated(basic_logs):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# timezone (HANDOFF.md "Wrong timezone offset for negative offsets")
+# timezone (v0 bug list "Wrong timezone offset for negative offsets")
 # ----------------------------------------------------------------------------------------------------------------------
 
 def single_log(scenario_handle):
@@ -227,7 +228,7 @@ def test_negative_utc_offset_asctime_is_correct():
     assert log['tz_name'] == 'EST'
 
 
-@pytest.mark.xfail(strict=True, reason='HANDOFF.md "Wrong timezone offset for negative offsets": '
+@pytest.mark.xfail(strict=True, reason='v0 bug list "Wrong timezone offset for negative offsets": '
                                        'logging_json_formatter.py:99 uses timedelta.seconds (UTC-5 -> 68400)')
 def test_negative_utc_offset_seconds():
     assert single_log(TZ_NEGATIVE)['tz_utc_offset_seconds'] == -5 * 3600

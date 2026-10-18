@@ -1,3 +1,5 @@
+ARCHIVED 2026-10-18 (session 2026-10-18a), from PLAN.md.
+
 # v1 plan: rebuild on the plain OpenTelemetry SDK
 
 Started 2026-10-04, last updated 2026-10-18. This is the design for the next major version ("v1"; the current code is

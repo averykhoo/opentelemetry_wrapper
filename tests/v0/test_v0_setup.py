@@ -33,7 +33,7 @@ def test_public_api(otw):
     for name in PUBLIC_NAMES[1:]:
         assert callable(getattr(otw, name)), name
     assert isinstance(otw.__version__, str)
-    assert callable(otw.instrument_system_metrics)  # importable, though missing from __all__ (HANDOFF.md cleanup)
+    assert callable(otw.instrument_system_metrics)  # importable, though missing from __all__ (v0 cleanup, OTW-18)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -103,7 +103,7 @@ def test_second_instrument_all_warns_that_system_metrics_are_already_instrumente
     assert [log['message'] for log in logs].count('Attempting to instrument while already instrumented') == 1
 
 
-@pytest.mark.xfail(strict=True, reason='HANDOFF.md "Secrets in logs" (from reading the code, reproduced here): '
+@pytest.mark.xfail(strict=True, reason='v0 bug list "Secrets in logs" (from reading the code, reproduced here): '
                                        'instrument_all() logs OTEL_EXPORTER_OTLP_HEADER verbatim (__init__.py:71)')
 def test_instrument_all_does_not_log_otlp_header_values(instrument_all_result):
     assert 's3cr3t-t0ken' not in instrument_all_result.stderr
@@ -198,7 +198,7 @@ def test_service_name_and_namespace_from_otel_resource_attributes():
     assert resource['team'] == 'core'  # Resource.create() merges OTEL_RESOURCE_ATTRIBUTES
 
 
-@pytest.mark.v0_specific  # PLAN.md decisions: service.name will follow semconv instead
+@pytest.mark.v0_specific  # DEC-29: service.name will follow semconv instead
 def test_default_service_name_is_user_at_host_and_main_file():
     resource = SERVICE_DEFAULT.result()['resource']
     name = resource['service.name']
@@ -242,7 +242,7 @@ def test_prometheus_port_serves_metrics_on_every_path():
         assert result[path] == [200, True]
 
 
-@pytest.mark.xfail(strict=True, reason='HANDOFF.md "Prometheus port only binds to localhost" (from reading the code, '
+@pytest.mark.xfail(strict=True, reason='v0 bug list "Prometheus port only binds to localhost" (from reading the code, '
                                        'reproduced here): otel_providers.py:112 hardcodes addr="localhost" and '
                                        'ignores OTEL_EXPORTER_PROMETHEUS_HOST')
 def test_prometheus_host_env_var_is_honoured():

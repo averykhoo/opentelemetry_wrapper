@@ -1,5 +1,5 @@
 """
-class and dataclass instrumentation (PLAN.md keep-list item 3)
+class and dataclass instrumentation (charter goal G-6)
 
 these run in fresh interpreters: v0 wraps `__getattribute__` only for the FIRST class it instruments (see the
 first-class bug below), so in a shared process the results would depend on test order
@@ -297,7 +297,7 @@ def test_plain_attribute_access_is_not_traced(classes):
     assert classes['plain_attributes'] == []
 
 
-DOUBLE_SPAN_REASON = ('found while writing this suite (not in HANDOFF.md): a method that is already instrumented '
+DOUBLE_SPAN_REASON = ('found while writing this suite (not in the v0 bug list): a method that is already instrumented '
                       '(decorated in the class body, or a dunder/__post_init__ wrapped by class instrumentation) is '
                       'wrapped AGAIN by the __getattribute__ hook when accessed through an instance, because the '
                       'bound method is not recognised as instrumented -> two nested spans with the same name')
@@ -323,9 +323,9 @@ def test_already_instrumented_method_accessed_via_instance_is_traced(classes, ke
     assert set(names(classes[key])) == {name}
 
 
-@pytest.mark.xfail(strict=True, reason='found while writing this suite (not in HANDOFF.md): _CACHE_GETATTRIBUTE is '
-                                       'keyed by the original __getattribute__, which is object.__getattribute__ for '
-                                       'every ordinary class, so only the first instrumented class gets method and '
+@pytest.mark.xfail(strict=True, reason='found while writing this suite (not in the v0 bug list): _CACHE_GETATTRIBUTE '
+                                       'is keyed by the original __getattribute__, which is object.__getattribute__ '
+                                       'for every ordinary class, so only the first instrumented class gets method and '
                                        'property spans (instrument_decorator.py:226); nested classes count as later')
 def test_nested_class_methods_are_traced(classes):
     assert names(classes['nested_class']) == ['<__main__>.First.Nested.nested_method']
@@ -339,7 +339,7 @@ def test_second_class_constructor_is_traced(classes):
     assert names(classes['second_construct']) == ['<__main__>.Second.__init__']
 
 
-@pytest.mark.xfail(strict=True, reason='found while writing this suite (not in HANDOFF.md): only the first class '
+@pytest.mark.xfail(strict=True, reason='found while writing this suite (not in the v0 bug list): only the first class '
                                        'instrumented in a process gets method/property spans, because '
                                        '_CACHE_GETATTRIBUTE is keyed by object.__getattribute__ '
                                        '(instrument_decorator.py:226)')
@@ -358,7 +358,7 @@ def test_class_without_source_methods_still_work():
     assert result['method_spans'] == ['NoSource.m']  # no module or file to name it after
 
 
-@pytest.mark.xfail(strict=True, reason='HANDOFF.md "Never crash holes": every property access on an instrumented '
+@pytest.mark.xfail(strict=True, reason='v0 bug list "Never crash holes": every property access on an instrumented '
                                        'class calls inspect.getsourcelines (instrument_decorator.py:247), which '
                                        'raises OSError when source is unavailable (reproduced here)')
 def test_class_without_source_property_access_does_not_crash():
@@ -375,7 +375,7 @@ def test_instance_without_method_access_is_freed(classes):
     assert classes['unused_instance_alive_after_del'] is False
 
 
-@pytest.mark.xfail(strict=True, reason='HANDOFF.md "Memory leak in class instrumentation": bound methods are cached '
+@pytest.mark.xfail(strict=True, reason='v0 bug list "Memory leak in class instrumentation": bound methods are cached '
                                        'forever in _CACHE_INSTRUMENTED (instrument_decorator.py:110/263), keeping '
                                        'their instance alive')
 def test_instance_is_freed_after_its_methods_were_used(classes):
@@ -427,7 +427,7 @@ def test_dataclass_with_arguments_is_instrumented(dataclasses_result):
     assert names(dataclasses_result['frozen_construct']) == ['<__main__>.Frozen.__init__']
 
 
-@pytest.mark.xfail(strict=True, reason='found while writing this suite (not in HANDOFF.md): only the first '
+@pytest.mark.xfail(strict=True, reason='found while writing this suite (not in the v0 bug list): only the first '
                                        'instrumented class gets method spans (_CACHE_GETATTRIBUTE keyed by '
                                        'object.__getattribute__), so every dataclass after the first one has '
                                        'constructor spans only')

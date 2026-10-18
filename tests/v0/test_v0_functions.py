@@ -49,7 +49,7 @@ def attrs_target(x):
     return x
 
 
-@pytest.mark.v0_specific  # deprecated `code.*` keys; PLAN.md workstream 3 switches to the stable ones
+@pytest.mark.v0_specific  # deprecated `code.*` keys; v1 switches to the stable ones (DEC-31)
 def test_function_span_has_deprecated_code_attributes(otw, spans):
     otw.instrument_decorate(attrs_target)(1)
     (record,) = spans.records()
@@ -65,7 +65,7 @@ def stable_attrs_target(x):
     return x
 
 
-@pytest.mark.xfail(strict=True, reason='HANDOFF.md "Update CodeInfo": emit the stable code.function.name / '
+@pytest.mark.xfail(strict=True, reason='v0 bug list "Update CodeInfo": emit the stable code.function.name / '
                                        'code.file.path / code.line.number instead of the deprecated keys')
 def test_function_span_has_stable_code_attributes(otw, spans):
     otw.instrument_decorate(stable_attrs_target)(1)
@@ -294,7 +294,7 @@ def test_bound_method_code_function_attribute_drops_the_class_name(otw, spans):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# generators (PLAN.md workstream 7b proposes real generator spans)
+# generators (v1 has real generator spans, DEC-22)
 # ----------------------------------------------------------------------------------------------------------------------
 
 def generator_child():
@@ -321,7 +321,7 @@ def test_generator_span_only_covers_creating_the_generator(otw, spans):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# "never crash" (PLAN.md keep-list item 4); HANDOFF.md lists these holes as "from reading the code, not yet reproduced"
+# "never crash" (charter goal G-3); the v0 bug list has these holes as "from reading the code, not yet reproduced"
 # ----------------------------------------------------------------------------------------------------------------------
 
 def partial_fresh_target(a, b):
@@ -343,7 +343,7 @@ def test_currently_raises_for_unsupported_objects(otw):
         otw.instrument_decorate(42)
 
 
-@pytest.mark.xfail(strict=True, reason='HANDOFF.md "Never crash holes in instrument_decorate": raises TypeError for '
+@pytest.mark.xfail(strict=True, reason='v0 bug list "Never crash holes in instrument_decorate": raises TypeError for '
                                        'unsupported types (instrument_decorator.py:107)')
 @pytest.mark.parametrize('make', [
     pytest.param(lambda: functools.partial(partial_fresh_target, 3), id='functools.partial'),

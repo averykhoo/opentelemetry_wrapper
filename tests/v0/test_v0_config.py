@@ -1,5 +1,5 @@
 """
-v0's env-var parsing (v0/config). PLAN.md renames most of these variables for v1 ("Environment variables"), so this
+v0's env-var parsing (v0/config). v1 renames most of these variables (DEC-59, "Environment variables"), so this
 whole module is v0-specific; the parsing functions read os.environ at call time, so they are tested in-process
 """
 import logging
@@ -86,7 +86,7 @@ def test_prometheus_port(monkeypatch, value, expected, warns):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# OTEL_LOG_LEVEL (note: collides with a standard OTel variable, see PLAN.md)
+# OTEL_LOG_LEVEL (note: collides with a standard OTel variable, see DEC-59)
 # ----------------------------------------------------------------------------------------------------------------------
 
 @pytest.mark.parametrize('value, expected', [
@@ -206,7 +206,7 @@ def test_otlp_endpoint(monkeypatch, value, expected, warns):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# HANDOFF.md "How to verify": the doctests (they set os.environ, so they run in their own interpreter)
+# CLAUDE.md § Gate, outside the gate: the doctests (they set os.environ, so they run in their own interpreter)
 # ----------------------------------------------------------------------------------------------------------------------
 
 DOCTESTS = scenario(__name__, 'doctests', r'''

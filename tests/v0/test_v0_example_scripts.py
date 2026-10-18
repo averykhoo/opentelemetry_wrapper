@@ -1,5 +1,5 @@
 """
-the example scripts in the repo root, run unmodified (HANDOFF.md "How to verify")
+the example scripts in the repo root, run unmodified (CLAUDE.md § Gate, outside the gate)
 
 fastapi_main.py is in test_v0_fastapi.py (it starts uvicorn on :8000 when run as a script, so it is imported there)
 """

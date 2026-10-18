@@ -1,9 +1,10 @@
 """
-`CodeInfo` (v0/utils/introspect.py): the introspection table in PLAN.md ("Introspection: logfire covers plain
-functions only") plus the two confirmed bugs in HANDOFF.md ("Update CodeInfo")
+`CodeInfo` (v0/utils/introspect.py): the introspection table in docs/evidence/v1-design-evidence-2026-10-18.md
+("Introspection: logfire covers plain functions only") plus the two confirmed bugs in the v0 bug list
+("Update CodeInfo")
 
-CodeInfo is internal, and PLAN.md rewrites it (co_qualname, stable attribute keys), so the exact name format here is
-v0-specific; the *coverage* (which kinds of callables get a name, file and line) is what v1 has to keep
+CodeInfo is internal, and v1 rewrites it (OTW-5, DEC-31: co_qualname, stable attribute keys), so the exact name
+format here is v0-specific; the *coverage* (which kinds of callables get a name, file and line) is what v1 has to keep
 """
 import asyncio
 import functools
@@ -23,7 +24,7 @@ MOD = f'<{__name__}>.'
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# the cases from PLAN.md's table, all defined at module level so their names are predictable
+# the cases from the evidence doc's table, all defined at module level so their names are predictable
 # ----------------------------------------------------------------------------------------------------------------------
 
 def plain_function():
@@ -179,10 +180,10 @@ def test_codeinfo_asyncio_task():
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# known bugs (HANDOFF.md "Bugs (confirmed by running them)" -> "Update CodeInfo (introspect.py)")
+# known bugs (the v0 bug list, "Bugs (confirmed by running them)" -> "Update CodeInfo (introspect.py)")
 # ----------------------------------------------------------------------------------------------------------------------
 
-@pytest.mark.xfail(strict=True, reason='HANDOFF.md "Update CodeInfo": callable instances are not resolved '
+@pytest.mark.xfail(strict=True, reason='v0 bug list "Update CodeInfo": callable instances are not resolved '
                                        '(no fallback to type(obj).__call__)')
 def test_callable_instance_resolves_to_its_dunder_call():
     info = CodeInfo(Outer())
@@ -211,7 +212,7 @@ def test_wrapped_without_wraps_is_named_after_the_wrapper():
     assert info.name == f'{MOD}_renaming.<locals>.other'
 
 
-@pytest.mark.xfail(strict=True, reason='HANDOFF.md "Update CodeInfo": name and line can come from different functions '
+@pytest.mark.xfail(strict=True, reason='v0 bug list "Update CodeInfo": name and line can come from different functions '
                                        '(inspect.getsourcelines unwraps __wrapped__, the name does not)')
 def test_wrapped_without_wraps_line_comes_from_the_same_function_as_the_name():
     info = CodeInfo(renamed)
@@ -220,7 +221,7 @@ def test_wrapped_without_wraps_line_comes_from_the_same_function_as_the_name():
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# HANDOFF.md "Memory leak in class instrumentation": "CodeInfo ... is an unbounded lru_cache with the same effect"
+# v0 bug list "Memory leak in class instrumentation": "CodeInfo ... is an unbounded lru_cache with the same effect"
 # ----------------------------------------------------------------------------------------------------------------------
 
 def _make_function():
@@ -230,7 +231,7 @@ def _make_function():
     return short_lived
 
 
-@pytest.mark.xfail(strict=True, reason='HANDOFF.md "Memory leak in class instrumentation": CodeInfo is an unbounded '
+@pytest.mark.xfail(strict=True, reason='v0 bug list "Memory leak in class instrumentation": CodeInfo is an unbounded '
                                        'lru_cache (introspect.py:138) that keeps every introspected object alive')
 def test_codeinfo_does_not_keep_the_object_alive():
     func = _make_function()

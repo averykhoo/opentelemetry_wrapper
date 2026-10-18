@@ -1,6 +1,6 @@
 """
 `extract_json_header`: flattens a JSON (or base64-encoded JSON, e.g. Kong's `x-userinfo`) header into a flat dict
-PLAN.md workstream 5 keeps this as-is for v1, so these are expected to hold for v1 too
+v1 keeps this as-is (OTW-7, workstream 5), so these are expected to hold for v1 too
 """
 import base64
 import json
@@ -68,7 +68,7 @@ def test_non_json_values_give_none(value):
 # base64-encoded json (userinfo)
 # ----------------------------------------------------------------------------------------------------------------------
 
-USERINFO = {  # Keycloak-style userinfo as injected by Kong (same shape as PLAN.md's header check)
+USERINFO = {  # Keycloak-style userinfo as injected by Kong (same shape as the design evidence's header check)
     'sub': 'f1b2c3', 'email': 'a@example.com', 'email_verified': True, 'name': 'Ann Lee',
     'realm_access': {'roles': ['admin', 'user']}, 'auth_time': 1700000000, 'session_state': None,
 }
@@ -92,7 +92,8 @@ def test_base64_userinfo_needing_two_padding_chars_is_decoded():
     assert extract_json_header(b64(obj, padded=True)) == {**USERINFO_FLAT, 'pad': obj['pad']}
 
 
-@pytest.mark.xfail(strict=True, reason='found while writing this suite (not in HANDOFF.md): _extract_userinfo always '
+@pytest.mark.xfail(strict=True, reason='found while writing this suite (not in the v0 bug list): '
+                                       '_extract_userinfo always '
                                        'appends "==" before b64decode(validate=True), which python >= 3.11 rejects '
                                        '("Excess data after padding" / "Excess padding not allowed"), so 2 out of 3 '
                                        'userinfo headers are not decoded (python 3.10 accepted them)')

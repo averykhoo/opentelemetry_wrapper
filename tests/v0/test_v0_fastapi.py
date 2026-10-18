@@ -161,7 +161,7 @@ def test_base64_userinfo_is_flattened_onto_the_server_span(app, spans):
     assert all(not header_attributes(r) for r in records if r is not server)
 
 
-@pytest.mark.xfail(strict=True, reason='found while writing this suite (not in HANDOFF.md): base64 userinfo whose '
+@pytest.mark.xfail(strict=True, reason='found while writing this suite (not in the v0 bug list): base64 userinfo whose '
                                        'json length is not 1 mod 3 is not decoded on python >= 3.11 (see '
                                        'test_v0_extract_json_header.py), so it is recorded raw instead of flattened')
 def test_base64_userinfo_of_another_length_is_flattened(app, spans):
@@ -320,7 +320,8 @@ def test_empty_endpoint_env_var_disables_the_metrics_route():
 
 
 def test_fastapi_main_example_app():
-    # HANDOFF.md "How to verify": `python fastapi_main.py` -> /metrics returns 200. /hello-hello is not covered: it
+    # CLAUDE.md § Gate, outside the gate: `python fastapi_main.py` -> /metrics returns 200. /hello-hello is not
+    # covered: it
     # makes a real http request to localhost:8000, which needs the uvicorn server this suite deliberately doesn't run
     assert (REPO_ROOT / 'fastapi_main.py').is_file()
     result = FASTAPI_MAIN.result()

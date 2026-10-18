@@ -37,9 +37,10 @@ batons `BATON-n`, pause records `PAUSE-n`, goals `G-n`. Never reuse or renumber 
   `"C:/Users/avery/anaconda3/envs/opentelemetry_wrapper/python.exe" -m pytest -q tests` from the repo root.
 - **The engine** runs from its own env, `.context-engine/env/` (gitignored; never the conda env, never editable).
   `<engine-python>` is `.context-engine/env/Scripts/python.exe`, and `context-engine` below means
-  `<engine-python> -m context_engine`. Set `PYTHONIOENCODING=utf-8`, `CE_ACTOR=claude-code/<model-id>` and
-  `CE_SESSION=<key>` in every command: shell state does not persist between tool calls, and without the first the
-  CLI prints `§` as `�` on this machine. Rebuild it (a fresh clone, or an upgrade: kit README § 4) with:
+  `<engine-python> -m context_engine`. Set `PYTHONIOENCODING=utf-8`, `CE_ACTOR=claude-code/<Claude Code version>`
+  (e.g. `claude-code/2.1.287`; records name no model) and `CE_SESSION=<key>` in every command: shell state does not
+  persist between tool calls, and without the first the CLI prints `§` as `�` on this machine. Rebuild it (a fresh
+  clone, or an upgrade: kit README § 4) with:
   `"C:/Users/avery/anaconda3/envs/opentelemetry_wrapper/python.exe" -m venv .context-engine/env`, then
   `<engine-python> -m pip install "context-engine @ git+https://github.com/averykhoo/context-engine@<ref>"`,
   at the ref of the latest ledger entry that names one (adopted at `7fd39975554a5a5edfb7a74e90ccbdcc5a0bd7e3`).

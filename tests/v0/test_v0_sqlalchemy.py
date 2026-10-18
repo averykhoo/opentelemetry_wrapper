@@ -96,7 +96,7 @@ emit('spans', names(exp))
 DEPENDENCY_CONFLICT = scenario(__name__, 'sqlalchemy_dependency_conflict', r'''
 import warnings
 from opentelemetry_wrapper.v0.dependencies.opentelemetry import instrument_sqlalchemy as module
-# simulate an installed sqlalchemy outside the instrumentation's supported range (e.g. 2.1, see HANDOFF.md)
+# simulate an installed sqlalchemy outside the instrumentation's supported range (e.g. 2.1, see DEC-62)
 module.get_dependency_conflicts = lambda deps: ('DependencyConflict: requested: "sqlalchemy >= 1.0.0, < 2.1.0" '
                                                 'but found: "sqlalchemy 2.1.3"')
 import sqlalchemy
@@ -137,7 +137,7 @@ def test_instrumenting_returns_the_engine_and_ignores_non_engines(one_engine):
 
 
 def test_query_spans(one_engine):
-    # HANDOFF.md "How to verify": sqlalchemy_example.py -> `connect` + `SELECT :memory:` spans
+    # CLAUDE.md § Gate, outside the gate: sqlalchemy_example.py -> `connect` + `SELECT :memory:` spans
     assert one_engine['rows'] == 0
     records = one_engine['first_query']
     assert names(records) == ['connect', 'SELECT :memory:']
@@ -165,7 +165,7 @@ def test_connect_is_traced_for_every_engine(two_engines):
     assert 'connect' in names(two_engines['e2'])
 
 
-@pytest.mark.xfail(strict=True, reason='HANDOFF.md "Only the first sqlalchemy engine gets traced": '
+@pytest.mark.xfail(strict=True, reason='v0 bug list "Only the first sqlalchemy engine gets traced": '
                                        'SQLAlchemyInstrumentor is a singleton, so the second '
                                        'instrument_sqlalchemy_engine() call is a no-op (instrument_sqlalchemy.py:88)')
 def test_second_of_two_engines_is_traced(two_engines):
@@ -193,12 +193,13 @@ def test_global_instrumentation_misses_create_engine_imported_before_it(global_r
 
 
 def test_import_and_engine_detection_work_without_the_asyncio_extension():
-    # HANDOFF.md "State": a missing asyncio extension no longer breaks `import opentelemetry_wrapper`
+    # the pre-adoption HANDOFF.md, "State" (docs/evidence/history-to-2026-10-18.md): a missing asyncio extension no
+    # longer breaks `import opentelemetry_wrapper`
     result = NO_ASYNCIO_EXTENSION.result()
     assert result['checks'] == [True, True, False]
 
 
-@pytest.mark.xfail(strict=True, reason='found while writing this suite (not in HANDOFF.md; simulated with '
+@pytest.mark.xfail(strict=True, reason='found while writing this suite (not in the v0 bug list; simulated with '
                                        'sys.modules["sqlalchemy.ext.asyncio"] = None): the upstream instrument() '
                                        'patches sqlalchemy.ext.asyncio and raises (wrapt TargetModuleNotFoundError), '
                                        'which instrument_sqlalchemy_engine does not catch ("never crash")')

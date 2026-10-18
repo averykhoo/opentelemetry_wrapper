@@ -1,13 +1,15 @@
 """
 shared fixtures for the characterization suite
 
-the suite pins down v0's *current* behaviour so that the v1 rewrite (see PLAN.md) can be checked against it
+the suite pins down v0's *current* behaviour so that the v1 rewrite (epic OTW-1) can be checked against it
 conventions:
 * a plain test asserts what v0 does today, and is expected to hold for v1 too
 * `@pytest.mark.xfail(strict=True, reason=...)` asserts the *correct* behaviour for a known v0 bug, so it starts
   failing-to-xfail (i.e. XPASS -> error) the moment the bug is fixed; then delete the marker
-* `@pytest.mark.v0_specific` pins a v0 detail that PLAN.md intends to change (or that is an implementation detail),
+* `@pytest.mark.v0_specific` pins a v0 detail that a v1 decision changes (or that is an implementation detail),
   so a v1 run is expected to differ there; read those failures, don't blindly fix them
+references: `DEC-n` / `OTW-n` are decision and task records (`docs/decisions/`, `tasks/`); "the v0 bug list" is
+the pre-adoption HANDOFF.md's TODO section, kept verbatim in `docs/evidence/history-to-2026-10-18.md`
 """
 import os
 import sys
@@ -29,7 +31,7 @@ from tests.v0 import _harness  # noqa: E402
 
 
 def pytest_configure(config):
-    config.addinivalue_line('markers', 'v0_specific: pins a v0 detail that v1 is expected to change (see PLAN.md)')
+    config.addinivalue_line('markers', 'v0_specific: pins a v0 detail that v1 is expected to change (docs/decisions)')
 
 
 def pytest_collection_finish(session):
