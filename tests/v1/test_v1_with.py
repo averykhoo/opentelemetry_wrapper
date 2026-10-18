@@ -89,9 +89,11 @@ def test_unnamed_blocks_are_named_after_the_enclosing_function_never_a_line():  
     assert result['child_parent'] == 'async block'
 
 
-def test_two_unnamed_blocks_in_one_function_warn_once():  # AC-2 (DEC-47), AC-22
-    warnings = BLOCKS.result()['two_blocks_warnings']
-    assert len(warnings) == 1 and 'two_blocks' in warnings[0]
+def test_two_unnamed_blocks_in_one_function_report_once_on_stderr():  # AC-2 (DEC-47, DEC-81), AC-22
+    result = BLOCKS.result()
+    assert result['two_blocks_warnings'] == []  # a runtime report is not a `warnings.warn`
+    lines = [line for line in result.stderr_lines if 'two unnamed' in line and 'two_blocks' in line]
+    assert len(lines) == 1  # two calls of the function, one line
 
 
 def test_nested_blocks_close_innermost_first():  # AC-2 (DEC-20)

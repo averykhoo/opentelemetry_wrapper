@@ -13,8 +13,8 @@ care about what is imported when). under `OTW_IMPL=v1` the names bind to v1's `o
 drops (`instrument_dataclasses`) or doesn't have (`__version__`, `__all__`) resolves to a stub that raises
 `NotImplementedError` when called, so collection and the rest of the run still work
 
-v1 is imported through `import_v1()`, which skips the package root while it still imports v0 (v0 installs its
-tracer provider at import, which v1 would otherwise find "configured first")
+v1 is imported through `import_v1()`. the package root is v1 (DEC-80) and imports no v0, so nothing is skipped: v0
+is imported only when a test asks for a v0 name (v0 installs its tracer provider at import)
 
 the interface:
 
@@ -42,9 +42,7 @@ the interface:
     instrument_system_metrics  v1's system metrics integration (part of `otel.instrument()`)
 """
 import os
-import sys
 import types
-from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import Mapping
@@ -76,19 +74,14 @@ _V0 = {
     'instrument_system_metrics': 'instrument_system_metrics',
     '__version__':               '__version__',
 }
-_PACKAGE_DIR = Path(__file__).resolve().parents[1] / 'opentelemetry_wrapper'
 
 
 def import_v1() -> types.ModuleType:
     """
-    `opentelemetry_wrapper.v1`, imported without running the package root when nothing imported it yet: the root
-    still imports v0, and v0 installs its tracer provider at import. (an in-process v0 run has imported the root
-    already; v1 then finds v0's provider configured first, as an app that mixes them would)
+    `opentelemetry_wrapper.v1`. importing it (and the package root above it) imports no v0, so v1 is not "configured
+    first" by v0's tracer provider unless something in the process asked for a v0 name already, as an app that mixes
+    them would
     """
-    if 'opentelemetry_wrapper' not in sys.modules:
-        root = types.ModuleType('opentelemetry_wrapper', 'the package root, skipped by tests/impl.py:import_v1')
-        root.__path__ = [str(_PACKAGE_DIR)]  # type: ignore[attr-defined]
-        sys.modules['opentelemetry_wrapper'] = root
     import opentelemetry_wrapper.v1 as v1
     return v1
 
@@ -161,7 +154,8 @@ def load() -> None:
     if IMPL == 'v1':
         import_v1()
         return
-    import opentelemetry_wrapper  # noqa: F401
+    import opentelemetry_wrapper
+    opentelemetry_wrapper.instrument_decorate  # noqa: B018 - the root loads v0 lazily, on the first v0 name
 
 
 def require_v0(what: str) -> None:
