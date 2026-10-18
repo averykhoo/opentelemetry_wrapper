@@ -133,6 +133,7 @@ Generated from each decision's frontmatter by `context-engine decision index`; n
 - [DEC-74](DEC-74-a-value-that-fails-to-scrub-is-dropped-and.md): A value that fails to scrub is dropped and replaced by its own 'scrubbing failed' placeholder *(owner, 2026-10-18)*
 - [DEC-75](DEC-75-the-wrapper-reports-its-own-swallowed-runtime.md): The wrapper reports its own swallowed runtime failures: one stderr JSON line per site, tracebacks opt-in *(owner, 2026-10-18)*
 - [DEC-77](DEC-77-charter-parsimony-rank-placements-confirmed.md): Charter parsimony: rank placements confirmed, fail small in G-3, slimmer G-1, charter trimmed *(owner, 2026-10-18)*
+- [DEC-80](DEC-80-root-is-v1-v0-s-names-load-lazily-v0-s.md): Root is v1; v0's names load lazily; v0's dependencies stay core until 1.0.0 *(owner, 2026-10-19)*
 
 ## DEFERRED
 
