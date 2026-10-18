@@ -5,6 +5,16 @@ the engine repo (`averykhoo/context-engine`). Every session appends at its clean
 feedback): after-action reviews, frictions, tokens spent on ceremony, engine bugs and refusals with a bad remedy,
 and simplifications that would help. Newest first; each entry dated, with its session key.
 
+## 2026-10-18i: fast-forward main, prune merged branches, push
+
+### Friction
+
+- **Close and push pull in opposite orders.** The close writes and commits the ledger entry and the banner, so a
+  push before the close leaves those commits unpushed (the stray state the owner asked to clear), and a push after it
+  means the ledger entry is written before the watcher's verdict exists. This session closed first and reported the
+  verdict only in chat. A `session close --pushing` that leaves one line for the verdict, filled in after the push,
+  would fix it.
+
 ## 2026-10-18h: the charter trimmed and the criteria aligned (DEC-77)
 
 ### Simplifications that would help
