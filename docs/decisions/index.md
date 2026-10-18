@@ -38,6 +38,7 @@ Generated from each decision's frontmatter by `context-engine decision index`; n
 ### untagged
 
 - [DEC-73](DEC-73-charter-gains-a-purpose-and-goals-g-11-g-12.md): Charter gains a purpose and goals G-11, G-12 from the v0 talk; only a cleaned deck summary is committed *(owner, 2026-10-18)*
+- [DEC-76](DEC-76-g-13-added-for-request-context-g-7-stays-g-13.md): G-13 added for request context; G-7 stays; G-13 leads the Helpful tier *(owner + agent, 2026-10-18)*
 
 ## PROVISIONAL
 
