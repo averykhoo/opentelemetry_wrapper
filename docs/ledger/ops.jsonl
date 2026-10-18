@@ -439,3 +439,4 @@
 {"at": "2026-10-18T13:01:21+08:00", "session": "2026-10-18e", "actor": "claude-code/2.1.287", "op": "amend", "id": "STORY-3", "path": "docs/stories/STORY-3-the-wrapper-never-crashes-the-application.md", "fields": [], "mechanical": false}
 {"at": "2026-10-18T13:01:21+08:00", "session": "2026-10-18e", "actor": "claude-code/2.1.287", "op": "amend", "id": "STORY-4", "path": "docs/stories/STORY-4-the-wrapper-emits-no-telemetry-of-its-own-at.md", "fields": [], "mechanical": false}
 {"at": "2026-10-18T13:01:22+08:00", "session": "2026-10-18e", "actor": "claude-code/2.1.287", "op": "amend", "id": "STORY-6", "path": "docs/stories/STORY-6-classes-and-dataclasses-can-be-instrumented.md", "fields": [], "mechanical": false}
+{"at": "2026-10-18T13:01:23+08:00", "session": "2026-10-18e", "actor": "claude-code/2.1.287", "op": "amend", "id": "STORY-7", "path": "docs/stories/STORY-7-in-kubernetes-the-service-is-identified-from.md", "fields": [], "mechanical": false}
