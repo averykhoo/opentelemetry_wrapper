@@ -5,6 +5,26 @@ the engine repo (`averykhoo/context-engine`). Every session appends at its clean
 feedback): after-action reviews, frictions, tokens spent on ceremony, engine bugs and refusals with a bad remedy,
 and simplifications that would help. Newest first; each entry dated, with its session key.
 
+## 2026-10-18c: verification, push to main, scratch cleanup
+
+### What worked
+
+- The plugin's MCP server came up after the restart: `session_start`, `ask_raised` and `lint` answered, so the
+  CLI's per-command env (`CE_ACTOR`, `CE_SESSION`, `PYTHONIOENCODING`) was needed only for `gate run` and `commit`.
+- Five Sonnet checkers, each followed by a Sonnet skeptic for its non-nit findings, re-verified the whole migration in
+  about 5 minutes (850k subagent tokens). Nothing was lost; 6 of 11 non-nit findings survived the skeptics. The
+  skeptic pass mattered: it threw out a "commits name a model" finding and three "AC drops a clause" findings, each
+  of which was covered elsewhere.
+- `gate status --require code` let the push reuse the session-start gate run after prose-only edits.
+
+### Friction
+
+- A frozen evidence doc (the adoption map) can't take an erratum in place. Its wrong citation and missing row went to
+  a board item (OTW-19) instead. A correction path for frozen docs (`record correct` works only for stamped records)
+  would keep errata next to the text they fix.
+- `git push -u origin HEAD:main` from the topic branch set the topic branch to track `origin/main`. The push runbook
+  could say to push without `-u` when the target is another branch.
+
 ## 2026-10-18a: adoption (engine `7fd3997`, framework 0.5)
 
 The adoption itself: a dry run on a throwaway clone, then a full migration of `HANDOFF.md`, `PLAN.md` (84 KB) and
