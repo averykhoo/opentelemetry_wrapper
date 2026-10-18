@@ -37,3 +37,7 @@ What it settles, as the agent applies it to the charter:
 - The anti-goals list becomes "not in the v1.0 plan": not all of it is ruled out for good. `type_checking.py` stays in
   v0 (as DEC-41).
 - The mandate "automation must act by itself" stands, and is why every push gets a CI watcher.
+
+## Amendments
+
+- **2026-10-18e (claude-code/2.1.287):** **2026-10-18e, owner:** after the agent explained that G-9 is more than scrubbing (no arguments on spans, the `x-userinfo` claim denylist, then scrubbing as defence in depth), the owner: *"Oh then no secrets can bump up a little higher then"*. The agent reads "a little higher" as one place: G-9 moves above G-10, to 8th, and G-10 is last.
