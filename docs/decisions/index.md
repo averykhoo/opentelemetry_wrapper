@@ -35,6 +35,10 @@ Generated from each decision's frontmatter by `context-engine decision index`; n
 
 - [DEC-62](DEC-62-v0-pins-sqlalchemy-asyncio-2-1-until-the.md): v0 pins `sqlalchemy[asyncio]<2.1` until the contrib instrumentor supports 2.1 *(owner + agent, 2026-10-08)*
 
+### untagged
+
+- [DEC-73](DEC-73-charter-gains-a-purpose-and-goals-g-11-g-12.md): Charter gains a purpose and goals G-11, G-12 from the v0 talk; only a cleaned deck summary is committed *(owner, 2026-10-18)*
+
 ## PROVISIONAL
 
 ### api
