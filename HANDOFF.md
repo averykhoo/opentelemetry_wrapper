@@ -4,7 +4,7 @@ LIVING. Orientation note (FRAMEWORK §5.1): what is true now, the next session's
 derivable from the code. The board is `context-engine task list`; this note keeps no copy of it. The banner is
 written at each clean close by `context-engine banner set`.
 
-## Banner (2026-10-18h)
+## Banner (2026-10-18i)
 
 - **Engine mode since 2026-10-18a** (engine `7fd3997`, framework 0.5): the v1 design is records now (DEC-n, the
   board, AC-n); `docs/evidence/adoption-map-2026-10-18.md` maps the archived `PLAN.md` / `TODO.md` onto them.
@@ -17,7 +17,8 @@ written at each clean close by `context-engine banner set`.
   measures match the criteria's Story column (AC-31 to AC-33 new).
 - **v0 is not touched** (DEC-71). **v1 is the epic OTW-1**; OTW-2 (workstream 0: `OTW_IMPL` adapter, canaries, CI,
   Renovate) is NOW and needs its design review first (its traps say why).
-- **Pushed up to 2026-10-18f; 2026-10-18g and 2026-10-18h are local.** OTW-19 holds the rest of the migration leftovers.
+- **On `main` and pushed through 2026-10-18i;** the only remote branches are `main` and the merged `v1-plan`.
+  OTW-19 holds the rest of the migration leftovers.
 - **Commits are automatic here, pushes are not** (DEC-70, `CLAUDE.md` § Overrides). Every clean close appends to
   `context-engine-feedback.md`.
 
