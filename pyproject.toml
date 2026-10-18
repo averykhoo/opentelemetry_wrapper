@@ -32,10 +32,10 @@ dependencies = [
     "opentelemetry-instrumentation-logging>=0.65b0,<0.66",
     "opentelemetry-exporter-prometheus>=0.65b0,<0.66",
 
-    # --- needed only because the package root still imports v0 eagerly (ASK-23) ---------------------------------
-    # `import opentelemetry_wrapper` (and so `import opentelemetry_wrapper.v1`) runs v0, which imports these at module
-    # level; without them a no-extras install cannot import the package at all. They stay core dependencies until the
-    # root stops importing v0 (ASK-23), then this whole block moves to the extras below / a `[v0]` extra.
+    # --- v0's dependencies: core until v0 is deleted at 1.0.0 (DEC-80) ------------------------------------------
+    # the root no longer imports v0, but its names still resolve from the root (lazily), and v0 imports these at
+    # module level; keeping them core keeps a plain `pip install opentelemetry_wrapper` working for v0 users.
+    # At 1.0.0, when v0 is deleted, this whole block goes.
     # that includes the gRPC exporters (v0's otel_providers.py imports opentelemetry.exporter.otlp.proto.grpc), so
     # DEC-36's "no gRPC" cannot hold yet either: without this line `import opentelemetry_wrapper` raises
     # ModuleNotFoundError, and since the pytest11 entry point imports the package, so would every pytest run

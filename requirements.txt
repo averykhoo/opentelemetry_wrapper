@@ -25,7 +25,7 @@ hyperscan
 interegular
 pytest
 
-# v0 core dependencies until ASK-23 (pyproject.toml), and what the v0 tests import through the example apps
+# v0 core dependencies until 1.0.0 (DEC-80, pyproject.toml), and what the v0 tests import through the example apps
 opentelemetry-exporter-otlp-proto-grpc>=1.44,<1.45
 pydantic
 typing-extensions
