@@ -487,3 +487,4 @@
 {"at": "2026-10-18T15:26:52+08:00", "session": "2026-10-18g", "actor": "claude-code/2.1.287", "op": "ask.raised", "id": "2026-10-18g", "path": "docs/ledger/session-log.md", "fields": ["asked"], "mechanical": false}
 {"at": "2026-10-18T15:26:57+08:00", "session": "2026-10-18g", "actor": "claude-code/2.1.287", "op": "comment", "id": "OTW-19", "path": "tasks/OTW-19-migration-verification-leftovers-charter-tie.md", "fields": ["updated", "body"], "mechanical": false}
 {"at": "2026-10-18T15:27:29+08:00", "session": "2026-10-18g", "actor": "claude-code/2.1.287", "op": "session.close", "id": "2026-10-18g", "path": "docs/ledger/session-log.md", "fields": ["kind"], "mechanical": false}
+{"at": "2026-10-18T15:27:38+08:00", "session": "2026-10-18g", "actor": "claude-code/2.1.287", "op": "banner.set", "id": "2026-10-18g", "path": "HANDOFF.md", "fields": ["banner"], "mechanical": false}
