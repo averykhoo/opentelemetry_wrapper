@@ -136,6 +136,7 @@ Generated from each decision's frontmatter by `context-engine decision index`; n
 - [DEC-80](DEC-80-root-is-v1-v0-s-names-load-lazily-v0-s.md): Root is v1; v0's names load lazily; v0's dependencies stay core until 1.0.0 *(owner, 2026-10-19)*
 - [DEC-81](DEC-81-runtime-warnings-go-to-stderr-once-never.md): Runtime warnings go to stderr once, never through warnings.warn *(owner, 2026-10-19)*
 - [DEC-82](DEC-82-a-record-whose-scrubbing-fails-is-exported-bare.md): A record whose scrubbing fails is exported bare; dropped only if even that fails *(owner, 2026-10-19)*
+- [DEC-83](DEC-83-configure-uses-the-auto-scrubbing-engine-once.md): Configure uses the auto scrubbing engine once the [hyperscan] extra exists *(owner, 2026-10-19)*
 
 ## DEFERRED
 
