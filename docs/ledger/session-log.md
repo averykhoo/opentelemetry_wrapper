@@ -4,9 +4,24 @@ Append-only, newest first, one entry per session (FRAMEWORK §7.1).
 
 ---
 
-## 2026-10-18b · kind: open
+## 2026-10-18b · kind: close
 
-- **opened:** 2026-10-18T10:41:36+08:00 by claude-code/2.1.287
+- **rows:** ASK-17
+- **receipts:**
+  - guards: gate PASSED in 22.4s (203 passed, 23 xfailed in 20.12s) on g1/code:912d9e4af5fe1d93;
+    lint: clean
+  - read: none beyond CLAUDE.md and orient
+  - asked: ASK-17
+- **summary** (the owner digest):
+  - Installed the context-engine plugin at project scope; its MCP server
+    (plugin:context-engine:engine) connects; restart Claude Code to load it.
+  - context-engine-feedback.md: the prefix friction in full (kit vs README vs DEC-38, hardcoded G-n
+    and INV-n, Q-n aliases, ASK-17).
+  - Still owed by the owner: review of the charter, stories and decisions; ASK-17; the push of
+    adopt-context-engine.
+- **Still owed:**
+  - owner review of the charter, stories and decisions; ASK-17; push of adopt-context-engine
+    (owner's yes)
 
 ---
 
