@@ -7,8 +7,8 @@ renumbered.
 Reconstructed by an agent at adoption (2026-10-18, session 2026-10-18a) from the pre-adoption `PLAN.md` (§ Goal,
 § Principles, § Non-goals, now `docs/archive/PLAN.md`), the decisions and `CLAUDE.md`; **reviewed by the owner in
 session 2026-10-18e (DEC-72)**, which made the principles a ranking and placed G-9 and G-10 in it; all ten stories
-are confirmed. The purpose, G-11 and G-12 come from the owner's v0 talk (27 May 2024; summary in
-`docs/evidence/v0-talk-deck-2026-10-18.md`), added in the same review (DEC-73).
+are confirmed. The purpose and G-11 to G-13 come from the owner's v0 talk (27 May 2024; summary in
+`docs/evidence/v0-talk-deck-2026-10-18.md`), added in the same review (DEC-73, DEC-76).
 
 ## Purpose
 
@@ -35,24 +35,26 @@ one-line JSON logs on stderr for a log shipper and serve metrics for Prometheus 
 | G-10 | Upgrades don't break users: v0 users migrate incrementally, and an OTel release reaches users only once our tests pass on it | AC-8, AC-23, AC-24, AC-27 |
 | G-11 | Simple, idiomatic, succinct and pretty: far less code than the plain OTel SDK, and no SDK internals in user code | AC-28 |
 | G-12 | Reasonable documented defaults: reasonable behaviour with minimal configuration, and every default written down | AC-29 |
+| G-13 | Enriches telemetry with the application context available on each request: the calling user (`x-userinfo`, flattened, denylisted claims dropped) and upstream latency (`X-Envoy-Upstream-Service-Time` and the like), under OTel semantic-convention names; where the service runs is G-7 | AC-12, AC-30 |
 
 ## Ranked principles
 
 When two goals pull apart, the higher one wins (DEC-72). The order is PLAN.md's, with never crash moved to the top and G-9 and G-10 placed by the owner.
-G-11 and G-12 sit in the deck's own tier, "Unsurprising", after G-4 (the agent's placement, DEC-73). G-1 is the
-whole of v1, so it is not ranked.
+G-11 and G-12 sit in the deck's own tier, "Unsurprising", after G-4 (the agent's placement, DEC-73); G-13 leads its
+"Helpful" tier (DEC-76). G-1 is the whole of v1, so it is not ranked.
 
 1. Never crash (G-3); the one sanctioned exception is `PYTHONWARNINGS=error` at startup (DEC-8). To stay debuggable, it reports its own swallowed failures on stderr instead of raising (DEC-75).
 2. Idempotency (G-2).
 3. No telemetry of its own (G-4).
 4. Simple, idiomatic, succinct and pretty (G-11).
 5. Reasonable documented defaults (G-12).
-6. Introspection (G-5).
-7. Class and dataclass support (G-6).
-8. Kubernetes support (G-7).
-9. Machine-readable first (G-8).
-10. No secrets by default (G-9).
-11. Upgrades don't break users (G-10): versions stay pinned (DEC-57), and releases try to follow semver to signal
+6. Application context on each request (G-13).
+7. Introspection (G-5).
+8. Class and dataclass support (G-6).
+9. Kubernetes support (G-7).
+10. Machine-readable first (G-8).
+11. No secrets by default (G-9).
+12. Upgrades don't break users (G-10): versions stay pinned (DEC-57), and releases try to follow semver to signal
     compatibility.
 
 **Example: scrubbing fails on export.** Never crash comes first, then the telemetry still goes out, then
