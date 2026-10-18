@@ -44,6 +44,11 @@ batons `BATON-n`, pause records `PAUSE-n`, goals `G-n`. Never reuse or renumber 
   `"C:/Users/avery/anaconda3/envs/opentelemetry_wrapper/python.exe" -m venv .context-engine/env`, then
   `<engine-python> -m pip install "context-engine @ git+https://github.com/averykhoo/context-engine@<ref>"`,
   at the ref of the latest ledger entry that names one (adopted at `7fd39975554a5a5edfb7a74e90ccbdcc5a0bd7e3`).
+- **The Claude Code plugin** (`.claude/settings.json`, from the engine repo's marketplace) carries the procedures as
+  skills (`/context-engine:intake`, `/context-engine:clean-close`, ...) and the MCP server, as
+  `mcp__plugin_context-engine_engine__<group>_<verb>` tools; both run the pinned engine above. The orient hook is the
+  machine-local one `init` wrote to `.claude/settings.local.json` (the plugin's stays quiet beside it); a new clone
+  reruns `context-engine init` after building the env. Without the plugin's tools, use the CLI: nothing is lost.
 - **The conda env** (2026-10-18): Python 3.12.15, opentelemetry 1.44.0 / 0.65b0, sqlalchemy 2.0.54, fastapi 0.142.2,
   pydantic 2.13.5. Besides `requirements.txt` it holds `pytest`, `flake8`, `mypy`, `types-requests`, `logfire`
   (only for the Q15 comparison, DEC-15), and, for the scrubbing benchmark (DEC-16) only, `greenery`, `interegular`,

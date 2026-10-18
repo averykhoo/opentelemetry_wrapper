@@ -1,0 +1,4 @@
+{
+  "extraKnownMarketplaces": {"context-engine": {"source": {"source": "github", "repo": "averykhoo/context-engine"}}},
+  "enabledPlugins": {"context-engine@context-engine": true}
+}
