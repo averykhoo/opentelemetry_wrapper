@@ -4,10 +4,29 @@ Append-only, newest first, one entry per session (FRAMEWORK §7.1).
 
 ---
 
-## 2026-10-18c · kind: open
+## 2026-10-18c · kind: close
 
-- **opened:** 2026-10-18T10:59:08+08:00 by claude-code/2.1.287
-- **asked:** ASK-17
+- **rows:** OTW-18, OTW-19
+- **receipts:**
+  - guards: gate PASSED in 23.2s (203 passed, 23 xfailed in 20.88s) on g1/code:912d9e4af5fe1d93; log
+    .context/gate/20261018T110754-24408.log
+  - read: orient; docs/runbooks/procedures.md § Clean close; the five verification reports
+  - asked: ASK-17
+- **summary** (the owner digest):
+  - Owner: "Check if the context engine mcp is up"; it is (session_start, ask_raised, lint answered
+    over MCP).
+  - Owner: "use ultracode to send out cheaper agents (maybe sonnet) to do a manual verification then
+    push it to master and clean up the temp stuff used to test the migration".
+  - Verification: 5 Sonnet checkers + skeptics over decisions, board/criteria, archive/map,
+    code/config, charter/engine; no content lost, no blocker.
+  - Fixed: OTW-18's garbled sentence, CLAUDE.md's actor-rule attribution, archive README's DEC-64
+    count (338412e); the rest is OTW-19.
+  - Pushed: main fast-forwarded 26a4ee4..338412e (master = main here); CI watcher started on
+    338412e.
+  - Cleanup: migration scratch removed from .scratch (otw-trial, ce-env, engine clone, orig, audit,
+    verify, drafts); design scratch kept.
+- **Still owed:**
+  - none
 
 ---
 
