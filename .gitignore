@@ -149,3 +149,6 @@ gen
 
 # scratch space for Claude / local experiments
 .scratch/
+
+# context-engine: the engine's pinned env (kit README § 1)
+.context-engine/

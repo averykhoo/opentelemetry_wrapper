@@ -1,0 +1,335 @@
+# context.toml: the framework config for this repo (FRAMEWORK §8.0). This file IS the schema:
+# every key the engine reads appears below with its default, and the engine refuses any table or
+# key it does not know, a [working.caps] tier no board kind's `pri` names, and a value of the wrong
+# type (so a typo fails rather than becoming a silent default).
+#
+# Written by `context-engine init` from the adoption kit; edit it in place afterwards. For an
+# existing repo (FRAMEWORK §11.4), point `dir` and the routes at the files the repo already has:
+# map, don't move. Its existing ids take the framework's form at import, each keeping its number
+# where it has one, and the old id stays a resolvable alias; an id is never reused.
+#
+# Every tuned value carries a provenance note (FRAMEWORK §8.0): MEASURED or JUDGEMENT, the method,
+# and what would make it wrong. The values below are the engine's defaults, so their provenance
+# starts as JUDGEMENT; re-state it when this repo measures or decides otherwise.
+#
+# Nothing reads these yet, so they are not keys here (FRAMEWORK §8.0 lists them): cutoff ids, model choices
+# for background agents, the housekeeping write cap and the stale-stub window.
+
+[engine]
+oplog = "docs/ledger/ops.jsonl"      # one JSON line per engine write; append-only, written by the engine
+lockfile = ".context/engine.lock"    # .context/ carries its own `.gitignore`; never tracked
+bundles = ["docs/decisions", "docs/stories", "tasks"]   # directories declared OKF bundles (lint G-D11)
+contract = "CLAUDE.md"               # the contract; its `framework: <major.minor>` must equal the engine's (lint G-D0)
+lock_timeout = 30.0                  # seconds to wait for the repo lock; provenance: JUDGEMENT, engine default; wrong if writes from concurrent sessions time out under normal use
+commit = "milestones"                # when the engine commits its writes by path with its op log lines (FRAMEWORK §5.5 rule 4): "milestones" (a task close, owner words,
+                                     # a baton or pause, session close or pause, the banner; every other write stays uncommitted and goes into the next commit), "every-write", or "off" (the engine commits only a pause; the session commits everything else)
+
+# -- record kinds (FRAMEWORK §8.0.1) ------------------------------------------------------
+# Keys of a [kinds.<name>] table:
+#   type        the OKF `type:` value written into every record of the kind
+#   prefix      the id series: prefix "D" gives D-1, D-2, ... Ids are never reused. A repo's earlier
+#               ids are renamed to it at import, keeping the number, and each old id goes in the
+#               record's `aliases` list, which lookups resolve (FRAMEWORK §11.4)
+#   dir         repo-relative directory holding the records (one file each: <id>-<slug>.md)
+#   mode        append-only | replaced | stamped (the session-stamped mode; FRAMEWORK §8.0.1)
+#   required    frontmatter fields every record must carry
+#   enums       field -> its allowed values
+#   extra_dirs  further directories scanned for ids, e.g. a legacy tasks/closed/
+#   types       field -> str | date | key | list | int (`key` is a session key like 2026-01-31a)
+# OKF reserves `status`: name state fields `state`, `decision_status`, `story_status`.
+
+[kinds.decision]
+type = "Decision"
+prefix = "DEC"
+dir = "docs/decisions"
+mode = "append-only"
+required = ["title", "actor", "decided", "session", "decision_status"]
+enums = { decision_status = ["BUILT", "PROVISIONAL", "DEFERRED", "SUPERSEDED", "REJECTED"] }  # FRAMEWORK §6.5
+types = { aliases = "list", decided = "date", session = "key", tags = "list", supersedes = "list", superseded_by = "list", relaxes = "list", narrowed_by = "list", creates = "list", amends = "list", retires = "list", tasks = "list", code = "list", refs = "list" }  # link fields: FRAMEWORK §6.5
+extra_dirs = []
+
+[kinds.story]
+type = "Story"
+prefix = "STORY"
+dir = "docs/stories"
+mode = "append-only"
+required = ["title", "actor", "date", "story_status", "goals"]
+enums = { story_status = ["live", "unspecified", "unconfirmed", "retired"] }  # FRAMEWORK §3.2
+types = { aliases = "list", date = "date", goals = "list", supersedes = "list", superseded_by = "list" }   # goals: the charter's G-n ids; the links only `record retire` writes
+
+[kinds.task]
+type = "Task"
+prefix = "OTW"
+dir = "tasks"
+mode = "replaced"
+required = ["title", "pri", "state", "created"]
+enums = { pri = ["NOW", "NEXT", "LATER", "SOMEDAY"], state = ["open", "closed"] }
+types = { aliases = "list", created = "date", moved = "key", updated = "key", closed = "key", deps = "list", labels = "list", review = "list" }
+
+[kinds.question]
+type = "Question"
+prefix = "ASK"
+dir = "tasks"
+mode = "replaced"
+required = ["title", "pri", "state", "created"]
+enums = { pri = ["NOW", "NEXT", "LATER", "SOMEDAY"], state = ["open", "closed"] }
+types = { aliases = "list", created = "date", moved = "key", updated = "key", closed = "key", deps = "list", labels = "list", blocks = "list", last_asked = "key", review = "list" }
+
+# Batons and pause records: one session-stamped record each (FRAMEWORK §5.4).
+[kinds.baton]
+type = "Baton"
+prefix = "BATON"
+dir = "docs/working"
+mode = "stamped"
+required = ["title", "session", "state", "created"]
+enums = { state = ["open", "done", "expired"] }
+types = { session = "key", created = "date", done = "key" }
+
+[kinds.pause]
+type = "Pause"
+prefix = "PAUSE"
+dir = "docs/working"
+mode = "stamped"
+required = ["title", "session", "state", "created", "branch", "resume_step"]
+enums = { state = ["open", "done", "expired"] }
+types = { session = "key", created = "date", resumed = "key", uncommitted = "list", deferred = "list" }
+
+# -- working state (FRAMEWORK §5): which files and kinds the session operations use ---------
+[working]
+ledger = "docs/ledger/session-log.md"   # the session ledger, one file under the engine lock
+handoff = "HANDOFF.md"                  # the orientation note; `banner set` writes its `## Banner (<key>)`
+board = ["task", "question"]            # kinds ranked on the board
+task = "task"                           # the kind baton expiry files into, and `ask answer` reports as unblocked
+question = "question"
+decision = "decision"
+baton = "baton"
+pause = "pause"
+orient_max_bytes = 6000      # provenance: JUDGEMENT, engine default sized to one screen of orient; wrong if a routine orient gets cut
+read_max_bytes = 6000        # every other MCP read; provenance: JUDGEMENT, the orient cap reused; wrong if a routine read (one task, the board) gets cut
+ask_overdue_sessions = 5     # an owner question not raised in this many sessions is overdue (FRAMEWORK §5.3); provenance: JUDGEMENT, engine default; wrong if the owner is asked too often or too rarely
+ask_overdue_days = 7         # ...or in this many days, whichever comes first; provenance: JUDGEMENT, engine default; wrong as above
+baton_max_age = 2            # sessions closed after the owning one before a baton expires (G-W3); provenance: JUDGEMENT, engine default; wrong if batons expire while still being worked
+register = "docs/invariants.md"   # the residual-risk register (FRAMEWORK §7.4); the first `task close` that files a residual risk creates it
+decision_index = "docs/decisions/index.md"   # generated from the decisions' frontmatter on every decision write; lint G-D6 checks it (FRAMEWORK §6.5)
+criteria = "docs/criteria.md"               # one `| AC-n | ... |` row per criterion; `decision link` refuses an AC-n id that is not a row
+archive = "docs/archive"                    # where `doc archive` moves a doc when given no --to (FRAMEWORK §7.3); its README.md is the directory's redirect table, made by the first archive
+review_triggers = ["record-kind", "guard", "write-op", "git-loss", "long-lived", "shipped"]  # the values a board item's `review:` may take: FRAMEWORK §5.2's design-review threshold, one per clause
+max_pauses = 2               # consecutive pause entries before lint asks for a clean close (G-W2); provenance: JUDGEMENT, engine default; wrong if real work routinely needs more
+
+[working.caps]               # board tier caps: NOW holds exactly this many, others at most
+NOW = 1                      # provenance: JUDGEMENT, FRAMEWORK §5.2 (one thing at a time); wrong if the work never fits one item at a time
+NEXT = 5                     # provenance: JUDGEMENT, engine default; wrong if NEXT routinely overflows with work that is really next
+
+# -- guards (FRAMEWORK §8): which guards lint reports, and what the doc guards read ----------
+# A doc guard whose list is empty checks nothing; a listed path that does not exist fails.
+[guards]
+off = []                     # guard ids lint does not report (`context-engine lint` names them); say why in a comment
+links = ["CLAUDE.md", "HANDOFF.md", "docs/runbooks", "docs/charter.md", "docs/criteria.md", "tasks", "context-engine-feedback.md", "README_v1.md"]   # G-D3: relative links, their #anchors and `file::symbol` spans resolve, case-exact
+existence = ["docs/criteria.md"]   # G-T3: files and `file::symbol` named in normative text exist; add the residual-risk register and any NFR doc once they exist
+signals = ["CLAUDE.md", "HANDOFF.md", "docs/runbooks", "docs/charter.md", "docs/criteria.md", "context-engine-feedback.md"]   # G-D7: the signal budgets below
+warn_max = 3                 # ⚠ per file (G-D7); provenance: JUDGEMENT, engine default; wrong if a real trap goes unmarked to stay under it
+bold_caps_max = 5            # bold all-caps spans per file (G-D7); provenance: JUDGEMENT, engine default; wrong as above
+retired_glyphs = []          # glyphs no file may use any more (G-D7)
+liveness = ["CLAUDE.md", "HANDOFF.md", "docs/charter.md", "docs/criteria.md", "docs/framework/contract.md", "docs/ledger/session-log.md", "docs/runbooks", "context-engine-feedback.md", "README.md", "README_v1.md"]   # G-D4: each doc declares near its top whether it is kept current (its liveness, FRAMEWORK P2): a line led by LIVING, ACTIVE-PLAN or FROZEN, or a frontmatter `liveness:` key; add every doc the repo keeps
+history = ["docs/evidence"]  # G-D4: directories of provenance; each doc there is FROZEN, or ACTIVE-PLAN while the board item it names is open
+liveness_given = { "CLAUDE.md" = "LIVING", "docs/framework/contract.md" = "LIVING", "docs/ledger/session-log.md" = "LIVING", "README.md" = "LIVING", "README_v1.md" = "LIVING" }   # G-D4: repo-relative glob -> liveness, for docs whose opening lines the repo may not edit (the kit block, the framework contract, the engine-written ledger; frozen provenance; README.md is the PyPI page and README_v1.md its v1 draft, so neither carries a status line)
+liveness_lines = 10          # G-D4: how many lines from the top the declaration may sit; provenance: JUDGEMENT, engine default (a title, a blank line and a status line fit, and so does a runbook frontmatter); wrong if a doc needs its declaration further down
+numbers = []                 # G-D5: off until the repo measures things (FRAMEWORK §11.2); then list its LIVING docs, and no count of things in the tree (`23 components`) may be typed there except in one of P5's forms
+count_nouns = ["tests", "checks", "guards", "criteria", "stories", "decisions", "tasks", "items", "rows", "questions", "records", "components", "rituals", "procedures", "goals", "runbooks", "kinds", "principles", "steps", "files", "entries", "ids", "scenarios"]   # G-D5: the plural nouns that make a number placed directly before them a count (the engine default); add the ones the repo measures (`runs`, `seeds`)
+coverage_spec = ""           # G-D12: the framework spec (e.g. docs/framework/FRAMEWORK.md) whose components, procedures and G-ids must be owned; empty with coverage_maps is off. The engine's patterns and floors (20 components, 10 procedures, 30 G-ids) fit FRAMEWORK.md's format: a spec they do not fit stays red, so leave both empty
+coverage_maps = ""           # G-D12: a repo-relative glob of frozen, dated coverage maps (e.g. docs/evidence/framework-coverage-*.md); the newest by file-name date and session letters is read
+# The correctness chain (FRAMEWORK §3.4): unset here, because a fresh repo has no goals, stories or tests
+# yet, and a set source that yields nothing is red. Set them at bootstrap step 4 (procedures.md),
+# once the goals, the first stories and their criteria are recorded. A guard is off while a
+# source it needs is unset, but `charter` without `stories`, or `tests` without [working]
+# criteria, is red (half set).
+charter = ""                 # G-I1: the charter (docs/charter.md); its table rows led by a goal id (`| G-1 | ... |`) are the goals a story's `goals` may name
+stories = ""                 # G-I1, G-I2, G-T1, G-T6: the kind holding the stories ("story"); G-T1 and G-T6 also read [working] criteria
+tests = []                   # G-T2: files and directories where tests and drivers claim criteria (e.g. ["tests"])
+claim = '''criterion(?:\(\s*["']|:\s*)([A-Z]+-[1-9][0-9]*)'''   # G-T2: one group, the claimed id; this default reads `@pytest.mark.criterion("AC-n")` and a `criterion: AC-n` comment
+
+# -- the scoped gate (FRAMEWORK §8.5 G-V1): each gate run recorded against its scopes' content ids --
+# Off while `command` is empty. `context-engine gate run` runs `command` and appends its result to
+# `ledger` with each scope's id; `gate status` says which scopes a green run covers. Set `require`
+# to a scope and `context-engine commit` refuses a path in it until a green run covers it.
+# `{python}` in `command` is the engine's interpreter, which is not this repo's test environment
+# (the engine runs from its own environment, never this one): name your own test interpreter, e.g.
+# [".venv/bin/python", "-m", "pytest", "-q"]. The scope guard (context_engine.scope_guard) runs
+# inside your tests, so it needs `context_engine` importable there without an install: put the
+# engine's `src` on PYTHONPATH for the gate run, or leave `exclude` empty.
+[gate]
+command = ["C:/Users/avery/anaconda3/envs/opentelemetry_wrapper/python.exe", "-m", "pytest", "-q", "-p", "no:cacheprovider", "tests"]   # CLAUDE.md § Gate: the repo's conda env, never the engine's
+ledger = ".context/gate/runs.jsonl"   # the run ledger; must be gitignored (a fresh directory gets a `.gitignore` of `*`)
+require = "code"             # the scope a session's own commit of a path in it needs green (`context-engine commit`); empty is no check
+
+# A scope: repo-relative globs over whole `/` paths (`**` spans directories, `*` does not). An
+# exclusion fails open, since an excluded file can no longer make a green run stale: exclude only
+# what no test reads, and verify it with a guard such as context_engine.scope_guard, which fails
+# any test that reads an excluded path unless `readers` names it. The readers are keyed on every
+# file, so a hand edit outside the scope leaves them uncovered until `gate run --readers` re-runs
+# them; `gate status --require <scope>+readers` says when.
+# The code scope: everything but the records and the prose. tests/ read the package, the example
+# scripts at the root and their own fixtures, never Markdown, the records or context.toml (grep of
+# tests/ for file names, 2026-10-18); no scope guard runs inside the tests, so a new reader of an
+# excluded path would go unseen: keep tests off these paths.
+[gate.scopes.code]
+include = ["**"]
+exclude = ["tasks/**", "docs/**", "*.md", "context.toml", ".claude/**"]
+readers = []
+
+# -- routes (FRAMEWORK §2): where each component lives; print with `context-engine routes` -----
+# Keys of a [[routes]] entry: component, path (must exist: lint G-R1), mode (how it changes,
+# free text), pattern (how files under `path` are named), note, optional (may be absent), and the G-D1
+# caps max_lines, max_bytes, max_width (0 is no cap).
+
+[[routes]]
+component = "Contract"
+path = "CLAUDE.md"
+mode = "replaced; the kit block (the framework: line and the import of the framework contract) is replaced only on upgrade"
+max_lines = 200    # G-D1: caps on the routed file (or each .md under a routed directory); 0 is no cap; provenance: JUDGEMENT, engine default (the kit block is about 10 lines, the repo's own rules the rest); wrong if a rule that belongs here is kept elsewhere to stay under it
+max_bytes = 16000  # provenance: JUDGEMENT, engine default; wrong as above
+max_width = 120    # characters per line, table rows exempt; provenance: JUDGEMENT, engine default; wrong if wrapping splits commands mid-line
+
+[[routes]]
+component = "Framework contract"
+path = "docs/framework/contract.md"
+mode = "the framework's: imported by CLAUDE.md, replaced whole on upgrade, never edited here (G-D0 compares it with the engine's kit)"
+
+[[routes]]
+component = "Charter"
+path = "docs/charter.md"
+mode = "replaced, signed off by the owner"
+note = "goals carry G-n ids; a story's `goals` names them"
+
+[[routes]]
+component = "Stories (owner's words)"
+path = "docs/stories"
+pattern = "<id>-<slug>.md"
+mode = "append-only: `context-engine record amend`; retired only by `context-engine record retire`; never rewrite"
+
+[[routes]]
+component = "Criteria"
+path = "docs/criteria.md"
+mode = "replaced, ids kept"
+
+[[routes]]
+component = "Decisions"
+path = "docs/decisions"
+pattern = "<id>-<slug>.md"
+mode = "append-only: `context-engine record amend`"
+note = "one record each (FRAMEWORK §6.5)"
+
+[[routes]]
+component = "Tasks and owner questions"
+path = "tasks"
+pattern = "<id>-<slug>.md"
+mode = "frontmatter through `context-engine task`/`context-engine ask`, bodies by hand"
+
+[[routes]]
+component = "Batons and pause records"
+path = "docs/working"
+pattern = "<id>-<slug>.md"
+mode = "session-stamped, through `context-engine baton`/`context-engine pause`"
+
+[[routes]]
+component = "Orientation note"
+path = "HANDOFF.md"
+mode = "replaced at clean close; banner through `context-engine banner set`"
+max_lines = 150    # G-D1, the backstop to G-D8's stacking check (FRAMEWORK P6); provenance: JUDGEMENT, engine default; wrong if a cold session needs more to orient than fits
+max_bytes = 12000  # provenance: JUDGEMENT, engine default; wrong as above
+max_width = 120    # provenance: JUDGEMENT, engine default; wrong if wrapping splits commands mid-line
+
+[[routes]]
+component = "Session ledger"
+path = "docs/ledger/session-log.md"
+mode = "append-only, one entry per session, through `context-engine session`"
+
+[[routes]]
+component = "Operation log"
+path = "docs/ledger/ops.jsonl"
+mode = "append-only, written by the engine"
+optional = true
+note = "created by the first engine write"
+
+[[routes]]
+component = "Residual-risk register"
+path = "docs/invariants.md"
+mode = "entries appended by `context-engine task close` or by hand; an entry is edited only when the code changes"
+optional = true
+note = "INV-n (FRAMEWORK §7.4); the same path as [working] register; created by the first `task close` that files a residual risk"
+
+[[routes]]
+component = "Runbooks"
+path = "docs/runbooks"
+mode = "replaced"
+note = "procedures: every procedure's steps in order; manual-mode: every engine operation by hand (FRAMEWORK §7.5); the method runbooks are routed one by one below"
+
+# The method runbooks (FRAMEWORK §7.5): one route each, so G-R1 is red when one is lost and G-D1
+# keeps each short. They carry no repo values: the repo's own (its test command, suites, models,
+# release steps) go in CLAUDE.md.
+[[routes]]
+component = "Gate runbook"
+path = "docs/runbooks/gate.md"
+mode = "replaced, LIVING"
+note = "running the gate so its result is true, and the test baselines"
+max_lines = 90     # G-D1; provenance: JUDGEMENT, engine default (the kit's copy is about 55 lines); wrong if a method step is left out to stay under it
+max_bytes = 8000   # provenance: JUDGEMENT, engine default; wrong as above
+max_width = 100    # provenance: JUDGEMENT, engine default (the runbooks' prose wrap); wrong if wrapping splits a command mid-line
+
+[[routes]]
+component = "Sabotage runbook"
+path = "docs/runbooks/sabotage.md"
+mode = "replaced, LIVING"
+note = "seeing every new check fail before believing it"
+max_lines = 90     # G-D1; provenance: JUDGEMENT, engine default, as the gate runbook's; wrong as above
+max_bytes = 8000   # provenance: JUDGEMENT, engine default, as the gate runbook's; wrong as above
+max_width = 100    # provenance: JUDGEMENT, engine default, as the gate runbook's; wrong as above
+
+[[routes]]
+component = "Fan-out runbook"
+path = "docs/runbooks/fan-out.md"
+mode = "replaced, LIVING"
+note = "delegation, workflows and the build rounds (FRAMEWORK §6.6)"
+max_lines = 90     # G-D1; provenance: JUDGEMENT, engine default, as the gate runbook's; wrong as above
+max_bytes = 8000   # provenance: JUDGEMENT, engine default, as the gate runbook's; wrong as above
+max_width = 100    # provenance: JUDGEMENT, engine default, as the gate runbook's; wrong as above
+
+[[routes]]
+component = "Release runbook"
+path = "docs/runbooks/release.md"
+mode = "replaced, LIVING"
+note = "tag, publish, confirm, and the fresh-user install trial; a repo that publishes nothing keeps it unused (`init` would copy it back)"
+max_lines = 90     # G-D1; provenance: JUDGEMENT, engine default, as the gate runbook's; wrong as above
+max_bytes = 8000   # provenance: JUDGEMENT, engine default, as the gate runbook's; wrong as above
+max_width = 100    # provenance: JUDGEMENT, engine default, as the gate runbook's; wrong as above
+
+[[routes]]
+component = "Evidence"
+path = "docs/evidence"
+pattern = "<id>-<topic>-<date>.md"
+mode = "ACTIVE-PLAN, then FROZEN"
+
+[[routes]]
+component = "Scratch"
+path = ".scratch"
+mode = "throwaway and gitignored; anything only there is lost"
+optional = true
+
+# -- this repo's own components ------------------------------------------------------------
+[[routes]]
+component = "Framework feedback"
+path = "context-engine-feedback.md"
+mode = "LIVING, appended by every session: after-action reviews, frictions, token waste, proposed simplifications"
+note = "feedback for the engine repo (averykhoo/context-engine); CLAUDE.md says when to write to it"
+
+[[routes]]
+component = "Archive"
+path = "docs/archive"
+optional = true
+mode = "FROZEN docs moved by `context-engine doc archive`; README.md is the redirect table"
+note = "holds the pre-adoption PLAN.md and TODO.md, migrated into records (docs/evidence/adoption-map-2026-10-18.md)"
+
+[[routes]]
+component = "v1 user docs (draft)"
+path = "README_v1.md"
+mode = "LIVING draft of the v1 README; kept consistent with the decisions"
