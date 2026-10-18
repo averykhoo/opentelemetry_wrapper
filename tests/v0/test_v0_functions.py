@@ -6,9 +6,13 @@ class instrumentation is in test_v0_classes.py, since it can't be tested in-proc
 import asyncio
 import functools
 import inspect
+import sys
 from pathlib import Path
 
 import pytest
+
+# from 3.14 functools.partial is a method descriptor, so inspect.isroutine accepts it and v0 wraps it like a function
+PARTIAL_IS_ROUTINE = sys.version_info >= (3, 14)
 
 
 def expected_name(func) -> str:
@@ -335,19 +339,24 @@ class CallableInstance:
 
 @pytest.mark.v0_specific
 def test_currently_raises_for_unsupported_objects(otw):
-    with pytest.raises(TypeError):
-        otw.decorate(functools.partial(partial_fresh_target, 2))  # partial of an un-instrumented function
+    if not PARTIAL_IS_ROUTINE:
+        with pytest.raises(TypeError):
+            otw.decorate(functools.partial(partial_fresh_target, 2))  # partial of an un-instrumented function
     with pytest.raises(TypeError):
         otw.decorate(CallableInstance())
     with pytest.raises(AssertionError):  # not even a TypeError: CodeInfo's __post_init__ asserts
         otw.decorate(42)
 
 
-@pytest.mark.xfail(strict=True, reason='v0 bug list "Never crash holes in instrument_decorate": raises TypeError for '
-                                       'unsupported types (instrument_decorator.py:107)')
+NEVER_CRASH_HOLE = ('v0 bug list "Never crash holes in instrument_decorate": raises TypeError for unsupported types '
+                    '(instrument_decorator.py:107)')
+
+
 @pytest.mark.parametrize('make', [
-    pytest.param(lambda: functools.partial(partial_fresh_target, 3), id='functools.partial'),
-    pytest.param(CallableInstance, id='callable instance'),
+    pytest.param(lambda: functools.partial(partial_fresh_target, 3), id='functools.partial',
+                 marks=pytest.mark.xfail(not PARTIAL_IS_ROUTINE, strict=True, reason=NEVER_CRASH_HOLE)),
+    pytest.param(CallableInstance, id='callable instance',
+                 marks=pytest.mark.xfail(strict=True, reason=NEVER_CRASH_HOLE)),
 ])
 def test_decorating_unsupported_callables_does_not_crash(otw, make):
     obj = make()
