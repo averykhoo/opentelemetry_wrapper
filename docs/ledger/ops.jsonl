@@ -448,3 +448,4 @@
 {"at": "2026-10-18T13:02:18+08:00", "session": "2026-10-18e", "actor": "claude-code/2.1.287", "op": "ask.raised", "id": "2026-10-18e", "path": "docs/ledger/session-log.md", "fields": ["asked"], "mechanical": false}
 {"at": "2026-10-18T13:14:20+08:00", "session": "2026-10-18e", "actor": "claude-code/2.1.287", "op": "amend", "id": "DEC-72", "path": "docs/decisions/DEC-72-charter-review-the-principles-are-a-ranking.md", "fields": [], "mechanical": false}
 {"at": "2026-10-18T13:14:21+08:00", "session": "2026-10-18e", "actor": "claude-code/2.1.287", "op": "amend", "id": "STORY-5", "path": "docs/stories/STORY-5-spans-name-the-code-they-cover-correctly.md", "fields": [], "mechanical": false}
+{"at": "2026-10-18T13:15:17+08:00", "session": "2026-10-18e", "actor": "claude-code/2.1.287", "op": "amend", "id": "DEC-72", "path": "docs/decisions/DEC-72-charter-review-the-principles-are-a-ranking.md", "fields": [], "mechanical": false}

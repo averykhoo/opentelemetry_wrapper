@@ -41,3 +41,5 @@ What it settles, as the agent applies it to the charter:
 ## Amendments
 
 - **2026-10-18e (claude-code/2.1.287):** **2026-10-18e, owner:** after the agent explained that G-9 is more than scrubbing (no arguments on spans, the `x-userinfo` claim denylist, then scrubbing as defence in depth), the owner: *"Oh then no secrets can bump up a little higher then"*. The agent reads "a little higher" as one place: G-9 moves above G-10, to 8th, and G-10 is last.
+
+- **2026-10-18e (claude-code/2.1.287):** **2026-10-18e, owner**, after the charter review, on its source: *"Anc can you check the ppt which should be somewhere in this repo? That should give the best description of what this repo is meant to do"*. The deck is the v0 talk, `OpenTelemetry-Instrumentation-v6.pptx` (27 May 2024). It is not tracked: it sits in the gitignored `.scratch/`, beside its transcript. The agent compared it with the charter and put the gaps to the owner.
