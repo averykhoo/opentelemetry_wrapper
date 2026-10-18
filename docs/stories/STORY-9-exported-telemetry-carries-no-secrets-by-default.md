@@ -20,3 +20,7 @@ exporters too), on the exporter thread, so the cost stays off the caller's path;
 (decided 2026-10-17) and, via `scrub_argv`, to `process.command_args`. Defence in depth: the primary controls remain
 "no arguments on spans" and the header denylist. Anything not behind our wrappers (a user's own processors) is
 unscrubbed; README says so.
+
+## Amendments
+
+- **2026-10-18e (claude-code/2.1.287):** **2026-10-18e, owner confirmation:** reviewing STORY-1 to STORY-10 one by one, the owner: *"Okay for 6 to 10"*. Confirmed as written; `story_status` moved from `unconfirmed` to `live`.
