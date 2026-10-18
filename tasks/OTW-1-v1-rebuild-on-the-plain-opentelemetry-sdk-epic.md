@@ -5,11 +5,11 @@ title: 'v1: rebuild on the plain OpenTelemetry SDK (epic)'
 brief: 'closes last: every workstream task in deps closed, AC-8 green, v0 entry points aliased'
 pri: LATER
 state: open
-deps: [OTW-2, OTW-3, OTW-4, OTW-5, OTW-6, OTW-7, OTW-8, OTW-9, OTW-10, OTW-11, OTW-12, OTW-13, OTW-14, OTW-16]
+deps: [OTW-2, OTW-3, OTW-4, OTW-5, OTW-6, OTW-7, OTW-8, OTW-9, OTW-10, OTW-11, OTW-12, OTW-13, OTW-14, OTW-16, OTW-21]
 source: session 2026-10-18a
 created: 2026-10-18
 moved: 2026-10-18a
-updated: 2026-10-18a
+updated: 2026-10-18j
 labels: [v1, epic]
 ---
 

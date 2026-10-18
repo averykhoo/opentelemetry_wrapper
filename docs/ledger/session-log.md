@@ -4,9 +4,28 @@ Append-only, newest first, one entry per session (FRAMEWORK §7.1).
 
 ---
 
-## 2026-10-18j · kind: open
+## 2026-10-18j · kind: close
 
-- **opened:** 2026-10-18T16:58:18+08:00 by claude-code/2.1.287
+- **rows:** OTW-2, OTW-21, OTW-1
+- **receipts:**
+  - guards: gate PASSED in 22.7s (214 passed, 1 skipped, 23 xfailed in 20.50s) on
+    g1/code:863faf3faac7c989; lint: clean
+  - read: orient, tasks/OTW-2, DEC-38, DEC-54, DEC-55, DEC-56, DEC-57, docs/criteria.md,
+    procedures.md, manual-mode.md (task set, promote), tests/conftest.py, tests/v0/_harness.py,
+    tests/impl.py
+  - asked: none
+- **summary** (the owner digest):
+  - Owner: the plan is done, start building; chose to split OTW-2 (DEC-78).
+  - OTW-21 (LATER, after OTW-13) takes Renovate and auto-release, with review: [shipped, write-op]
+    and its design review owed.
+  - Renovate checked against its docs and tests: contrib needs ignoreUnstable: false; no checks
+    means no automerge; pre-release windows unverified.
+  - Built the OTW_IMPL=v0|v1 adapter (tests/impl.py, DEC-38); v0_specific tests skip under v1;
+    test_public_api still checks v0's own names.
+  - Gate 214 passed, 1 skipped, 23 xfailed; OTW_IMPL=v1 runs to completion (failures expected).
+  - Next in OTW-2: the canaries (tests/upstream), then CI. Not pushed.
+- **Still owed:**
+  - push of 2026-10-18j's commits needs the owner's yes; OTW-21's design review before it is built
 
 ---
 
