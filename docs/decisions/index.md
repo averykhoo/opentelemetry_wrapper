@@ -119,6 +119,10 @@ Generated from each decision's frontmatter by `context-engine decision index`; n
 - [DEC-38](DEC-38-proven-safe-is-one-command-tests-v0-under-otw.md): "Proven safe" is one command: `tests/v0` under `OTW_IMPL=v0|v1` *(owner, 2026-10-08)*
 - [DEC-56](DEC-56-ci-github-actions-on-push-and-pull-requests.md): CI: GitHub Actions on push and pull requests, Python 3.12-3.14, with and without extras *(owner, 2026-10-18)*
 
+### untagged
+
+- [DEC-71](DEC-71-no-v0-patch-release-v0-is-not-touched.md): No v0 patch release: v0 is not touched *(owner, 2026-10-18)*
+
 ## DEFERRED
 
 ### api
