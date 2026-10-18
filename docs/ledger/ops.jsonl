@@ -437,3 +437,4 @@
 {"at": "2026-10-18T13:01:19+08:00", "session": "2026-10-18e", "actor": "claude-code/2.1.287", "op": "amend", "id": "STORY-1", "path": "docs/stories/STORY-1-v1-apps-and-libraries-get-traces-logs-and.md", "fields": [], "mechanical": false}
 {"at": "2026-10-18T13:01:20+08:00", "session": "2026-10-18e", "actor": "claude-code/2.1.287", "op": "amend", "id": "STORY-2", "path": "docs/stories/STORY-2-instrumenting-anything-twice-behaves-as.md", "fields": [], "mechanical": false}
 {"at": "2026-10-18T13:01:21+08:00", "session": "2026-10-18e", "actor": "claude-code/2.1.287", "op": "amend", "id": "STORY-3", "path": "docs/stories/STORY-3-the-wrapper-never-crashes-the-application.md", "fields": [], "mechanical": false}
+{"at": "2026-10-18T13:01:21+08:00", "session": "2026-10-18e", "actor": "claude-code/2.1.287", "op": "amend", "id": "STORY-4", "path": "docs/stories/STORY-4-the-wrapper-emits-no-telemetry-of-its-own-at.md", "fields": [], "mechanical": false}

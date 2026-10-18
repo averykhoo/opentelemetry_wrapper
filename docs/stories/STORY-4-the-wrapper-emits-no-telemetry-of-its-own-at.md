@@ -15,3 +15,7 @@ AGENT: reconstructed at adoption (2026-10-18) from PLAN.md § Principles, item 3
 3. **No telemetry of its own at runtime** (v0 deck: "emits zero logs/spans of its own"). Warnings are allowed only at
    startup / decoration / instrumentation time, once each, never per call. Our own entry points emit no spans (v0's
    do).
+
+## Amendments
+
+- **2026-10-18e (claude-code/2.1.287):** **2026-10-18e, owner confirmation:** reviewing STORY-1 to STORY-10 one by one, the owner: *"Okay for 1 to 4"*. Confirmed as written; `story_status` moved from `unconfirmed` to `live`.
