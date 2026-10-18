@@ -20,6 +20,7 @@ from opentelemetry_wrapper.v1 import _config
 from opentelemetry_wrapper.v1 import _env
 from opentelemetry_wrapper.v1 import _spans
 from opentelemetry_wrapper.v1._decorator import decorate
+from opentelemetry_wrapper.v1._decorator import ensure_configured
 from opentelemetry_wrapper.v1._instrument import MISSING
 from opentelemetry_wrapper.v1._instrument import instrument as _instrument
 from opentelemetry_wrapper.v1._warnings import report
@@ -72,7 +73,7 @@ class Otel:
         if _env.disabled():
             scope = None
         else:
-            _config.ensure_configured()  # outside any `try`: its warnings may be error-filtered (DEC-49)
+            ensure_configured()  # runtime: its warnings go to stderr once, never `warnings.warn` (DEC-81)
             if self._name is not None:
                 name, attributes = self._name, None
             else:

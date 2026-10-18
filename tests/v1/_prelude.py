@@ -1,5 +1,5 @@
 """
-the source every v1 scenario starts with: v1 imported without the package root (`tests/impl.py:import_v1`), and an
+the source every v1 scenario starts with: v1 imported through `tests/impl.py:import_v1` (no v0), and an
 in-memory span exporter registered with v1's test sink (`exporter`), so a scenario sees what would be exported
 """
 PRELUDE = r'''

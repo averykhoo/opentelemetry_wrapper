@@ -112,6 +112,7 @@ trace.set_tracer_provider(provider)
 ''' + PRELUDE + r'''
 with warnings.catch_warnings(record=True) as caught:
     warnings.simplefilter('always')
+    otel.configure()  # explicit: implicit configuration reports to stderr instead (DEC-81)
     @otel
     def f():
         return 1
@@ -129,6 +130,7 @@ trace.set_tracer_provider(provider)
 ''' + PRELUDE + r'''
 with warnings.catch_warnings(record=True) as caught:
     warnings.simplefilter('always')
+    otel.configure()  # explicit: implicit configuration reports to stderr instead (DEC-81)
     @otel
     def f():
         return 1
@@ -195,6 +197,7 @@ def test_every_exporter_goes_through_the_scrubbing_hook_which_fails_closed():  #
 MIGRATION = scenario(__name__, 'v1_config_migration', PRELUDE + r'''
 with warnings.catch_warnings(record=True) as caught:
     warnings.simplefilter('always')
+    otel.configure()  # explicit: implicit configuration reports to stderr instead (DEC-81)
     @otel
     def f():
         pass
@@ -474,3 +477,52 @@ def test_a_forked_child_flushes_its_providers_when_it_ends():  # AC-22 (workstre
     assert str(child_pid) in lines  # the child's own flush, though a forked child skips atexit
     assert str(result['parent']) in lines  # and the parent's, at its exit
     shutil.rmtree(Path(result['marker']).parent, ignore_errors=True)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# the scrubbing engine (OTW-8, DEC-83): configure picks 'auto', hyperscan when importable
+# ----------------------------------------------------------------------------------------------------------------------
+
+AUTO_ENGINE = scenario(__name__, 'v1_config_auto_engine', PRELUDE + r'''
+from opentelemetry_wrapper.v1 import scrubbing
+emit('before', type(scrubbing.default_scrubber()._m).__name__)  # the stock default, built on first use: `re`
+otel.configure()
+emit('after', type(scrubbing.default_scrubber()._m).__name__)
+emit('scrubs', scrubbing.scrub_text('password=hunter2 ' * 3))
+''')
+
+NO_HYPERSCAN = scenario(__name__, 'v1_config_auto_engine_without_hyperscan', PRELUDE + r'''
+import sys
+sys.modules['hyperscan'] = None  # as if it were not installed
+from opentelemetry_wrapper.v1 import scrubbing
+with warnings.catch_warnings(record=True) as caught:
+    warnings.simplefilter('always')
+    otel.configure()
+    emit('warnings', otel_warnings(caught))
+emit('after', type(scrubbing.default_scrubber()._m).__name__)
+''')
+
+OWN_SCRUBBER = scenario(__name__, 'v1_config_own_scrubber_kept', PRELUDE + r'''
+from opentelemetry_wrapper.v1 import scrubbing
+mine = scrubbing.Scrubber(allow_keys=['password'])
+scrubbing.set_default_scrubber(mine)
+otel.configure()
+emit('kept', scrubbing.default_scrubber() is mine)
+''')
+
+
+def test_configure_uses_the_auto_scrubbing_engine():  # OTW-8 (DEC-83)
+    import importlib.util
+    result = AUTO_ENGINE.result()
+    assert result['before'] == '_ReMatcher'
+    assert result['after'] == ('_HsMatcher' if importlib.util.find_spec('hyperscan') else '_ReMatcher')
+    assert 'hunter2' not in result['scrubs']
+
+
+def test_the_auto_engine_falls_back_to_re_without_hyperscan_and_without_a_warning():  # OTW-8 (DEC-83)
+    result = NO_HYPERSCAN.result()
+    assert result['after'] == '_ReMatcher' and result['warnings'] == []
+
+
+def test_a_scrubber_the_app_set_is_not_replaced_by_configure():  # OTW-8 (DEC-83)
+    assert OWN_SCRUBBER.result()['kept'] is True

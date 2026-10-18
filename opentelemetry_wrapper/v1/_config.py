@@ -55,6 +55,26 @@ _log_test_sinks: List[Any] = []
 # exporters: the scrubbing hook and the switchable sink
 # ----------------------------------------------------------------------------------------------------------------------
 
+_scrubber_engine_chosen = False
+
+
+def _use_auto_scrubbing_engine(scrubbing: Any) -> None:
+    """configure scrubs with engine 'auto' (DEC-83): hyperscan when importable, `re` otherwise, picked once. the stock
+    default scrubber (default rules, nothing allowed, still on `re`) is replaced; one the app set itself is kept"""
+    global _scrubber_engine_chosen
+    if _scrubber_engine_chosen:
+        return
+    _scrubber_engine_chosen = True
+    try:  # the exporters are scrubbed either way (the current default stays), so a failure here is only reported
+        current = scrubbing._default
+        stock = (current is not None and type(current._m).__name__ == '_ReMatcher'
+                 and current.rules == tuple(scrubbing.DEFAULT_RULES) and not current._allow_exact)
+        if current is None or stock:
+            scrubbing.set_default_scrubber(scrubbing.Scrubber(engine='auto'))
+    except Exception as e:
+        report('scrubber.engine', e)
+
+
 def _wrap_exporter(exporter: Any, signal: str) -> Any:
     """
     the one place every span / log exporter we build passes through: wraps it in the scrubbing exporter of workstream
@@ -65,6 +85,7 @@ def _wrap_exporter(exporter: Any, signal: str) -> Any:
     if signal not in ('traces', 'logs') or importlib.util.find_spec(SCRUBBING_MODULE) is None:
         return exporter
     scrubbing = importlib.import_module(SCRUBBING_MODULE)
+    _use_auto_scrubbing_engine(scrubbing)
     if signal == 'traces':
         return scrubbing.ScrubbingSpanExporter(exporter)
     return scrubbing.ScrubbingLogExporter(exporter)

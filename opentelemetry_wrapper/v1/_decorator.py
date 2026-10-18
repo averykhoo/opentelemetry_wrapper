@@ -20,11 +20,20 @@ from typing import Optional
 from opentelemetry_wrapper.v1 import _config
 from opentelemetry_wrapper.v1 import _env
 from opentelemetry_wrapper.v1 import _spans
+from opentelemetry_wrapper.v1._warnings import runtime
 from opentelemetry_wrapper.v1._warnings import warn
 
 MARK = '__opentelemetry_wrapper__'  # set on every wrapper we make
 _CACHE = '__opentelemetry_wrapper_cache__'  # set on the underlying function: its wrapper
 _fallback_cache: 'weakref.WeakKeyDictionary[Any, weakref.ref]' = weakref.WeakKeyDictionary()
+
+
+def ensure_configured() -> None:
+    """configure from env vars if nothing has yet, at the first span or call: a runtime path, so the warnings that
+    configuring raises go to stderr once and never through `warnings.warn` (DEC-81)"""
+    if not _config.is_configured():
+        with runtime():
+            _config.ensure_configured()
 
 
 def is_instrumented(target: Any) -> bool:
@@ -120,7 +129,6 @@ def _make_wrapper(target: Any, name: Optional[str], attributes: Optional[dict]) 
     span_name = name or described_name
     span_attributes = {**described, **(attributes or {})}
     disabled = _env.disabled
-    ensure_configured = _config.ensure_configured
     start, finish = _spans.start, _spans.finish
 
     if inspect.isasyncgenfunction(target):

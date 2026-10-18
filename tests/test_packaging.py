@@ -106,8 +106,8 @@ def test_core_dependencies_include_the_otlp_http_family():  # DEC-36
 
 def test_no_grpc_exporter_is_declared():  # DEC-36
     declared = {r.name for r in _everything()} | {r.name for r in _requirements_txt()}
-    # the one transitional exception: v0's otel_providers.py imports the gRPC exporters at module level, and the
-    # package root imports v0, so the exporter package stays a core dependency until ASK-23 lands; then empty this set
+    # the one transitional exception: v0's otel_providers.py imports the gRPC exporters at module level, and v0's
+    # dependencies stay core until 1.0.0 (DEC-80), so the exporter package does too; then empty this set
     allowed = {'opentelemetry-exporter-otlp-proto-grpc'}
     assert not (declared & GRPC_NAMES) - allowed, sorted((declared & GRPC_NAMES) - allowed)
     # grpcio comes only through that package, and never as an extra

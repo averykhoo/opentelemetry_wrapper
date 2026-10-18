@@ -52,8 +52,9 @@ def test_v0_names_resolve_to_the_v0_objects():
     for name, v0_name in V0_NAMES.items():
         assert getattr(impl, name) is getattr(opentelemetry_wrapper, v0_name), name
     assert impl.__version__ == opentelemetry_wrapper.__version__
-    # v0's `__all__`, in neutral names (instrument_system_metrics is importable but not in it)
-    assert set(impl.__all__) == (set(V0_NAMES) - {'instrument_system_metrics'}) | {'__version__'}
+    # the root's `__all__` (DEC-80: v1's names plus every v0 name, `instrument_system_metrics` and the OTEL_* included),
+    # in neutral names
+    assert set(impl.__all__) >= set(V0_NAMES) | {'__version__', 'otel', 'OtelWrapperWarning', 'OTEL_SERVICE_NAME'}
 
 
 @pytest.mark.skipif(impl.IMPL != 'v1', reason='binds the v1 names')
@@ -67,7 +68,7 @@ def test_v1_names_bind_to_v1_or_fail_clearly_when_used():
         impl.__version__
 
 
-def test_import_v1_skips_the_package_root_and_v0():
+def test_import_v1_imports_no_v0():
     result = run_python('''
 import sys
 from tests.impl import import_v1

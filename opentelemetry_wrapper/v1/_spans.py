@@ -25,7 +25,7 @@ from opentelemetry.trace import Status
 from opentelemetry.trace import StatusCode
 
 from opentelemetry_wrapper.v1._warnings import report
-from opentelemetry_wrapper.v1._warnings import warn
+from opentelemetry_wrapper.v1._warnings import warn_at_runtime
 
 PROCESS_EXIT_CODE = 'process.exit.code'  # semconv, incubating
 CLOSED_EARLY = 'opentelemetry_wrapper.closed_early'
@@ -188,6 +188,7 @@ def describe_call_site(frame: Any) -> Tuple[str, Attributes]:
         lines.add(line)
         second = len(lines) == 2
     if second:
-        warn(f'two unnamed `with otel:` blocks in {name} share the span name {name!r}; '
-             f'name them, e.g. `with otel(\'load settings\'):`', key=('unnamed', code))
+        # runtime: stderr once, never `warnings.warn`, which an error filter would raise into the app (DEC-81)
+        warn_at_runtime(f'two unnamed `with otel:` blocks in {name} share the span name {name!r}; '
+                        f'name them, e.g. `with otel(\'load settings\'):`', key=('unnamed', code))
     return described
