@@ -14,3 +14,7 @@ AGENT: reconstructed at adoption (2026-10-18) from PLAN.md § Principles, item 1
 
 1. **Idempotency.** Every public entry point can be called any number of times, from anywhere, and behaves as if it was
    called once. Includes methods reached through instances (v0 gets this wrong, see "v0 lessons").
+
+## Amendments
+
+- **2026-10-18e (claude-code/2.1.287):** **2026-10-18e, owner confirmation:** reviewing STORY-1 to STORY-10 one by one, the owner: *"Okay for 1 to 4"*. Confirmed as written; `story_status` moved from `unconfirmed` to `live`.
