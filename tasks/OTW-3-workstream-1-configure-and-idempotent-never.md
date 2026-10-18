@@ -3,13 +3,13 @@ type: Task
 id: OTW-3
 title: 'Workstream 1: configure, and idempotent, never-crash wrappers over the SDK and contrib'
 brief: global providers set once under the configuration lock; wrappers keep the target's kind and signature
-pri: NEXT
+pri: NOW
 state: open
 deps: [OTW-2]
 source: session 2026-10-18a
 created: 2026-10-18
-moved: 2026-10-18h
-updated: 2026-10-18h
+moved: 2026-10-18l
+updated: 2026-10-18l
 aliases: [WS1]
 labels: [v1]
 ---

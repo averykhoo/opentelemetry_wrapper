@@ -7,6 +7,7 @@ Append-only, newest first, one entry per session (FRAMEWORK §7.1).
 ## 2026-10-18l · kind: open
 
 - **opened:** 2026-10-18T21:47:14+08:00 by claude-code/2.1.287
+- **asked:** ASK-21, ASK-22
 
 ---
 

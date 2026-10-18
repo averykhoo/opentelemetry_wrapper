@@ -9,7 +9,7 @@ deps: [OTW-2]
 source: session 2026-10-18a
 created: 2026-10-18
 moved: 2026-10-18a
-updated: 2026-10-18a
+updated: 2026-10-18l
 aliases: [WS5b]
 labels: [v1]
 ---
@@ -83,3 +83,7 @@ unscrubbed; README says so.
 ## Read first
 
 - The decisions: [DEC-16](../docs/decisions/DEC-16-scrubbing-engine-stdlib-re-by-default-hyperscan.md), [DEC-18](../docs/decisions/DEC-18-scrubbing-s-optional-fast-engine-is-an-re2.md), [DEC-58](../docs/decisions/DEC-58-v1-scrubs-exported-telemetry-with-its-own-rules.md), [DEC-74](../docs/decisions/DEC-74-a-value-that-fails-to-scrub-is-dropped-and.md); [the criteria](../docs/criteria.md)
+
+## Log
+
+- 2026-10-18l (claude-code/2.1.287): 453247a (merged in 604414c): opentelemetry_wrapper/v1/scrubbing.py (ScrubbingSpanExporter/ScrubbingLogExporter, scrub_argv, scrub_mapping, scrub_text, Scrubber with re/hyperscan/auto engines), 348 tests in tests/v1/test_scrubbing_*.py (25 sabotages all caught), benchmarks/scrubbing.py (us, re/hyperscan: span 10 attrs 136/99; 2 KB body with password 571/17; argv 79/98). Left: configure wraps every exporter and the stderr JSON logs (OTW-3); scrub_argv into process.command_args (OTW-9); README line that user processors are unscrubbed (OTW-16). Residual: the span rebuild uses the ReadableSpan constructor and dataclasses.replace on ReadableLogRecord (want canaries); OTEL_WRAPPER_DEBUG is a placeholder name and =0 enables it; bytes values not scanned; '--token --verbose x' redacts --verbose; v1 tests import the module directly, not via tests/impl.py.
