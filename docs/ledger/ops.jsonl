@@ -415,3 +415,4 @@
 {"at": "2026-10-18T10:36:52+08:00", "session": "2026-10-18a", "actor": "claude-code/2.1.287", "op": "ask.raised", "id": "2026-10-18a", "path": "docs/ledger/session-log.md", "fields": ["asked"], "mechanical": false}
 {"at": "2026-10-18T10:37:26+08:00", "session": "2026-10-18a", "actor": "claude-code/2.1.287", "op": "session.close", "id": "2026-10-18a", "path": "docs/ledger/session-log.md", "fields": ["kind"], "mechanical": false}
 {"at": "2026-10-18T10:37:37+08:00", "session": "2026-10-18a", "actor": "claude-code/2.1.287", "op": "banner.set", "id": "2026-10-18a", "path": "HANDOFF.md", "fields": ["banner"], "mechanical": false}
+{"at": "2026-10-18T10:41:36+08:00", "session": "2026-10-18b", "actor": "claude-code/2.1.287", "op": "session.start", "id": "2026-10-18b", "path": "docs/ledger/session-log.md", "fields": ["kind"], "mechanical": false}

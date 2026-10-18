@@ -50,7 +50,10 @@ or renumber an id. The pre-adoption design ids (PLAN.md's Q1-Q16, proposals 1-11
   skills (`/context-engine:intake`, `/context-engine:clean-close`, ...) and the MCP server, as
   `mcp__plugin_context-engine_engine__<group>_<verb>` tools; both run the pinned engine above. The orient hook is the
   machine-local one `init` wrote to `.claude/settings.local.json` (the plugin's stays quiet beside it); a new clone
-  reruns `context-engine init` after building the env. Without the plugin's tools, use the CLI: nothing is lost.
+  reruns `context-engine init` after building the env. Committing the settings does not install it: once per
+  machine, `claude plugin marketplace add averykhoo/context-engine`, then `claude plugin install
+  context-engine@context-engine --scope project` (done here 2026-10-18; `claude mcp list` shows
+  `plugin:context-engine:engine` connected), then restart Claude Code. Without its tools, use the CLI.
 - **The conda env** (2026-10-18): Python 3.12.15, opentelemetry 1.44.0 / 0.65b0, sqlalchemy 2.0.54, fastapi 0.142.2,
   pydantic 2.13.5. Besides `requirements.txt` it holds `pytest`, `flake8`, `mypy`, `types-requests`, `logfire`
   (only for the Q15 comparison, DEC-15), and, for the scrubbing benchmark (DEC-16) only, `greenery`, `interegular`,

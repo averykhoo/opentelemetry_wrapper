@@ -37,9 +37,23 @@ whole migration against the originals; its findings are folded in.
   cleared by `session close`) would remove two of the four, and the plugin's launcher could cover the interpreter.
   This migration made about 410 engine writes (94 `set`, 69 `import`, 67 `link`, 36 `section`, 30 `new`, 28 `dep`);
   only scripting them kept the token cost down.
-- **Prefix defaults lag DEC-38:** the kit still writes `D`, `S`, `T`, `BTN`, `PAU`, while the engine repo's owner
-  decision (DEC-38, PROVISIONAL, CE-56) and the kit README § 3 say `DEC`, `STORY`, `BATON`, `PAUSE`. Adopting the
-  standard took five `--prefix` flags, and a repo that runs `init` without them picks ids it can never rename.
+- **Prefixes: the kit, the README and DEC-38 disagree, and two prefixes can't be set at all.**
+  - The kit's `init` writes `D`, `S`, `T`, `BTN`, `PAU`. The kit README § 3 says `DEC` for decisions in an existing
+    repo, and the engine repo's own owner decision (DEC-38, still PROVISIONAL, CE-56) says `DEC`, `STORY`, `AC`,
+    `ASK`, `RISK`, `GOAL`, `BATON`, `PAUSE`. This repo followed DEC-38 with five `--prefix` flags
+    (`decision=DEC story=STORY task=OTW baton=BATON pause=PAUSE`). A repo that runs plain `init` gets ids it can
+    never rename (ids are never renumbered), so the default matters more than any other config value: make the kit
+    write DEC-38's set, or make `init` refuse to run without explicit prefixes until it does.
+  - Goals and register entries are hardcoded: the charter's goal rows must read `G-n` (`guards.py` `GOAL_RE`), and
+    the residual-risk register numbers `INV-n` (`review.py`). DEC-38 renames them `GOAL` and `RISK`, partly because
+    `G-` collides with guard names (`G-D3`, `G-W5`), but neither is a `[kinds.*]` prefix, so a repo can't follow
+    DEC-38 there. This repo's charter uses `G-1` to `G-10`, so a later move to `GOAL-n` will need an alias path.
+  - Old ids from a design doc rarely fit the importer: PLAN.md's `Q15` had to become `Q-15` to import, so the alias
+    is `Q-15`, not the `Q15` every old commit and comment uses (see "Decision aliases" below).
+  - Questions and old question numbers: the framework maps `Q8` to `ASK-8`, but here Q1-Q16 were all answered, so
+    they became decisions (DEC-1 to DEC-16, alias `Q-n`). The first new question was given `--id ASK-17`, by hand, so
+    `ASK-n` can never be mistaken for the old `Qn` with the same number; `ask new` would have picked `ASK-1`. A note
+    in the kit README § 3 on numbering questions after an import would help.
 - **Decision aliases:** an alias can come only from `decision import` (and only as the log's hyphenated id: PLAN's
   `Q15` had to be written `Q-15`, so `why Q15` does not resolve) or from `record new --set aliases=[...]`.
   `decision set` refuses `aliases`, and the importer's own remedy ("drop it from that record: `task set <id> --set
@@ -72,6 +86,10 @@ whole migration against the originals; its findings are folded in.
 - **The gate command names a machine path:** `[gate] command` must name the conda env's interpreter by absolute path
   in a tracked file (`{python}` is the engine's own). A pointer file like `.context-engine/engine-python` for the
   test interpreter would keep machine paths out of `context.toml`.
+- **Committing the plugin settings didn't install the plugin:** `.claude/settings.json`'s `extraKnownMarketplaces`
+  and `enabledPlugins` were in place, but nothing was installed until `claude plugin marketplace add` and
+  `claude plugin install --scope project` ran by hand (which also reformatted the settings file). Its MCP server
+  then connected first time. The kit README could say the settings alone don't install it on an existing machine.
 - **The kit omits `.gitattributes`** (`docs/ledger/ops.jsonl merge=union`, CE-53): added by hand.
 - **The runbooks are expensive to read:** FRAMEWORK.md is 158 KB, manual-mode 97 KB, procedures 36 KB, and the
   procedures tables put each step in a single row of 500-plus characters. An adopter greps rather than reads; a short

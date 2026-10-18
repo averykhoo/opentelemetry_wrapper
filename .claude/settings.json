@@ -1,4 +1,13 @@
 {
-  "extraKnownMarketplaces": {"context-engine": {"source": {"source": "github", "repo": "averykhoo/context-engine"}}},
-  "enabledPlugins": {"context-engine@context-engine": true}
+  "enabledPlugins": {
+    "context-engine@context-engine": true
+  },
+  "extraKnownMarketplaces": {
+    "context-engine": {
+      "source": {
+        "source": "github",
+        "repo": "averykhoo/context-engine"
+      }
+    }
+  }
 }
