@@ -521,3 +521,6 @@
 {"at": "2026-10-18T17:11:18+08:00", "session": "2026-10-18j", "actor": "claude-code/2.1.287", "op": "dep", "id": "OTW-1", "path": "tasks/OTW-1-v1-rebuild-on-the-plain-opentelemetry-sdk-epic.md", "fields": ["updated", "deps"], "mechanical": false}
 {"at": "2026-10-18T17:11:36+08:00", "session": "2026-10-18j", "actor": "claude-code/2.1.287", "op": "session.close", "id": "2026-10-18j", "path": "docs/ledger/session-log.md", "fields": ["kind"], "mechanical": false}
 {"at": "2026-10-18T17:11:37+08:00", "session": "2026-10-18j", "actor": "claude-code/2.1.287", "op": "banner.set", "id": "2026-10-18j", "path": "HANDOFF.md", "fields": ["banner"], "mechanical": false}
+{"at": "2026-10-18T19:36:03+08:00", "session": "2026-10-18k", "actor": "claude-code/2.1.287", "op": "session.start", "id": "2026-10-18k", "path": "docs/ledger/session-log.md", "fields": ["kind"], "mechanical": false}
+{"at": "2026-10-18T19:51:43+08:00", "session": "2026-10-18k", "actor": "claude-code/2.1.287", "op": "comment", "id": "OTW-11", "path": "tasks/OTW-11-workstream-8-logging.md", "fields": ["updated", "body"], "mechanical": false}
+{"at": "2026-10-18T19:51:43+08:00", "session": "2026-10-18k", "actor": "claude-code/2.1.287", "op": "comment", "id": "OTW-2", "path": "tasks/OTW-2-workstream-0-the-otw-impl-adapter-upstream.md", "fields": ["updated", "body"], "mechanical": false}

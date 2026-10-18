@@ -33,9 +33,17 @@ from tests.v0 import _harness  # noqa: E402
 
 def pytest_configure(config):
     config.addinivalue_line('markers', 'v0_specific: pins a v0 detail that v1 is expected to change (docs/decisions)')
+    config.addinivalue_line('markers', 'upstream: a canary for upstream behaviour we rely on (tests/upstream, set '
+                                       'automatically); `pytest -m upstream` runs just those')
+
+
+_UPSTREAM_DIR = Path(__file__).resolve().parent / 'upstream'
 
 
 def pytest_collection_modifyitems(config, items):
+    for item in items:
+        if _UPSTREAM_DIR in Path(item.fspath).resolve().parents:
+            item.add_marker(pytest.mark.upstream)
     # v0_specific tests pin v0 details, so they only run against v0 (DEC-38)
     if impl.IMPL != 'v0':
         skip = pytest.mark.skip(reason=f'v0_specific: pins a v0 detail, and OTW_IMPL={impl.IMPL}')

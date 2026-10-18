@@ -9,7 +9,7 @@ deps: [OTW-4]
 source: session 2026-10-18a
 created: 2026-10-18
 moved: 2026-10-18h
-updated: 2026-10-18h
+updated: 2026-10-18k
 aliases: [WS8]
 labels: [v1]
 ---
@@ -48,3 +48,7 @@ handlers, not four; `tests/v0` logging tests pass under `OTW_IMPL=v1`.
 
 - The decisions: [DEC-13](../docs/decisions/DEC-13-log-records-keep-the-bare-record-funcname-q13.md), [DEC-32](../docs/decisions/DEC-32-logs-are-real-otel-log-records-never-spans.md), [DEC-34](../docs/decisions/DEC-34-console-one-line-json-logs-on-stderr-no-pretty.md), [DEC-43](../docs/decisions/DEC-43-logging-options-come-from-env-vars-and-otel.md); [the criteria](../docs/criteria.md)
 - [v1 design evidence](../docs/evidence/v1-design-evidence-2026-10-18.md): Logs
+
+## Log
+
+- 2026-10-18k (claude-code/2.1.287): Found while writing the canaries (OTel SDK 1.44.0 / contrib 0.65b0): the SDK's opentelemetry.sdk._logs.LoggingHandler, which v0 uses and DEC-32's evidence describes, now warns DeprecationWarning ('Use the handler from opentelemetry-instrumentation-logging instead'). The replacement, opentelemetry.instrumentation.logging.handler.LoggingHandler(level, logger_provider, log_code_attributes=False), writes the code.* keys only with log_code_attributes=True. Both pinned by tests/upstream/test_logging_handler.py. Which handler v1 uses is this workstream's call.

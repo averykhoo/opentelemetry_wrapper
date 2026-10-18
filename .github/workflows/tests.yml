@@ -1,0 +1,25 @@
+# DEC-56: on push and pull requests, Python 3.12-3.14; the steps are in ci/test.sh
+# the "with and without the optional extras" axis waits for the extras themselves (packaging, OTW-13): v0 has none
+name: tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest  # Linux, so the fork canary (tests/upstream/test_fork_resource.py) runs
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.12', '3.13', '3.14']
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - run: bash ci/test.sh

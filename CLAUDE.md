@@ -67,7 +67,9 @@ or renumber an id. The pre-adoption design ids (PLAN.md's Q1-Q16, proposals 1-11
 the repo root. Run it as `context-engine gate run` (`[gate]` in `context.toml`, scope `code`: everything but the
 records and the prose); before a commit touching code or tests, `context-engine gate status --require code`.
 
-- **Baseline:** `214 passed, 1 skipped, 23 xfailed` in about 22 s (`203 passed, 23 xfailed` before the adapter).
+- **Baseline:** `243 passed, 2 skipped, 23 xfailed` in about 24 s (2026-10-18k; `214 passed, 1 skipped` before the
+  canaries, `203 passed, 23 xfailed` before the adapter). The skips: the fork canary (Linux only) and a v1-only
+  adapter test.
   `tests/v0` characterizes v0 so v1 can be checked against it: plain tests pin behaviour v1 keeps; known bugs are
   `xfail(strict=True)` tests asserting the correct behaviour, so they error once fixed; `@pytest.mark.v0_specific`
   marks v0 details v1 changes. Global OTel state is isolated by running scenarios in subprocesses
@@ -75,8 +77,13 @@ records and the prose); before a commit touching code or tests, `context-engine 
 - **`OTW_IMPL=v0|v1`** (DEC-38, default `v0`; since 2026-10-18j): the tests reach the package only through the
   adapter `tests/impl.py`, and under `v1` the `v0_specific` tests are skipped (the one v0 skip is a v1-only
   adapter test). `OTW_IMPL=v1` runs to completion with failures until v1 exists
-  (`47 failed, 42 passed, 84 skipped, 20 xfailed, 45 errors`); its xfails say nothing about v1, since they hit the
+  (`47 failed, 71 passed, 85 skipped, 20 xfailed, 45 errors`); its xfails say nothing about v1, since they hit the
   adapter's `NotImplementedError`.
+- **Canaries** (`tests/upstream`, marker `upstream`, set by `tests/conftest.py`): one test per upstream behaviour or
+  semi-private API v1 relies on (AC-23); `pytest -m upstream tests` runs just them. They build their own providers or
+  run in scenarios, so they pass under `OTW_IMPL=v0` and `v1` alike.
+- **CI** (DEC-56): `.github/workflows/tests.yml` on push and pull requests, Linux, Python 3.12 / 3.13 / 3.14; the
+  steps are `ci/test.sh`. `requirements.txt` pins nothing yet, so CI tests the latest upstream releases.
 - **Outside the gate** (by hand, repo root on `PYTHONPATH`; all passed 2026-10-04):
 
 | Check | Expected |
@@ -90,6 +97,7 @@ records and the prose); before a commit touching code or tests, `context-engine 
 | `pytest --doctest-modules opentelemetry_wrapper/v0/config opentelemetry_wrapper/v0/utils/extract_json_header.py` | 4 passed |
 | `flake8 --max-line-length 119 ./opentelemetry_wrapper/` | 26 findings, all pre-existing |
 | `mypy ./opentelemetry_wrapper/` | 19 errors, all pre-existing |
+| `python benchmarks/overhead.py` (and with `OTW_IMPL=v1`) | a table of ns per call; v0 2026-10-18k: bare OTel span ~32 µs, decorated ~58 µs (no processor) |
 
 ## Release (v0, by hand; `docs/runbooks/release.md` is the method)
 
@@ -112,7 +120,7 @@ Tell the agent to:
 
 - find the run(s) for the pushed branch and commit SHA and poll until they complete (sensible interval, give up after
   ~30 min). If no run appears within a few minutes, report "no CI run triggered" instead of waiting (there may be no
-  workflow for that branch; `.github/workflows/` didn't exist as of 2026-10-07);
+  workflow for that branch; `.github/workflows/tests.yml`, added 2026-10-18k, runs on every push to any branch);
 - on failure, fetch the failing job's log and report the failing job/step and the relevant error lines verbatim;
 - only watch and report: no code changes, no re-runs, no pushes.
 

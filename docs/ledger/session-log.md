@@ -4,6 +4,12 @@ Append-only, newest first, one entry per session (FRAMEWORK §7.1).
 
 ---
 
+## 2026-10-18k · kind: open
+
+- **opened:** 2026-10-18T19:36:03+08:00 by claude-code/2.1.287
+
+---
+
 ## 2026-10-18j · kind: close
 
 - **rows:** OTW-2, OTW-21, OTW-1
