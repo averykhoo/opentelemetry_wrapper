@@ -5,6 +5,19 @@ the engine repo (`averykhoo/context-engine`). Every session appends at its clean
 feedback): after-action reviews, frictions, tokens spent on ceremony, engine bugs and refusals with a bad remedy,
 and simplifications that would help. Newest first; each entry dated, with its session key.
 
+## 2026-10-18f: G-13, then merge and push
+
+### Friction
+
+- **A one-goal follow-up right after a close needed a whole new session**: start, housekeeping, intake, close,
+  banner, about 15 engine calls for one goal, one story, one decision and one criterion. "More work after the close
+  starts a new session" is costly when the owner just answers the close's own "for you" line. Letting a session
+  reopen its own close for the items its digest raised would cut that.
+- **Push and CI without a workflow:** the runbook says to do CI's run by hand in a fresh environment
+  (`pip install -e ".[dev]"`). This repo's owner wants installs confirmed, and the push changed only records (the
+  code scope's id was the same as at the last push), so the fresh run was skipped and the gate ran in the usual env.
+  The runbook could let a push whose code scope id matches an already-verified push skip the fresh run.
+
 ## 2026-10-18e: charter and story review with the owner
 
 ### What worked
