@@ -5,6 +5,25 @@ the engine repo (`averykhoo/context-engine`). Every session appends at its clean
 feedback): after-action reviews, frictions, tokens spent on ceremony, engine bugs and refusals with a bad remedy,
 and simplifications that would help. Newest first; each entry dated, with its session key.
 
+## 2026-10-18g: open items and a parsimony review for the owner
+
+### What worked
+
+- **Pushing the parsimony review into one subagent** (about 100k tokens of reading) kept the session's own context
+  to the verdicts; the session checked two findings first-hand before filing them.
+
+### Friction
+
+- **"Are there any open decisions?" has no direct answer.** `PROVISIONAL` means "signed off, not built", so 53 of the
+  77 decisions look open to anyone who greps statuses; finding the real open ones took reading the adoption map
+  (proposals 3-11 signed off) and the charter's own "the agent's placement" notes. A `decision find --open` (owner
+  confirmation pending), or a status that separates "proposed by the agent" from "accepted, unbuilt", would answer it
+  in one call. Agent placements recorded inside an owner decision (DEC-73, DEC-76) are invisible to any query.
+- **CLI inconsistencies cost retries:** `task comment` takes the message positionally while `task close` takes `-m`;
+  `task new` checked the brief cap and the tier cap one at a time, so one filing took three calls.
+- **The close in the same turn as the questions:** the owner asked to "think through" the open items, and the
+  contract closes before the reply, so their answers will start a new session. That was the 2026-10-18f friction again.
+
 ## 2026-10-18f: G-13, then merge and push
 
 ### Friction
