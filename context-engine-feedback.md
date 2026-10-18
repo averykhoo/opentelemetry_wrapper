@@ -5,6 +5,34 @@ the engine repo (`averykhoo/context-engine`). Every session appends at its clean
 feedback): after-action reviews, frictions, tokens spent on ceremony, engine bugs and refusals with a bad remedy,
 and simplifications that would help. Newest first; each entry dated, with its session key.
 
+## 2026-10-18e: charter and story review with the owner
+
+### What worked
+
+- **The owner asks for this one to be carried upstream:** "the higher goal wins". The adoption agent made it up for
+  the charter's principles; PLAN.md's list had no ranking. The owner kept it as a rule, because it settles conflicts
+  ahead of time (this session: scrubbing fails, so never crash beats telemetry output, which beats no secrets).
+  Suggestion: the charter template states it, and the bootstrap and adopt procedures ask the owner to rank the
+  goals, not just list them.
+- Raising each owner-only uncertainty as an `ask` with a recommendation worked: both (ASK-18, ASK-19) came back as
+  "okay with your recommendation", and `ask answer` turned each into a decision and unblocked its task in one step.
+- `record new story` checking the goals against the charter caught nothing, but made the order (goal first, then
+  story, then criterion) obvious.
+
+### Friction
+
+- **No operation confirms an unconfirmed story.** The owner's "okay" went in as an amendment, then `story_status` was
+  hand-edited from `unconfirmed` to `live` (G-I2 says no operation owns that move). A `record confirm <id> --file
+  <words>` that does both would remove a hand edit on a stamped record.
+- `doc freeze` refuses a new doc with no liveness line, telling you to write `FROZEN ...` by hand. For a doc born
+  frozen, it could write the line itself.
+- `ask new` refused at NEXT because the tier was full (5 of 5), so a question being raised in chat right now went to
+  LATER. A question raised this session is not backlog: questions could sit outside the NEXT cap.
+- The `--brief` cap (120 chars) took one retry; the refusal was clear.
+- Ceremony vs work: about 40 engine calls for a review that changed one charter, 12 stories, four criteria and four new
+  decisions. Most were one-shot milestones that each made their own commit (26 commits this session).
+  Batching milestones within a turn would make the history easier to read.
+
 ## 2026-10-18c: verification, push to main, scratch cleanup
 
 ### What worked
