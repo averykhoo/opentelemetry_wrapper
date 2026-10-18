@@ -8,7 +8,7 @@ session: 2026-10-18a
 decision_status: REJECTED
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:4a226125400f533f9563ca8ebbe678d678f303d0d693b717b63e5fa80b617e00
-tags: [v0]
+tags: [api]
 reopen_if: code objects stop giving a reliable file and line
 ---
 

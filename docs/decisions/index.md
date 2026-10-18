@@ -12,14 +12,23 @@ Generated from each decision's frontmatter by `context-engine decision index`; n
 
 - [DEC-15](DEC-15-logfire-is-not-a-dependency-v1-builds-on-the.md): Logfire is not a dependency: v1 builds on the plain OTel SDK (Q15) *(owner, 2026-10-17)*
 
+### config
+
+- [DEC-7](DEC-7-no-logfire-environment-variables-q7-obsolete.md): No `LOGFIRE_*` environment variables (Q7, obsolete with logfire) *(owner, 2026-10-17)*
+
 ### process
 
 - [DEC-14](DEC-14-proposals-3-8-10-and-11-signed-off-as-amended-9.md): Proposals 3-8, 10 and 11 signed off as amended; 9 withdrawn (Q14) *(owner, 2026-10-08)*
 - [DEC-40](DEC-40-hosting-stays-on-github-and-pypi-ci-is-github.md): Hosting stays on GitHub and PyPI; CI is GitHub Actions *(owner, 2026-10-08)*
 - [DEC-70](DEC-70-adopt-context-engine-fully-as-is-engine.md): Adopt context-engine fully, as is: engine defaults, automatic commits, a full migration of the v1 plan, an OTW board with a v1 epic *(owner, 2026-10-18)*
 
+### telemetry
+
+- [DEC-6](DEC-6-baggage-is-never-copied-onto-spans-q6-obsolete.md): Baggage is never copied onto spans (Q6, obsolete with logfire) *(owner, 2026-10-17)*
+
 ### testing
 
+- [DEC-39](DEC-39-settle-the-shape-of-v1-before-writing-its-tests.md): Settle the shape of v1 before writing its tests *(owner, 2026-10-08)*
 - [DEC-63](DEC-63-v0-is-pinned-by-a-characterization-suite-plain.md): v0 is pinned by a characterization suite: plain tests, strict xfails for bugs, `v0_specific` for intended changes *(owner + agent, 2026-10-07)*
 
 ### v0
@@ -50,7 +59,6 @@ Generated from each decision's frontmatter by `context-engine decision index`; n
 ### config
 
 - [DEC-5](DEC-5-otel-sdk-disabled-true-also-means-otel-wrapper.md): `OTEL_SDK_DISABLED=true` also means `OTEL_WRAPPER_DISABLED` (Q5) *(owner, 2026-10-18)*
-- [DEC-7](DEC-7-no-logfire-environment-variables-q7-obsolete.md): No `LOGFIRE_*` environment variables (Q7, obsolete with logfire) *(owner, 2026-10-17)*
 - [DEC-9](DEC-9-only-the-log-level-may-change-after.md): Only the log level may change after configuration is built (Q9) *(owner, 2026-10-18)*
 - [DEC-24](DEC-24-otel-wrapper-disabled-means-no-telemetry-at-all.md): `OTEL_WRAPPER_DISABLED` means no telemetry at all *(owner, 2026-10-08)*
 - [DEC-27](DEC-27-configuration-implicit-and-explicit-together.md): Configuration: implicit and explicit together, final once built (proposal 1) *(owner, 2026-10-08)*
@@ -101,7 +109,6 @@ Generated from each decision's frontmatter by `context-engine decision index`; n
 
 ### telemetry
 
-- [DEC-6](DEC-6-baggage-is-never-copied-onto-spans-q6-obsolete.md): Baggage is never copied onto spans (Q6, obsolete with logfire) *(owner, 2026-10-17)*
 - [DEC-23](DEC-23-no-per-span-sampling-sampling-is-decided-at-the.md): No per-span sampling: sampling is decided at the root span through the standard env vars *(owner, 2026-10-08)*
 - [DEC-26](DEC-26-no-arguments-or-return-values-on-spans.md): No arguments or return values on spans *(owner, 2026-10-08)*
 - [DEC-31](DEC-31-stable-semconv-code-keys-everywhere.md): Stable semconv `code.*` keys everywhere *(owner, 2026-10-08)*
@@ -110,7 +117,6 @@ Generated from each decision's frontmatter by `context-engine decision index`; n
 
 - [DEC-10](DEC-10-pytest-plugin-opt-in-requesting-otel-spans-otel.md): Pytest plugin opt-in: requesting `otel_spans` / `otel_logs`, or an ini option (Q10) *(owner, 2026-10-18)*
 - [DEC-38](DEC-38-proven-safe-is-one-command-tests-v0-under-otw.md): "Proven safe" is one command: `tests/v0` under `OTW_IMPL=v0|v1` *(owner, 2026-10-08)*
-- [DEC-39](DEC-39-settle-the-shape-of-v1-before-writing-its-tests.md): Settle the shape of v1 before writing its tests *(owner, 2026-10-08)*
 - [DEC-56](DEC-56-ci-github-actions-on-push-and-pull-requests.md): CI: GitHub Actions on push and pull requests, Python 3.12-3.14, with and without extras *(owner, 2026-10-18)*
 
 ## DEFERRED
@@ -136,14 +142,11 @@ Generated from each decision's frontmatter by `context-engine decision index`; n
 
 - [DEC-60](DEC-60-auto-tracing-a-user-s-package-otel-instrument.md): Auto-tracing a user's package (`otel.instrument(my_package)`) *(owner, 2026-10-08)*
 - [DEC-64](DEC-64-magic-variable-names-through-varname.md): Magic variable names through `varname` *(owner + agent, 2026-10-07)*
+- [DEC-65](DEC-65-instrument-pydantic.md): Instrument pydantic *(owner, 2022-06-30)*
+- [DEC-67](DEC-67-locate-source-with-tracemalloc-or-sys-settrace.md): Locate source with `tracemalloc` or `sys.settrace` *(owner, 2022-09-27)*
 - [DEC-68](DEC-68-mark-functions-as-do-not-instrument-or-give.md): Mark functions as do-not-instrument, or give them a sampling ratio *(owner, 2022-09-27)*
 
 ### telemetry
 
 - [DEC-51](DEC-51-logfire-s-distributed-tracing-true-option.md): Logfire's `distributed_tracing=True` option (proposal 9) *(owner, 2026-10-17)*
-
-### v0
-
-- [DEC-65](DEC-65-instrument-pydantic.md): Instrument pydantic *(owner, 2022-06-30)*
-- [DEC-67](DEC-67-locate-source-with-tracemalloc-or-sys-settrace.md): Locate source with `tracemalloc` or `sys.settrace` *(owner, 2022-09-27)*
 - [DEC-69](DEC-69-red-metrics-computed-in-the-library.md): RED metrics computed in the library *(owner, 2024-04-09)*

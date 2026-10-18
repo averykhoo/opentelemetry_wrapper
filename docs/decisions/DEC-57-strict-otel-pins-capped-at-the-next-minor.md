@@ -18,3 +18,7 @@ tags: [packaging]
   pace.
 
 *Imported at adoption (2026-10-18) from `PLAN.md` § Workstreams § 10. Packaging, as committed at `24a0430`; now at `docs/archive/PLAN.md`.*
+
+## Amendments
+
+- **2026-10-18a (claude-code/2.1.287):** Correction at adoption (2026-10-18): "as in v0" overstates it. v0's pyproject.toml pins no OTel package today: the one OTel pin, opentelemetry-sdk<=1.24.0 (e99c0d9, 2024-08-02), was removed on 2024-08-15 (9523d9b). Strict pins start with v1 (OTW-13); v0 users are not protected from an OTel release.

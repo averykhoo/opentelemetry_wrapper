@@ -8,6 +8,7 @@ tags: [process]
 decided: 2026-10-18
 session: 2026-10-18a
 body_sha: sha256:d108dd913c20ed01e9eb274d20258eea0f4e9904f59b499ac0b314a7a5887dbe
+tasks: [OTW-1]
 ---
 
 Owner, 2026-10-18, session 2026-10-18a (the first message of the conversation):

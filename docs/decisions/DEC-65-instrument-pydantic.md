@@ -8,7 +8,7 @@ session: 2026-10-18a
 decision_status: REJECTED
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 body_sha: sha256:77ee888021ed98504dae9573757a408e23030daba68bf4df6d6601f8eb540341
-tags: [v0]
+tags: [api]
 reopen_if: users ask for pydantic model spans and the noise can be bounded
 ---
 

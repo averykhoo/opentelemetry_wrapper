@@ -5,7 +5,7 @@ title: Baggage is never copied onto spans (Q6, obsolete with logfire)
 actor: owner
 decided: 2026-10-17
 session: 2026-10-18a
-decision_status: PROVISIONAL
+decision_status: BUILT
 imported_from: docs/evidence/decision-log-import-2026-10-18.md
 aliases: [Q-6]
 body_sha: sha256:e678cf577d5ba875df698ce31461325c7b4044ca63db4f1e7ba3c7b458532ad8

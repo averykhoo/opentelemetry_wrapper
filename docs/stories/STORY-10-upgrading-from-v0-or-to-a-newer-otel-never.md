@@ -21,4 +21,8 @@ AGENT: reconstructed at adoption (2026-10-18) from PLAN.md § Decided (Process) 
   is only worth having if it updates the repo by itself. Use **Renovate** (GitHub app) rather than a home-grown job:
   it opens a PR that raises the OTel caps, the PR's CI runs the suite and the canaries, and Renovate **auto-merges
   only if everything passes**; a failing PR just sits there and the old pins keep protecting users. OTel has shipped
-  breaking changes without warning (twice during v0), which is why the pins stay strict (workstream 10). Config to
+  breaking changes without warning (twice during v0), which is why the pins stay strict (workstream 10). Config to[... the excerpt stops here; the rest is DEC-54]
+
+## Amendments
+
+- **2026-10-18a (claude-code/2.1.287):** corrected: at 1244 (+48) inserted "[... the excerpt stops here; the rest is DEC-54]" after "(workstream 10). Config to"
