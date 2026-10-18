@@ -9,7 +9,7 @@ deps: []
 source: session 2026-10-18a
 created: 2026-10-18
 moved: 2026-10-18a
-updated: 2026-10-18a
+updated: 2026-10-18j
 aliases: [WS0]
 labels: [v1, ci]
 ---
@@ -70,3 +70,11 @@ on push.
 
 - The decisions: [DEC-38](../docs/decisions/DEC-38-proven-safe-is-one-command-tests-v0-under-otw.md), [DEC-54](../docs/decisions/DEC-54-upstream-otel-bumps-renovate-prs-that-auto.md), [DEC-55](../docs/decisions/DEC-55-dependency-only-merges-are-released.md), [DEC-56](../docs/decisions/DEC-56-ci-github-actions-on-push-and-pull-requests.md), [DEC-57](../docs/decisions/DEC-57-strict-otel-pins-capped-at-the-next-minor.md), [DEC-63](../docs/decisions/DEC-63-v0-is-pinned-by-a-characterization-suite-plain.md); [the criteria](../docs/criteria.md)
 - [v1 design evidence](../docs/evidence/v1-design-evidence-2026-10-18.md): the upstream behaviours the canaries pin
+
+## Log
+
+- 2026-10-18j (claude-code/2.1.287): Renovate behaviour, checked against its docs and tests (renovatebot/renovate main, docs/usage/configuration-options.md and lib/modules/versioning/pep440/index.spec.ts):
+  (1) ignoreUnstable defaults on: it skips 0.65b0 -> 0.66b0 (it allows an unstable target only when major.minor.patch is unchanged), so the contrib packages need a packageRule with ignoreUnstable: false.
+  (2) Automerge needs every status check green, and a PR with no checks is not merged unless ignoreTests is true: fail-safe as long as ignoreTests stays off.
+  (3) The pep440 rangeStrategy 'replace' moves a window: '>=1.0.0,<1.1.0' with 1.2.0 becomes '>=1.2.0,<1.3.0' (spec line 169). No Renovate test covers a pre-release window such as '>=0.65b0,<0.66'; still unverified.
+  (4) pyproject.toml pins no OTel package yet (strict pins come with OTW-13), so Renovate and auto-release have nothing to bump until then.

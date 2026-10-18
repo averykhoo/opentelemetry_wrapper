@@ -94,6 +94,7 @@ Generated from each decision's frontmatter by `context-engine decision index`; n
 - [DEC-37](DEC-37-rollout-v1-ships-beside-v0-becomes-the-default.md): Rollout: v1 ships beside v0, becomes the default, then v0 is deleted after one release of aliases *(owner, 2026-10-08)*
 - [DEC-54](DEC-54-upstream-otel-bumps-renovate-prs-that-auto.md): Upstream OTel bumps: Renovate PRs that auto-merge only when CI passes *(owner, 2026-10-18)*
 - [DEC-55](DEC-55-dependency-only-merges-are-released.md): Dependency-only merges are released automatically as a patch release to PyPI *(owner, 2026-10-18)*
+- [DEC-78](DEC-78-building-starts-otw-2-is-split-renovate-and.md): Building starts; OTW-2 is split: Renovate and auto-release move to a new item after the strict pins *(owner, 2026-10-18)*
 
 ### resources
 
