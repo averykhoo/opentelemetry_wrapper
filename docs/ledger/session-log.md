@@ -4,10 +4,34 @@ Append-only, newest first, one entry per session (FRAMEWORK §7.1).
 
 ---
 
-## 2026-10-18e · kind: open
+## 2026-10-18e · kind: close
 
-- **opened:** 2026-10-18T12:41:15+08:00 by claude-code/2.1.287
-- **asked:** ASK-18, ASK-19
+- **rows:** DEC-72, DEC-73, DEC-74, DEC-75, ASK-18, ASK-19, STORY-1..12, AC-13, AC-22, AC-28, AC-29,
+  OTW-3, OTW-8, OTW-19
+- **receipts:**
+  - guards: gate PASSED in 23.1s (203 passed, 23 xfailed in 20.82s) on g1/code:912d9e4af5fe1d93; log
+    .context/gate/20261018T134848-20368.log
+  - read: orient (2026-10-18d banner); docs/runbooks/procedures.md § Housekeeping, § Intake, § Clean
+    close; docs/charter.md; STORY-1..10; .scratch/OpenTelemetry-Instrumentation-v6.md (the deck
+    transcript)
+  - asked: ASK-18, ASK-19
+- **summary** (the owner digest):
+  - Owner reviewed the charter: 'the higher goal wins' kept as a rule; never crash ranked first; G-9
+    above G-10, both at the bottom (DEC-72).
+  - STORY-1..10 confirmed (live). From the owner's v0 talk: a Purpose section and goals G-11
+    (succinct, idiomatic) and G-12 (documented defaults), with STORY-11/12 and AC-28/29 (DEC-73).
+  - Cleaned deck summary committed as docs/evidence/v0-talk-deck-2026-10-18.md; the deck stays in
+    .scratch (internal details, public repo).
+  - ASK-18 -> DEC-74: a value that fails to scrub is dropped and replaced by its own '[REDACTED:
+    scrubbing failed]' placeholder (AC-13).
+  - ASK-19 -> DEC-75: swallowed runtime failures go to stderr, one JSON line per site, never via
+    warnings/logging; tracebacks opt-in (relaxes DEC-49; AC-22, G-4).
+  - Framework feedback appended (the ranking rule, as the owner asked; no story-confirm operation).
+    Nothing pushed.
+- **Still owed:**
+  - push of adopt-context-engine (unpushed commits since 2026-10-18c), with the owner's yes
+  - G-13 (application context: x-userinfo, upstream latency, k8s) was proposed but not named in the
+    owner's answer; ask whether to add it
 
 ---
 
