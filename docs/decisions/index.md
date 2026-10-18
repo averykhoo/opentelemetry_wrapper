@@ -100,6 +100,7 @@ Generated from each decision's frontmatter by `context-engine decision index`; n
 ### release
 
 - [DEC-84](DEC-84-main-is-the-v1-line-a-v0-only-patch-is-released.md): main is the v1 line; a v0-only patch is released from a branch cut at the last v0 tag *(owner, 2026-10-19)*
+- [DEC-85](DEC-85-push-this-session-s-work-once-the-root-v1-agent.md): Push this session's work once the root-v1 agent lands; no release *(owner, 2026-10-19)*
 
 ### resources
 
