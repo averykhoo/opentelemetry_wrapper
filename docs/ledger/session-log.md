@@ -4,6 +4,25 @@ Append-only, newest first, one entry per session (FRAMEWORK §7.1).
 
 ---
 
+## 2026-10-18i · kind: close
+
+- **rows:** none
+- **receipts:**
+  - guards: gate PASSED in 23.0s (203 passed, 23 xfailed in 20.66s) on g1/code:912d9e4af5fe1d93;
+    lint: clean
+  - read: orient (from 2026-10-18g), procedures § Push and CI
+- **summary** (the owner digest):
+  - Fast-forwarded main to adopt-context-engine (12 commits, sessions 2026-10-18g and h); deleted
+    the merged local branches adopt-context-engine and v1-plan.
+  - One worktree, no stashes; origin's v1-plan is fully merged into main and left for the owner's
+    word.
+  - Pushed main at close; no workflow exists, so no CI run; the code scope matches the last verified
+    push, so no fresh-env run.
+- **Still owed:**
+  - delete origin/v1-plan (owner's call)
+
+---
+
 ## 2026-10-18h · kind: close
 
 - **rows:** ASK-20, OTW-20, OTW-19, OTW-3, OTW-7, OTW-11, STORY-9, STORY-10
