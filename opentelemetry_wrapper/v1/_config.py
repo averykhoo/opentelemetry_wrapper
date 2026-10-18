@@ -206,17 +206,24 @@ def _metric_readers(state: _State, notes: List[str]) -> list:
     return readers
 
 
-def _resource(settings: _env.Settings) -> Any:
-    """our detectors (guesses) < OTEL_SERVICE_NAME / OTEL_RESOURCE_ATTRIBUTES < explicit (PLAN, "Resource precedence")
-    """
+def _resource(settings: _env.Settings, notes: List[str]) -> Any:
+    """our detectors (guesses) < OTEL_SERVICE_NAME / OTEL_RESOURCE_ATTRIBUTES < explicit (DEC-33); a detector that
+    fails adds a startup note and costs only its own attributes"""
     from opentelemetry.sdk.resources import OTELResourceDetector
     from opentelemetry.sdk.resources import Resource
+    from opentelemetry_wrapper.v1._resources import ForkAwareResource
+    from opentelemetry_wrapper.v1._resources import detect_resource
     explicit = dict(settings.resource_attributes)
     if settings.service_name:
         explicit['service.name'] = settings.service_name
-    detected = Resource.get_empty()  # workstream 6 (resource detectors) plugs in here
-    return (Resource.create().merge(detected).merge(OTELResourceDetector().detect())
-            .merge(Resource.create(explicit) if explicit else Resource.get_empty()))
+    try:
+        detected = detect_resource(notes=notes)
+    except Exception as e:  # noqa: nothing in detection may stop configure
+        notes.append(f'resource detection failed, so no detected attributes are used: {type(e).__name__}: {e}')
+        detected = Resource.get_empty()
+    merged = (Resource.create().merge(detected).merge(OTELResourceDetector().detect())
+              .merge(Resource(explicit) if explicit else Resource.get_empty()))
+    return ForkAwareResource(merged.attributes, merged.schema_url)
 
 
 def _is_proxy(provider: Any) -> bool:
@@ -232,7 +239,7 @@ def _is_proxy(provider: Any) -> bool:
 def _build(settings: _env.Settings, notes: List[str]) -> _State:
     state = _State(settings)
     foreign: List[str] = []  # the providers someone else configured first: one warning for all of them
-    resource = _resource(settings)
+    resource = _resource(settings, notes)
 
     def guarded(what: str, step: Any, *args: Any) -> None:
         # a failure in one signal (or in the exit flush) must not undo what is already set globally, nor skip the rest
