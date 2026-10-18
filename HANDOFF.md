@@ -12,8 +12,9 @@ written at each clean close by `context-engine banner set`.
   Purpose section and G-11 to G-13 from the owner's v0 talk (`docs/evidence/v0-talk-deck-2026-10-18.md`); all thirteen
   stories are live. Scrub failures get their own placeholder (DEC-74); the wrapper reports swallowed runtime
   failures on stderr (DEC-75).
-- **Charter trimmed (2026-10-18h, DEC-77):** after a parsimony review (`docs/evidence/parsimony-review-2026-10-18.md`), the
-  ranking is confirmed, G-3 fails small, and every goal's measures match the criteria's Story column (AC-31 to AC-33 new).
+- **Charter trimmed (2026-10-18h, DEC-77)** after a parsimony review
+  (`docs/evidence/parsimony-review-2026-10-18.md`): the ranking is confirmed, G-3 fails small, and every goal's
+  measures match the criteria's Story column (AC-31 to AC-33 new).
 - **v0 is not touched** (DEC-71). **v1 is the epic OTW-1**; OTW-2 (workstream 0: `OTW_IMPL` adapter, canaries, CI,
   Renovate) is NOW and needs its design review first (its traps say why).
 - **Pushed up to 2026-10-18f; 2026-10-18g and 2026-10-18h are local.** OTW-19 holds the rest of the migration leftovers.
