@@ -6,8 +6,8 @@ renumbered.
 
 Reconstructed by an agent at adoption (2026-10-18, session 2026-10-18a) from the pre-adoption `PLAN.md` (§ Goal,
 § Principles, § Non-goals, now `docs/archive/PLAN.md`), the decisions and `CLAUDE.md`; **reviewed by the owner in
-session 2026-10-18e (DEC-72)**, which made the principles a ranking and placed G-9 and G-10 in it. STORY-5 (G-5)
-is still unconfirmed.
+session 2026-10-18e (DEC-72)**, which made the principles a ranking and placed G-9 and G-10 in it; all ten stories
+are confirmed.
 
 ## Goals
 
@@ -36,9 +36,9 @@ G-1 is the whole of v1, so it is not ranked.
 5. Class and dataclass support (G-6).
 6. Kubernetes support (G-7).
 7. Machine-readable first (G-8).
-8. Upgrades don't break users (G-10): versions stay pinned (DEC-57), and releases try to follow semver to signal
+8. No secrets by default (G-9).
+9. Upgrades don't break users (G-10): versions stay pinned (DEC-57), and releases try to follow semver to signal
    compatibility.
-9. No secrets by default (G-9).
 
 **Example: scrubbing fails on export.** Never crash comes first, then the telemetry still goes out, then
 secrets (DEC-72). AC-13 drops just the value that failed to scrub, notes it in `opentelemetry_wrapper.scrubbed` and

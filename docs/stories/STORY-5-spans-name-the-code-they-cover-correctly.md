@@ -3,7 +3,7 @@ type: Story
 id: STORY-5
 title: Spans name the code they cover correctly
 actor: agent (reconstructed from PLAN.md § Principles, item 4)
-story_status: unconfirmed
+story_status: live
 goals: [G-5]
 date: 2026-10-18
 via: adoption, session 2026-10-18a
