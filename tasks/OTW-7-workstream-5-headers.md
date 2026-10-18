@@ -8,13 +8,13 @@ state: open
 deps: [OTW-6, OTW-8]
 source: session 2026-10-18a
 created: 2026-10-18
-moved: 2026-10-18a
-updated: 2026-10-18f
+moved: 2026-10-18h
+updated: 2026-10-18h
 aliases: [WS5]
 labels: [v1]
 ---
 
-Criteria: AC-12. Decisions: DEC-2, DEC-59.
+Criteria: AC-12, AC-30, AC-33. Decisions: DEC-2, DEC-59, DEC-76.
 
 *Workstream 5 of the v1 design, verbatim from the pre-adoption `PLAN.md` (`docs/archive/PLAN.md`); there, "workstream n" is the task aliased `WSn` (OTW-1 lists them), "Decided" / "proposal n" / "Qn" are decisions (`docs/evidence/adoption-map-2026-10-18.md`), and "`HANDOFF.md`" is the old note in `docs/evidence/history-to-2026-10-18.md`.*
 
