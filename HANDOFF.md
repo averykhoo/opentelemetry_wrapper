@@ -4,7 +4,7 @@ LIVING. Orientation note (FRAMEWORK §5.1): what is true now, the next session's
 derivable from the code. The board is `context-engine task list`; this note keeps no copy of it. The banner is
 written at each clean close by `context-engine banner set`.
 
-## Banner (2026-10-18a)
+## Banner (2026-10-18b)
 
 - **Engine mode since 2026-10-18a** (engine `7fd3997`, framework 0.5): the v1 design is records now (DEC-n, the
   board, AC-n); `docs/evidence/adoption-map-2026-10-18.md` maps the archived `PLAN.md` / `TODO.md` onto them.
@@ -14,6 +14,8 @@ written at each clean close by `context-engine banner set`.
   secret-logging bug?); pushing `adopt-context-engine`.
 - **Commits are automatic here, pushes are not** (DEC-70, `CLAUDE.md` § Overrides). Every clean close appends to
   `context-engine-feedback.md`.
+- **The plugin is installed** (project scope, 2026-10-18b): restart Claude Code to get the `/context-engine:*` skills
+  and `mcp__plugin_context-engine_engine__*` tools; the CLI works meanwhile.
 
 ## Next session: start here
 
