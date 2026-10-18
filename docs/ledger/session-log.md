@@ -4,9 +4,20 @@ Append-only, newest first, one entry per session (FRAMEWORK §7.1).
 
 ---
 
-## 2026-10-18d · kind: open
+## 2026-10-18d · kind: close
 
-- **opened:** 2026-10-18T12:38:07+08:00 by claude-code/2.1.287
+- **rows:** ASK-17, OTW-18
+- **receipts:**
+  - guards: code: covered on g1/code:912d9e4af5fe1d93 by the all run of 2026-10-18T11:07:54+08:00
+    (23.2s, .context/gate/20261018T110754-24408.log)
+  - read: orient (2026-10-18c context); docs/runbooks/procedures.md § Intake
+- **summary** (the owner digest):
+  - Owner: "We won't touch v0, record that and I'll check the charter and stories next session".
+  - ASK-17 answered as DEC-71 (no v0 patch release); OTW-18 (v0 cleanup for a further release)
+    closed as moot.
+  - Charter and STORY-1..10 review is next session's, with the owner (banner).
+- **Still owed:**
+  - none
 
 ---
 
