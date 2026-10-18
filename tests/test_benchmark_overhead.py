@@ -19,7 +19,4 @@ def test_the_benchmark_runs_and_reports_every_row():
     for exporter in ('none', 'batch'):
         rows = report['ns_per_call'][exporter]
         assert rows['bare'] > 0 and rows['otel_direct'] > 0
-        if impl.IMPL == 'v0':
-            assert rows['decorated'] > 0
-        else:  # until v1 binds `decorate`
-            assert str(rows['decorated']).startswith('unbound')
+        assert rows['decorated'] > 0  # v1 binds `decorate` since OTW-3

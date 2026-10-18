@@ -9,9 +9,12 @@ the implementation selected by the `OTW_IMPL` env var: `v0` (the default) or `v1
     otw.decorate(f)                          # in a test, via the `otw` fixture, which hands out this module
 
 names are resolved lazily, on first access, so that importing this module never imports the package (scenarios
-care about what is imported when). v1 does not exist yet, so under `OTW_IMPL=v1` every name resolves to a stub that
-raises `NotImplementedError` when called: collection and the rest of the run still work. bind a v1 name by filling
-in `_V1` once the v1 api is settled; don't invent it here
+care about what is imported when). under `OTW_IMPL=v1` the names bind to v1's `otel` (OTW-3, below); a name v1
+drops (`instrument_dataclasses`) or doesn't have (`__version__`, `__all__`) resolves to a stub that raises
+`NotImplementedError` when called, so collection and the rest of the run still work
+
+v1 is imported through `import_v1()`, which skips the package root while it still imports v0 (v0 installs its
+tracer provider at import, which v1 would otherwise find "configured first")
 
 the interface:
 
@@ -27,8 +30,21 @@ the interface:
     instrument_system_metrics (same; importable but missing from v0's `__all__`)
     __version__             (same)
     __all__                 v0's `__all__`, translated to the neutral names
+
+    neutral name            v1 (`otel` is `opentelemetry_wrapper.v1.otel`)
+    decorate                `otel(f)`, or `otel(name=func_name)(f)`
+    instrument_app          `otel.instrument(app)`
+    instrument_engine       `otel.instrument(engine)`
+    setup                   `otel.instrument()`, plus `otel.instrument(sqlalchemy)` for `sqlalchemy=True`
+    instrument_logging      `otel.instrument(logging)`
+    instrument_requests     `otel.instrument(requests)`
+    instrument_sqlalchemy   `otel.instrument(sqlalchemy)`
+    instrument_system_metrics  v1's system metrics integration (part of `otel.instrument()`)
 """
 import os
+import sys
+import types
+from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import Mapping
@@ -60,13 +76,91 @@ _V0 = {
     'instrument_system_metrics': 'instrument_system_metrics',
     '__version__':               '__version__',
 }
-_V1: Dict[str, str] = {}  # nothing is bound yet: v1 has no api
+_PACKAGE_DIR = Path(__file__).resolve().parents[1] / 'opentelemetry_wrapper'
+
+
+def import_v1() -> types.ModuleType:
+    """
+    `opentelemetry_wrapper.v1`, imported without running the package root when nothing imported it yet: the root
+    still imports v0, and v0 installs its tracer provider at import. (an in-process v0 run has imported the root
+    already; v1 then finds v0's provider configured first, as an app that mixes them would)
+    """
+    if 'opentelemetry_wrapper' not in sys.modules:
+        root = types.ModuleType('opentelemetry_wrapper', 'the package root, skipped by tests/impl.py:import_v1')
+        root.__path__ = [str(_PACKAGE_DIR)]  # type: ignore[attr-defined]
+        sys.modules['opentelemetry_wrapper'] = root
+    import opentelemetry_wrapper.v1 as v1
+    return v1
+
+
+def _v1_decorate(func: Any, /, *, func_name: Optional[str] = None) -> Any:
+    otel = import_v1().otel
+    return otel(name=func_name)(func) if func_name is not None else otel(func)
+
+
+def _v1_module(name: str):
+    def instrument(*args: Any, **kwargs: Any) -> Any:  # v0's options have no v1 equivalent per call (PLAN, logging)
+        import importlib
+        return import_v1().otel.instrument(importlib.import_module(name))
+
+    instrument.__name__ = instrument.__qualname__ = f'instrument_{name}'
+    return instrument
+
+
+def _v1_setup(dataclasses: bool = True, logging: bool = True, requests: bool = True, sqlalchemy: bool = False,
+              system_metrics: bool = True, log_json: bool = True, clobber_other_log_handlers: bool = False) -> None:
+    otel = import_v1().otel
+    if logging and requests and system_metrics:
+        otel.instrument()
+    else:
+        if logging:
+            _v1_module('logging')()
+        if requests:
+            _v1_module('requests')()
+        if system_metrics:
+            _v1_system_metrics()
+    if sqlalchemy:
+        _v1_module('sqlalchemy')()
+
+
+def _v1_system_metrics(*args: Any, **kwargs: Any) -> None:
+    import_v1()
+    from opentelemetry_wrapper.v1._instrument import instrument_system_metrics
+    instrument_system_metrics([])
+
+
+_V1: Dict[str, Any] = {
+    'decorate':                  _v1_decorate,
+    'instrument_app':            lambda app: import_v1().otel.instrument(app),  # noqa: E272
+    'instrument_engine':         lambda engine, *args, **kwargs: import_v1().otel.instrument(engine),  # noqa: E272
+    'setup':                     _v1_setup,
+    'instrument_logging':        _v1_module('logging'),
+    'instrument_requests':       _v1_module('requests'),
+    'instrument_sqlalchemy':     _v1_module('sqlalchemy'),
+    'instrument_system_metrics': _v1_system_metrics,
+}
+
+
+def span_exporter() -> Any:
+    """under v1: an in-memory span exporter that receives every span v1 finishes (through v1's test sink, the one
+    the pytest plugin uses); v0's capture stays with its callers (`tests/conftest.py`, `tests/v0/_child.py`)"""
+    require_v1('span_exporter')
+    from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+    import_v1()
+    from opentelemetry_wrapper.v1 import _config
+    exporter = InMemorySpanExporter()
+    _config.add_span_sink(exporter)
+    return exporter
+
 
 _NAMES = tuple(_V0) + ('__all__',)
 
 
 def load() -> None:
     """import the package under test, for its import-time side effects (v0 installs the tracer provider)"""
+    if IMPL == 'v1':
+        import_v1()
+        return
     import opentelemetry_wrapper  # noqa: F401
 
 
@@ -74,6 +168,11 @@ def require_v0(what: str) -> None:
     """for test helpers that reach into v0 internals: fail clearly under v1 instead of importing v0 by accident"""
     if IMPL != 'v0':
         raise NotImplementedError(f'{what} uses v0 internals, and OTW_IMPL={IMPL} has no binding for it yet')
+
+
+def require_v1(what: str) -> None:
+    if IMPL != 'v1':
+        raise NotImplementedError(f'{what} is v1-only, and OTW_IMPL={IMPL}')
 
 
 def _unbound(name: str):
@@ -93,8 +192,7 @@ def _resolve(name: str) -> Any:
             return [neutral_by_v0.get(v0_name, v0_name) for v0_name in package.__all__]
         return getattr(package, _V0[name])
     if name in _V1:
-        import opentelemetry_wrapper as package
-        return getattr(package, _V1[name])
+        return _V1[name]
     if name in ('__version__', '__all__'):  # not callable, so a stub cannot stand in for them
         raise NotImplementedError(f'tests.impl.{name}: OTW_IMPL={IMPL} has no binding for it yet')
     return _unbound(name)

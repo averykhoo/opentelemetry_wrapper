@@ -56,10 +56,24 @@ def test_v0_names_resolve_to_the_v0_objects():
     assert set(impl.__all__) == (set(V0_NAMES) - {'instrument_system_metrics'}) | {'__version__'}
 
 
-@pytest.mark.skipif(impl.IMPL != 'v1', reason='v1 has no binding yet')
-def test_v1_names_fail_clearly_when_used():
-    for name in V0_NAMES:
-        with pytest.raises(NotImplementedError, match=f'{name}.*OTW_IMPL=v1'):
-            getattr(impl, name)()
+@pytest.mark.skipif(impl.IMPL != 'v1', reason='binds the v1 names')
+def test_v1_names_bind_to_v1_or_fail_clearly_when_used():
+    for name in set(V0_NAMES) - {'instrument_dataclasses'}:
+        assert callable(getattr(impl, name)), name
+    # dropped in v1 (PLAN "Global dataclass instrumentation is dropped"), and v1 has no version or __all__ of its own
+    with pytest.raises(NotImplementedError, match='instrument_dataclasses.*OTW_IMPL=v1'):
+        impl.instrument_dataclasses()
     with pytest.raises(NotImplementedError, match='OTW_IMPL=v1'):
         impl.__version__
+
+
+def test_import_v1_skips_the_package_root_and_v0():
+    result = run_python('''
+import sys
+from tests.impl import import_v1
+v1 = import_v1()
+emit('v0_imported', any(m.startswith('opentelemetry_wrapper.v0') for m in sys.modules))
+emit('has_otel', hasattr(v1, 'otel'))
+''')
+    assert result['v0_imported'] is False
+    assert result['has_otel'] is True
