@@ -2,6 +2,12 @@
 v1's configuration (DEC-27, DEC-28, DEC-9): explicit and implicit, final once built, someone else configured first,
 the read-only view, the scrubbing hook, and v0's old variable names (DEC-52, DEC-59)
 """
+import os
+import shutil
+from pathlib import Path
+
+import pytest
+
 from tests.v0._harness import scenario
 from tests.v1._prelude import PRELUDE
 
@@ -138,7 +144,7 @@ def test_an_sdk_provider_configured_first_gets_our_processors_attached():  # AC-
     result = SOMEONE_ELSE_SDK.result()
     assert result['result'] == 1 and result['provider_kept'] is True
     assert result['spans'] == [1, 1]  # their pipeline and ours both see the span
-    assert len([w for w in result['warnings'] if 'tracer provider was configured first' in w]) == 1
+    assert len([w for w in result['warnings'] if 'tracer provider (TracerProvider)' in w]) == 1
 
 
 def test_a_foreign_provider_configured_first_is_left_alone_without_a_crash():  # AC-3 (DEC-27 rule 5)
@@ -211,3 +217,260 @@ def test_v0_names_are_read_with_a_warning_and_grpc_settings_warn_at_configuratio
                      'OTEL_EXPORTER_OTLP_PROTOCOL=grpc', 'OTEL_EXPORTER_OTLP_TRACES_ENDPOINT'):
         assert len([w for w in warnings if w.startswith(expected)]) == 1, (expected, warnings)
     assert len(warnings) == 5
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# review fixes (OTW-3, session 2026-10-18l)
+# ----------------------------------------------------------------------------------------------------------------------
+
+PARTIAL_BUILD = scenario(__name__, 'v1_config_partial_build', PRELUDE + r'''
+import opentelemetry.exporter.otlp.proto.http.trace_exporter as trace_exporter
+import opentelemetry.sdk._logs as sdk_logs
+
+
+class Broken:
+    def __init__(self, *args, **kwargs):
+        raise RuntimeError('exporter constructor failed')
+
+
+def broken_logger_provider(*args, **kwargs):
+    raise RuntimeError('logger provider failed')
+
+
+trace_exporter.OTLPSpanExporter = Broken  # one exporter of the traces signal
+sdk_logs.LoggerProvider = broken_logger_provider  # the whole logs signal
+with warnings.catch_warnings(record=True) as caught:
+    warnings.simplefilter('always')
+    otel.configure()
+    emit('warnings', otel_warnings(caught))
+state = _config._state
+emit('state', [state.failed, len(state.owned), state.tracer_provider is not None, state.meter_provider is not None,
+               state.logger_provider is None])
+emit('exit_flush', len(_config._fork_hooks))
+
+
+@otel
+def f():
+    pass
+
+
+f()
+emit('spans', len(exporter.get_finished_spans()))
+''', env={'OTEL_TRACES_EXPORTER': 'otlp', 'OTEL_LOGS_EXPORTER': 'console', 'OTEL_METRICS_EXPORTER': 'none'})
+
+
+def test_one_failing_exporter_or_signal_keeps_the_rest_built_and_flushed_at_exit():  # AC-7 (DEC-49)
+    result = PARTIAL_BUILD.result()
+    warnings = result['warnings']
+    assert len(warnings) == 2, warnings
+    assert any('exporter constructor failed' in w for w in warnings)
+    assert any('logger provider failed' in w for w in warnings)
+    # not failed; the tracer and meter providers are ours and owned (so flushed); the logs signal is skipped
+    assert result['state'] == [False, 2, True, True, True]
+    assert result['exit_flush'] == 1
+    assert result['spans'] == 1  # the span still reaches the test sink
+
+
+METRICS_SWITCH = scenario(__name__, 'v1_config_metrics_switch', PRELUDE + r'''
+import opentelemetry.sdk.metrics.export as mexport
+from opentelemetry import metrics
+
+
+class Recording(mexport.ConsoleMetricExporter):
+    exports = 0
+
+    def export(self, metrics_data, timeout_millis=10_000, **kwargs):
+        Recording.exports += 1
+        return mexport.MetricExportResult.SUCCESS
+
+
+mexport.ConsoleMetricExporter = Recording
+otel.configure()
+counter = metrics.get_meter('test').create_counter('c')
+
+
+def exports_after_a_flush():
+    before = Recording.exports
+    counter.add(1)
+    _config._state.meter_provider.force_flush()
+    return Recording.exports - before
+
+
+_config.set_exporters_enabled(False)
+emit('off', exports_after_a_flush())
+_config.set_exporters_enabled(True)
+emit('on', exports_after_a_flush())
+''', env={'OTEL_METRICS_EXPORTER': 'console'})
+
+
+def test_switching_exporters_off_stops_the_metric_exporters_too():  # AC-3 (DEC-27 rule 3, DEC-10)
+    result = METRICS_SWITCH.result()
+    assert result['off'] == 0
+    assert result['on'] >= 1
+
+
+FOREIGN_ALL = scenario(__name__, 'v1_config_foreign_all', r'''
+from opentelemetry import _logs, metrics, trace
+trace.set_tracer_provider(trace.NoOpTracerProvider())
+_logs.set_logger_provider(_logs.NoOpLoggerProvider())
+metrics.set_meter_provider(metrics.NoOpMeterProvider())
+''' + PRELUDE + r'''
+with warnings.catch_warnings(record=True) as caught:
+    warnings.simplefilter('always')
+    otel.configure()
+    emit('warnings', otel_warnings(caught))
+''')
+
+
+def test_foreign_providers_for_several_signals_give_one_warning_naming_them():  # AC-3 (DEC-27 rule 5)
+    (warning,) = FOREIGN_ALL.result()['warnings']
+    assert 'tracer' in warning and 'logger' in warning and 'meter' in warning
+
+
+DEDUPE = scenario(__name__, 'v1_config_warning_dedupe', PRELUDE + r'''
+from opentelemetry_wrapper.v1 import _decorator
+raised = 0
+with warnings.catch_warnings():
+    warnings.simplefilter('error', v1.OtelWrapperWarning)
+    for _ in range(3):
+        try:
+            _decorator.decorate(42)  # not callable: a warning at decoration time, the same site every time
+        except v1.OtelWrapperWarning:
+            raised += 1
+emit('raised', raised)
+with warnings.catch_warnings(record=True) as caught:
+    warnings.simplefilter('always')
+    for _ in range(2):
+        _decorator.decorate(42)
+    emit('recorded', len(otel_warnings(caught)))
+''')
+
+
+def test_a_repeated_misuse_under_an_error_filter_keeps_raising_at_decoration_time():  # AC-7 (DEC-49)
+    result = DEDUPE.result()
+    assert result['raised'] == 3  # the key is only recorded once the warning was actually issued
+    assert result['recorded'] == 1  # and a warning that was issued is deduplicated as before
+
+
+BAD_CONFIGURE = scenario(__name__, 'v1_config_bad_arguments', PRELUDE + r'''
+with warnings.catch_warnings(record=True) as caught:
+    warnings.simplefilter('always')
+    otel.configure(log_level='loud', service_name=5, otlp_headers=7, traces_exporter=3)
+    emit('warnings', otel_warnings(caught))
+    otel.configure(log_level=9)  # after the build: only the log level can change, and it must not raise either
+emit('view', [otel.config['log_level'], otel.config['service_name']])
+''')
+
+
+def test_wrong_arguments_to_configure_warn_and_fall_back_without_raising():  # AC-7 (DEC-49)
+    result = BAD_CONFIGURE.result()
+    warnings = result['warnings']
+    for option in ('log_level', 'service_name', 'otlp_headers', 'traces_exporter'):
+        assert len([w for w in warnings if option in w]) == 1, (option, warnings)
+    assert result['view'] == ['info', None]
+
+
+NORMALISED = scenario(__name__, 'v1_config_normalised', PRELUDE + r'''
+none = dict(traces_exporter='none', metrics_exporter='none', logs_exporter='none')
+with warnings.catch_warnings(record=True) as caught:
+    warnings.simplefilter('always')
+    otel.configure(service_name=' svc ', otlp_endpoint=' http://127.0.0.1:4318/ ', **none)
+    otel.configure(service_name='svc', otlp_endpoint='http://127.0.0.1:4318', **none)
+    emit('warnings', otel_warnings(caught))
+emit('view', [otel.config['service_name'], otel.config['otlp_endpoint']])
+''')
+
+
+def test_endpoint_and_service_name_are_normalised_before_the_same_arguments_comparison():  # AC-3 (DEC-27 rule 2)
+    result = NORMALISED.result()
+    assert result['warnings'] == []
+    assert result['view'] == ['svc', 'http://127.0.0.1:4318']
+
+
+# the bounded shutdown (workstream 9): a hanging exporter must not hold up the exit longer than the bound
+
+SHUTDOWN = scenario(__name__, 'v1_config_bounded_shutdown', PRELUDE + r'''
+import atexit
+import time
+from opentelemetry.sdk.trace.export import SpanExporter, SpanExportResult
+
+
+class Hanging(SpanExporter):
+    def export(self, spans):
+        return SpanExportResult.SUCCESS
+
+    def shutdown(self):
+        time.sleep(30)
+
+
+started = []
+emit('default_bound', _config.SHUTDOWN_TIMEOUT_SECONDS)
+_config.SHUTDOWN_TIMEOUT_SECONDS = 1.0  # the real bound is 5 s: the same code path, a quicker test
+_config.add_span_sink(Hanging())
+atexit.register(lambda: emit('elapsed', time.monotonic() - started[0]))  # atexit is last in, first out: runs last
+otel.configure()  # registers the bounded shutdown
+atexit.register(lambda: started.append(time.monotonic()))  # so this one runs just before it
+''')
+
+
+def test_a_hanging_exporter_does_not_block_exit_longer_than_the_bound():  # AC-22 (workstream 9)
+    result = SHUTDOWN.result()
+    assert result['default_bound'] == 5.0
+    assert 0.9 <= result['elapsed'] < 4.0, result['elapsed']  # waited for the bound, not for the 30 s
+
+
+_FLUSH_MARKER = r'''
+import multiprocessing
+import multiprocessing.util
+import os
+import tempfile
+from opentelemetry.sdk.trace.export import SpanExporter, SpanExportResult
+
+marker = os.path.join(tempfile.mkdtemp(), 'shutdowns')
+
+
+class Marker(SpanExporter):
+    def export(self, spans):
+        return SpanExportResult.SUCCESS
+
+    def shutdown(self):
+        with open(marker, 'a') as f:
+            f.write(f'{os.getpid()}\n')
+
+
+_config.add_span_sink(Marker())
+otel.configure()
+emit('marker', marker)
+emit('parent', os.getpid())
+'''
+
+FORK_FLUSH = scenario(__name__, 'v1_config_fork_flush', PRELUDE + _FLUSH_MARKER + r'''
+child = multiprocessing.get_context('fork').Process(target=lambda: None)  # no atexit in it: it ends with os._exit
+child.start()
+child.join()
+emit('child', [child.pid, child.exitcode])
+''') if hasattr(os, 'fork') else None
+
+FINALIZERS = scenario(__name__, 'v1_config_finalizers', PRELUDE + _FLUSH_MARKER + r'''
+multiprocessing.util._run_after_forkers()  # what `Process._bootstrap` does first in a forked child
+multiprocessing.util._exit_function()  # and last: the finalizers, where the flush is registered
+emit('flushed', open(marker).read().split() if os.path.exists(marker) else [])
+''')
+
+
+def test_the_finalizer_a_forked_child_runs_flushes_the_providers():  # AC-22 (workstream 9); simulated, any platform
+    result = FINALIZERS.result()
+    assert result['flushed'] == [str(result['parent'])]
+    shutil.rmtree(Path(result['marker']).parent, ignore_errors=True)
+
+
+@pytest.mark.skipif(not hasattr(os, 'fork'), reason='no fork on this platform (Linux CI runs it)')
+def test_a_forked_child_flushes_its_providers_when_it_ends():  # AC-22 (workstream 9)
+    result = FORK_FLUSH.result()
+    child_pid, exitcode = result['child']
+    assert exitcode == 0
+    marker = Path(result['marker'])
+    lines = marker.read_text().split() if marker.exists() else []
+    assert str(child_pid) in lines  # the child's own flush, though a forked child skips atexit
+    assert str(result['parent']) in lines  # and the parent's, at its exit
+    shutil.rmtree(Path(result['marker']).parent, ignore_errors=True)

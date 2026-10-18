@@ -5,6 +5,7 @@ and v0's old names, read for one release with a startup warning (DEC-52, DEC-59)
 the OTLP exporters and the SDK read most standard variables themselves (endpoints, headers, timeouts, sampler,
 `OTEL_SERVICE_NAME`, `OTEL_RESOURCE_ATTRIBUTES`); we only read what decides which exporters to build (DEC-28)
 """
+import logging
 import os
 from dataclasses import dataclass
 from dataclasses import fields
@@ -88,16 +89,63 @@ def _endpoint_set(signal: str, explicit_endpoint: Optional[str], environ: Mappin
                 or _env(f'OTEL_EXPORTER_OTLP_{signal.upper()}_ENDPOINT', environ))
 
 
-def resolve(explicit: Mapping[str, Any], environ: Optional[Mapping[str, str]] = None
-            ) -> Tuple[Settings, List[str]]:
-    """the effective settings (explicit > env > default) and the startup warnings to emit once state is consistent"""
-    environ = os.environ if environ is None else environ
-    notes: List[str] = []
-    values: Dict[str, Any] = {}
+def _is_str(value: Any) -> bool:
+    return isinstance(value, str)
 
-    for name in explicit:
+
+def _is_mapping(value: Any) -> bool:
+    return isinstance(value, Mapping)
+
+
+def _is_strings(value: Any) -> bool:
+    return isinstance(value, str) or (isinstance(value, (list, tuple, set, frozenset))
+                                      and all(isinstance(item, str) for item in value))
+
+
+_EXPECTED = {  # what `otel.configure(...)` takes, by option: (description, check)
+    'service_name': ('a string', _is_str),
+    'resource_attributes': ('a mapping', _is_mapping),
+    'traces_exporter': ('a string or a list of strings', _is_strings),
+    'metrics_exporter': ('a string or a list of strings', _is_strings),
+    'logs_exporter': ('a string or a list of strings', _is_strings),
+    'otlp_endpoint': ('a string', _is_str),
+    'otlp_headers': ('a mapping', _is_mapping),
+    'log_level': ('a string', _is_str),
+    'log_format': ('a string', _is_str),
+    'prometheus_path': ('a string', _is_str),
+    'header_attributes': ('a string or a list of strings', _is_strings),
+}
+
+
+def is_log_level(value: Any) -> bool:
+    """a name `logging` knows, in any case ('warn', 'WARNING', ...)"""
+    return isinstance(value, str) and value.strip().upper() in logging.getLevelNamesMapping()
+
+
+def clean_explicit(explicit: Mapping[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
+    """the explicit options with the wrong-typed ones dropped (they fall back to the environment, then the default),
+    and one warning for each; an option that isn't one of ours at all is a `TypeError`, like any bad keyword"""
+    cleaned: Dict[str, Any] = {}
+    notes: List[str] = []
+    for name, value in explicit.items():
         if name not in CONFIGURE_OPTIONS:
             raise TypeError(f'otel.configure() got an unexpected keyword argument {name!r}')
+        description, check = _EXPECTED[name]
+        if value is None or check(value):
+            cleaned[name] = value
+        else:
+            notes.append(f'otel.configure({name}=...) expects {description}, not {type(value).__name__}; '
+                         f'it is ignored')
+    return cleaned, notes
+
+
+def resolve(explicit: Mapping[str, Any], environ: Optional[Mapping[str, str]] = None
+            ) -> Tuple[Settings, List[str]]:
+    """the effective settings (explicit > env > default) and the startup warnings to emit once state is consistent;
+    never raises for a wrong value, only for an option name that isn't one of ours"""
+    environ = os.environ if environ is None else environ
+    explicit, notes = clean_explicit(explicit)
+    values: Dict[str, Any] = {}
 
     # v0's old names (DEC-52 / DEC-59), read for one release
     def migrated(old: str, new: str, hint: str = '', superseded: bool = True) -> Optional[str]:
@@ -122,7 +170,8 @@ def resolve(explicit: Mapping[str, Any], environ: Optional[Mapping[str, str]] = 
     for name in ('OTEL_EXPORTER_OTLP_PROTOCOL', *(f'OTEL_EXPORTER_OTLP_{s.upper()}_PROTOCOL' for s in SIGNALS)):
         if (_env(name, environ) or '').casefold() == 'grpc':
             notes.append(f'{name}=grpc is not supported: only OTLP over HTTP is exported (port 4318 by default)')
-    endpoints = [('otel.configure(otlp_endpoint=...)', explicit.get('otlp_endpoint'))]
+    otlp_endpoint = (explicit.get('otlp_endpoint') or '').strip().rstrip('/') or None  # as `_otlp_kwargs` will use it
+    endpoints = [('otel.configure(otlp_endpoint=...)', otlp_endpoint)]
     endpoints += [(name, _env(name, environ)) for name in
                   ('OTEL_EXPORTER_OTLP_ENDPOINT', *(f'OTEL_EXPORTER_OTLP_{s.upper()}_ENDPOINT' for s in SIGNALS))]
     for name, endpoint in endpoints:
@@ -131,13 +180,13 @@ def resolve(explicit: Mapping[str, Any], environ: Optional[Mapping[str, str]] = 
                          f'over HTTP is exported: use port 4318 and http:// or https://')
 
     # explicit > env > default
-    values['service_name'] = explicit.get('service_name')  # env OTEL_SERVICE_NAME is read by the SDK's resource
+    values['service_name'] = (explicit.get('service_name') or '').strip() or None  # env: read by the SDK's resource
     attributes = dict(explicit.get('resource_attributes') or {})
     if v0_namespace is not None and 'service.namespace' not in attributes:
         if 'service.namespace=' not in (_env('OTEL_RESOURCE_ATTRIBUTES', environ) or ''):
             attributes['service.namespace'] = v0_namespace
     values['resource_attributes'] = tuple(sorted(attributes.items()))
-    values['otlp_endpoint'] = explicit.get('otlp_endpoint') or None
+    values['otlp_endpoint'] = otlp_endpoint
     for signal in SIGNALS:
         option = f'{signal}_exporter'
         chosen = explicit.get(option)
@@ -157,7 +206,16 @@ def resolve(explicit: Mapping[str, Any], environ: Optional[Mapping[str, str]] = 
     elif v0_headers is not None:
         separator = environ.get('OTEL_EXPORTER_OTLP_HEADER_SEPARATOR') or '\t'
         values['otlp_headers'] = _parse_v0_headers(v0_headers, separator)
-    values['log_level'] = (explicit.get('log_level') or _env('OTEL_WRAPPER_LOG_LEVEL', environ) or 'info').lower()
+    values['log_level'] = 'info'
+    for source, candidate in (('otel.configure(log_level=...)', explicit.get('log_level')),
+                              ('OTEL_WRAPPER_LOG_LEVEL', _env('OTEL_WRAPPER_LOG_LEVEL', environ))):
+        if candidate is None or not candidate.strip():
+            continue
+        if is_log_level(candidate):
+            values['log_level'] = candidate.strip().lower()
+            break
+        notes.append(f'{source} {candidate!r} is not a logging level name (debug, info, warning, error, critical); '
+                     f'it is ignored')
     log_format = (explicit.get('log_format') or _env('OTEL_WRAPPER_LOG_FORMAT', environ) or 'json').lower()
     if log_format not in ('json', 'off'):
         notes.append(f'log_format {log_format!r} not supported (json or off); using json')

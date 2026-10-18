@@ -127,16 +127,15 @@ def _make_wrapper(target: Any, name: Optional[str], attributes: Optional[dict]) 
         async def wrapper(*args, **kwargs):
             __tracebackhide__ = __traceback_hide__ = True  # noqa: F841
             agen = target(*args, **kwargs)
-            if disabled():
-                async for item in agen:  # forwards values only; good enough for the disabled mode
-                    yield item
-                return
-            ensure_configured()
-            scope = start(span_name, span_attributes, attach=False)
+            if disabled():  # DEC-24: no span, no context; asend / athrow / aclose still reach the target
+                scope = None
+            else:
+                ensure_configured()
+                scope = start(span_name, span_attributes, attach=False)
             to_send, to_throw = None, None
             try:
                 while True:
-                    token = _spans.attach(scope)
+                    token = _spans.attach(scope) if scope is not None else None
                     try:
                         if to_throw is not None:
                             thrown, to_throw = to_throw, None
@@ -144,7 +143,8 @@ def _make_wrapper(target: Any, name: Optional[str], attributes: Optional[dict]) 
                         else:
                             value = await agen.asend(to_send)
                     finally:
-                        _spans.detach(token)
+                        if token is not None:
+                            _spans.detach(token)
                     try:
                         to_send = yield value
                     except GeneratorExit:
@@ -153,9 +153,11 @@ def _make_wrapper(target: Any, name: Optional[str], attributes: Optional[dict]) 
                     except BaseException as e:
                         to_throw = e
             except StopAsyncIteration:
-                finish(scope, None)
+                if scope is not None:
+                    finish(scope, None)
             except BaseException as e:
-                finish(scope, e)
+                if scope is not None:
+                    finish(scope, e)
                 raise
 
     elif inspect.isgeneratorfunction(target):

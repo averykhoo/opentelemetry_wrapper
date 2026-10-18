@@ -52,8 +52,11 @@ def warn(message: str, key: Optional[Hashable] = None, anywhere: bool = False) -
     with _warned_lock:
         if dedupe in _warned:
             return
-        _warned.add(dedupe)
     warnings.warn(message, OtelWrapperWarning, skip_file_prefixes=(_PACKAGE_DIR,))
+    # recorded only once the warning was issued: under an error filter `warn` raises, and the same misuse at the same
+    # site must keep raising at decoration time rather than go quiet after the first time
+    with _warned_lock:
+        _warned.add(dedupe)
 
 
 _reported: Set[Tuple[str, str]] = set()

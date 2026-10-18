@@ -351,3 +351,49 @@ def test_system_exit_is_error_only_for_a_non_zero_code():  # AC-25 (DEC-3)
     assert result['exit0'][0] == 'UNSET' and result['exit0'][1]['process.exit.code'] == 0
     assert result['exit_none'][0] == 'UNSET' and result['exit_none'][1]['process.exit.code'] == 0
     assert result['exit2'][0] == 'ERROR' and result['exit2'][1]['process.exit.code'] == 2
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# review fix (OTW-3, session 2026-10-18l): disabled at call time, an async generator behaves exactly as unwrapped
+# ----------------------------------------------------------------------------------------------------------------------
+
+DISABLED_ASYNC_GENERATOR = scenario(__name__, 'v1_decorator_disabled_async_generator', PRELUDE + r'''
+import asyncio, os
+
+
+async def source(trail):
+    got = []
+    try:
+        while True:
+            try:
+                got.append((yield len(got)))
+            except KeyError:
+                got.append('caught')
+    finally:
+        trail.append(list(got) + ['closed'])
+
+
+async def drive(factory):
+    trail = []
+    agen = factory(trail)
+    out = [await agen.asend(None), await agen.asend('a'), await agen.athrow(KeyError())]
+    await agen.aclose()
+    return out, trail
+
+
+wrapped = otel(source)  # decorated while enabled; disabled afterwards, at call time
+os.environ['OTEL_WRAPPER_DISABLED'] = 'true'
+plain = asyncio.run(drive(source))
+through_wrapper = asyncio.run(drive(wrapped))
+emit('plain', plain)
+emit('same', plain == through_wrapper)
+emit('through_wrapper', through_wrapper)
+emit('spans', len(exporter.get_finished_spans()))
+''')
+
+
+def test_a_disabled_async_generator_forwards_asend_athrow_and_aclose():  # AC-4 (DEC-24)
+    result = DISABLED_ASYNC_GENERATOR.result()
+    assert result['plain'] == [[0, 1, 2], [['a', 'caught', 'closed']]]  # what the target does by itself
+    assert result['same'] is True, result['through_wrapper']
+    assert result['spans'] == 0

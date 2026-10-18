@@ -125,15 +125,19 @@ def _span_processors(state: _State, notes: List[str]) -> list:
     from opentelemetry.sdk.trace.export import ConsoleSpanExporter
     processors = []
     for name in state.settings.traces_exporter:
-        if name == 'otlp':
-            from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
-            exporter = OTLPSpanExporter(**_otlp_kwargs(state.settings, 'traces'))
-        else:
-            exporter = ConsoleSpanExporter()
-        wrapped = _guarded_wrap(exporter, 'traces', notes)
-        if wrapped is None:
+        try:  # one exporter failing to build must not cost the others
+            if name == 'otlp':
+                from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+                exporter = OTLPSpanExporter(**_otlp_kwargs(state.settings, 'traces'))
+            else:
+                exporter = ConsoleSpanExporter()
+            wrapped = _guarded_wrap(exporter, 'traces', notes)
+            if wrapped is None:
+                continue
+            processor = _switchable(BatchSpanProcessor)(wrapped)
+        except Exception as e:
+            notes.append(f'the {name} traces exporter could not be built and is not used: {type(e).__name__}: {e}')
             continue
-        processor = _switchable(BatchSpanProcessor)(wrapped)
         processor.enabled = _exporters_enabled
         state.sinks.append(processor)
         processors.append(processor)
@@ -145,31 +149,60 @@ def _log_processors(state: _State, notes: List[str]) -> list:
     from opentelemetry.sdk._logs.export import ConsoleLogRecordExporter
     processors = []
     for name in state.settings.logs_exporter:
-        if name == 'otlp':
-            from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
-            exporter = OTLPLogExporter(**_otlp_kwargs(state.settings, 'logs'))
-        else:
-            exporter = ConsoleLogRecordExporter()
-        wrapped = _guarded_wrap(exporter, 'logs', notes)
-        if wrapped is None:
+        try:
+            if name == 'otlp':
+                from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
+                exporter = OTLPLogExporter(**_otlp_kwargs(state.settings, 'logs'))
+            else:
+                exporter = ConsoleLogRecordExporter()
+            wrapped = _guarded_wrap(exporter, 'logs', notes)
+            if wrapped is None:
+                continue
+            processor = _switchable(BatchLogRecordProcessor)(wrapped)
+        except Exception as e:
+            notes.append(f'the {name} logs exporter could not be built and is not used: {type(e).__name__}: {e}')
             continue
-        processor = _switchable(BatchLogRecordProcessor)(wrapped)
         processor.enabled = _exporters_enabled
         state.sinks.append(processor)
         processors.append(processor)
     return processors
 
 
-def _metric_readers(settings: _env.Settings) -> list:
+def _switchable_metric_exporter(exporter_class: Any) -> Any:
+    """a metric exporter that reports success without exporting while our real exporters are switched off; the
+    metrics counterpart of `_switchable`, switched by the same `enabled` attribute"""
+    from opentelemetry.sdk.metrics.export import MetricExportResult
+
+    class Switchable(exporter_class):
+        enabled = True
+
+        def export(self, *args: Any, **kwargs: Any) -> Any:
+            if not self.enabled:
+                return MetricExportResult.SUCCESS
+            return super().export(*args, **kwargs)
+
+    Switchable.__name__ = Switchable.__qualname__ = f'Switchable{exporter_class.__name__}'
+    return Switchable
+
+
+def _metric_readers(state: _State, notes: List[str]) -> list:
     from opentelemetry.sdk.metrics.export import ConsoleMetricExporter
     from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
     readers = []
-    for name in settings.metrics_exporter:
-        if name == 'otlp':
-            from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
-            readers.append(PeriodicExportingMetricReader(OTLPMetricExporter(**_otlp_kwargs(settings, 'metrics'))))
-        else:
-            readers.append(PeriodicExportingMetricReader(ConsoleMetricExporter()))
+    for name in state.settings.metrics_exporter:
+        try:
+            if name == 'otlp':
+                from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
+                exporter = _switchable_metric_exporter(OTLPMetricExporter)(**_otlp_kwargs(state.settings, 'metrics'))
+            else:
+                exporter = _switchable_metric_exporter(ConsoleMetricExporter)()
+            reader = PeriodicExportingMetricReader(exporter)
+        except Exception as e:
+            notes.append(f'the {name} metrics exporter could not be built and is not used: {type(e).__name__}: {e}')
+            continue
+        exporter.enabled = _exporters_enabled
+        state.sinks.append(exporter)
+        readers.append(reader)
     return readers
 
 
@@ -197,65 +230,82 @@ def _is_proxy(provider: Any) -> bool:
 # ----------------------------------------------------------------------------------------------------------------------
 
 def _build(settings: _env.Settings, notes: List[str]) -> _State:
-    from opentelemetry import _logs
-    from opentelemetry import metrics
-    from opentelemetry.sdk._logs import LoggerProvider
-    from opentelemetry.sdk.metrics import MeterProvider
-    from opentelemetry.sdk.trace import TracerProvider
-
     state = _State(settings)
+    foreign: List[str] = []  # the providers someone else configured first: one warning for all of them
     resource = _resource(settings)
 
+    def guarded(what: str, step: Any, *args: Any) -> None:
+        # a failure in one signal (or in the exit flush) must not undo what is already set globally, nor skip the rest
+        try:
+            step(*args)
+        except Exception as e:
+            notes.append(f'configuring {what} failed, so it exports nothing: {type(e).__name__}: {e}')
+
+    guarded('traces', _build_traces, state, resource, notes, foreign)
+    guarded('logs', _build_logs, state, resource, notes, foreign)
+    guarded('metrics', _build_metrics, state, resource, notes, foreign)
+    if foreign:
+        notes.append('OpenTelemetry was configured by someone else first, so opentelemetry_wrapper follows them where '
+                     'it can: ' + '; '.join(foreign))
+    for exporter in _span_test_sinks:
+        guarded('a test span sink', _attach_sink, state, exporter, 'traces', notes)
+    for exporter in _log_test_sinks:
+        guarded('a test log sink', _attach_sink, state, exporter, 'logs', notes)
+    guarded('the flush at exit', _register_exit_flush, state)
+    return state
+
+
+def _build_traces(state: _State, resource: Any, notes: List[str], foreign: List[str]) -> None:
+    from opentelemetry.sdk.trace import TracerProvider
     existing = trace.get_tracer_provider()
     if _is_proxy(existing):
         state.tracer_provider = TracerProvider(resource=resource, shutdown_on_exit=False)
         state.owned.append(state.tracer_provider)
         trace.set_tracer_provider(state.tracer_provider)
     elif isinstance(existing, TracerProvider):
-        notes.append(f'another tracer provider was configured first ({type(existing).__name__}); '
-                     f'opentelemetry_wrapper '
-                     f'attached its span processors to it, and its own resource settings are not applied')
+        foreign.append(f'tracer provider ({type(existing).__name__}): opentelemetry_wrapper attached its span '
+                       f'processors to it, and its own resource settings are not applied')
         state.tracer_provider = existing
     else:
-        notes.append(f'another tracer provider was configured first ({type(existing).__name__}), and it is not the '
-                     f'SDK\'s: opentelemetry_wrapper leaves it alone and exports no spans of its own')
+        foreign.append(f'tracer provider ({type(existing).__name__}) is not the SDK\'s: opentelemetry_wrapper leaves '
+                       f'it alone and exports no spans of its own')
     if state.tracer_provider is not None:
         for processor in _span_processors(state, notes):
             state.tracer_provider.add_span_processor(processor)
 
+
+def _build_logs(state: _State, resource: Any, notes: List[str], foreign: List[str]) -> None:
+    from opentelemetry import _logs
+    from opentelemetry.sdk._logs import LoggerProvider
     existing = _logs.get_logger_provider()
     if _is_proxy(existing):
         state.logger_provider = LoggerProvider(resource=resource, shutdown_on_exit=False)
         state.owned.append(state.logger_provider)
         _logs.set_logger_provider(state.logger_provider)
     elif isinstance(existing, LoggerProvider):
-        notes.append(f'another logger provider was configured first ({type(existing).__name__}); '
-                     f'opentelemetry_wrapper '
-                     f'attached its log processors to it')
+        foreign.append(f'logger provider ({type(existing).__name__}): opentelemetry_wrapper attached its log '
+                       f'processors to it')
         state.logger_provider = existing
     else:
-        notes.append(f'another logger provider was configured first ({type(existing).__name__}), and it is not the '
-                     f'SDK\'s: opentelemetry_wrapper leaves it alone and exports no logs of its own')
+        foreign.append(f'logger provider ({type(existing).__name__}) is not the SDK\'s: opentelemetry_wrapper leaves '
+                       f'it alone and exports no logs of its own')
     if state.logger_provider is not None:
         for processor in _log_processors(state, notes):
             state.logger_provider.add_log_record_processor(processor)
 
+
+def _build_metrics(state: _State, resource: Any, notes: List[str], foreign: List[str]) -> None:
+    from opentelemetry import metrics
+    from opentelemetry.sdk.metrics import MeterProvider
     existing = metrics.get_meter_provider()
     if _is_proxy(existing):
-        state.meter_provider = MeterProvider(resource=resource, metric_readers=_metric_readers(settings),
+        state.meter_provider = MeterProvider(resource=resource, metric_readers=_metric_readers(state, notes),
                                              shutdown_on_exit=False)
         state.owned.append(state.meter_provider)
         metrics.set_meter_provider(state.meter_provider)
     else:
-        notes.append(f'another meter provider was configured first ({type(existing).__name__}): opentelemetry_wrapper '
-                     f'leaves it alone and exports no metrics of its own')
-
-    for exporter in _span_test_sinks:
-        _attach_sink(state, exporter, 'traces', notes)
-    for exporter in _log_test_sinks:
-        _attach_sink(state, exporter, 'logs', notes)
-    _register_exit_flush(state)
-    return state
+        foreign.append(f'meter provider ({type(existing).__name__}): opentelemetry_wrapper leaves it alone and '
+                       f'exports no metrics of its own')
 
 
 def _attach_sink(state: _State, exporter: Any, signal: str, notes: List[str]) -> None:
@@ -356,12 +406,13 @@ def configure(explicit: Optional[Mapping[str, Any]] = None) -> None:
                 _state = _State(settings, failed=True)
                 notes.append(f'configuring OpenTelemetry failed, so no telemetry is exported: {type(e).__name__}: {e}')
         else:
-            notes = []  # env var notes were emitted when configuration was built
+            # env var notes were emitted when configuration was built; a wrong argument deserves its own warning
+            explicit, notes = _env.clean_explicit(explicit)
             if explicit and settings.without_log_level() != _state.settings.without_log_level():
                 conflict = ('otel.configure() was called with different settings after configuration was built (by '
                             'otel.configure, otel.instrument or the first span); they are ignored, except the log '
                             'level. Call otel.configure() once, at startup, before otel.instrument()')
-            if 'log_level' in explicit and settings.log_level != _state.settings.log_level:
+            if _env.is_log_level(explicit.get('log_level')) and settings.log_level != _state.settings.log_level:
                 _state.settings = _env.Settings(**{**_env.asdict_shallow(_state.settings),
                                                    'log_level': settings.log_level})
                 _apply_log_level(_state)
@@ -402,6 +453,6 @@ def mark_logging_instrumented() -> None:
 def _apply_log_level(state: _State) -> None:
     if not state.logging_instrumented:
         return
-    level = logging.getLevelName(state.settings.log_level.upper())
-    if isinstance(level, int):
+    level = logging.getLevelNamesMapping().get(state.settings.log_level.upper())  # validated when resolved
+    if level is not None:
         logging.getLogger().setLevel(level)

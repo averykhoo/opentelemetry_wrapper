@@ -119,6 +119,7 @@ DISABLED = scenario(__name__, 'disabled', r'''
 import asyncio, dataclasses, logging
 original_dataclass = dataclasses.dataclass
 from tests import impl as otw
+from tests.impl import IMPL as otw_impl
 otw.load()
 from fastapi import FastAPI
 from sqlalchemy import create_engine
@@ -152,7 +153,9 @@ emit('app_returned_unchanged', otw.instrument_app(app) is app)
 emit('metrics_route_added', any(route.path == '/metrics' for route in app.router.routes))
 engine = create_engine('sqlite://')
 emit('engine_returned_unchanged', otw.instrument_engine(engine) is engine)
-otw.instrument_sqlalchemy(); otw.instrument_requests(); otw.instrument_dataclasses()
+otw.instrument_sqlalchemy(); otw.instrument_requests()
+if otw_impl == 'v0':  # v1 drops instrument_dataclasses
+    otw.instrument_dataclasses()
 emit('spans', take(exp, include_library_spans=True))
 ''', env={'OTEL_WRAPPER_DISABLED': ' True '})
 
