@@ -28,3 +28,5 @@ AGENT: reconstructed at adoption (2026-10-18) from PLAN.md § Decided (Process) 
 - **2026-10-18a (claude-code/2.1.287):** corrected: at 1244 (+48) inserted "[... the excerpt stops here; the rest is DEC-54]" after "(workstream 10). Config to"
 
 - **2026-10-18e (claude-code/2.1.287):** **2026-10-18e, owner confirmation:** reviewing STORY-1 to STORY-10 one by one, the owner: *"Okay for 6 to 10"*. Confirmed as written; `story_status` moved from `unconfirmed` to `live`.
+
+- **2026-10-18h (claude-code/2.1.287):** AGENT (DEC-77): the body above copies DEC-37 (side-by-side rollout) and DEC-54 (Renovate bumps that auto-merge on green CI), and stops mid-sentence; those decisions, with DEC-55 and DEC-57, are the authority. The story's intent is the title, and DEC-72's: versions stay pinned, and releases try to follow semver.
