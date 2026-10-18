@@ -4,14 +4,16 @@ id: OTW-2
 title: 'Workstream 0: the OTW_IMPL adapter, upstream canaries and CI'
 brief: 'Adapter, canaries, interleaving, benchmark and CI built (2026-10-18k); left: first push and a green CI run'
 pri: NOW
-state: open
+state: closed
 deps: []
 source: session 2026-10-18a
 created: 2026-10-18
-moved: 2026-10-18a
-updated: 2026-10-18k
+moved: 2026-10-18l
+updated: 2026-10-18l
 aliases: [WS0]
 labels: [v1, ci]
+status: deprecated
+closed: 2026-10-18l
 ---
 
 Criteria: AC-8 (runnable), AC-23, AC-24. Decisions: DEC-38, DEC-54, DEC-55, DEC-56, DEC-57, DEC-63.
@@ -84,3 +86,4 @@ on push.
   Not marked v0_specific but reaching into v0 internals, to settle when v1's API is: test_v0_extract_json_header.py (the whole module); the test_v0_sqlalchemy.py scenarios importing engine_typedef or instrument_sqlalchemy; test_v0_example_scripts.py (runs the v0 example scripts); every test using the spans fixture or setup_spans() (v0's init_tracer_provider), which is where v1's 45 errors come from.
   Left in OTW-2: the canaries (tests/upstream), the interleaving tests, the micro-benchmark, CI.
 - 2026-10-18k (claude-code/2.1.287): Built the canaries (tests/upstream, 8 modules, 26 tests, marker 'upstream' set by tests/conftest.py): EngineTracer import path, signature, pre-existing engines, no duplicate spans (each tracer overwrites context._otel_span, so the earlier span is never ended), connect spans from the instrumentor only; the contextmanager/asynccontextmanager shared __code__ and __wrapped__; ReadableSpan, Event, Link and LogRecord copy kwargs and the sdk._logs names the scrubbing wrappers use; the post-fork resource update (Linux only, skipped on Windows, not yet run); ProxyTracer and an instrumentor created before the provider; resource precedence (DEC-33); FastAPI instrument_app exclude_spans and idempotency; the SDK LoggingHandler deprecation (comment on OTW-11). Each canary but the fork one was seen red under a monkeypatched break of its upstream behaviour (15 breaks, in a scratch worktree). Also tests/test_interleaving.py (two tasks plus a thread, against the OTel tracer, with the sketch's shared stack as the known-bad control), benchmarks/overhead.py with a smoke test (v0: ~32 us bare OTel span, ~58 us decorated, no processor), and CI: .github/workflows/tests.yml + ci/test.sh, Linux, 3.12/3.13/3.14. Gate: 243 passed, 2 skipped, 23 xfailed; OTW_IMPL=v1: 47 failed, 71 passed, 85 skipped, 20 xfailed, 45 errors. Left: the first push and its CI run (owner's yes needed), which is also the fork canary's first run; the extras axis of DEC-56's matrix waits for OTW-13, since v0 has no optional extras; interleaving through v1's 'with otel:' once tests/impl.py binds it.
+- 2026-10-18l (claude-code/2.1.287): closed: done: CI run 39133922797 on e9ff619 green on 3.12/3.13/3.14 (244/244/245 passed); the fork canary ran and passed on Linux. The first run (39133243314, 55bac69) was red on 3.14 only: functools.partial is a method descriptor from 3.14, fixed in the v0 characterization tests (e9ff619). 3.14 shows 68 DeprecationWarnings from v0's asyncio.iscoroutinefunction (OTW-18), not errors.
