@@ -9,8 +9,8 @@ deps: []
 source: session 2026-10-18a
 created: 2026-10-18
 moved: 2026-10-18a
-updated: 2026-10-18a
-last_asked: 2026-10-18a
+updated: 2026-10-18c
+last_asked: 2026-10-18c
 ---
 
 **Question:** v0's `instrument_all()` logs `OTEL_EXPORTER_OTLP_HEADER` verbatim at startup (`opentelemetry_wrapper/__init__.py`, the config dict it logs), and that header usually carries an auth token, so every v0 user's startup log holds their collector credential. Patch v0 (redact the header values in that log line, release `0.1.26`), or leave it until v1 replaces v0?

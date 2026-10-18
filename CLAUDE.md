@@ -29,7 +29,8 @@ or renumber an id. The pre-adoption design ids (PLAN.md's Q1-Q16, proposals 1-11
   owner's yes** (contract § Rules).
 - **Package installs** into `.context-engine/env/` (the engine's env) need no confirmation; the conda env's
   dependencies still do (global rule).
-- **Actor:** records and commits name no model, so `CE_ACTOR` is `claude-code/<Claude Code version>`, not the
+- **Actor** (not from DEC-70: it follows the harness rule that pushed artifacts name no model): records and commits
+  name no model, so `CE_ACTOR` is `claude-code/<Claude Code version>`, not the
   contract's `<harness>/<model>`.
 
 ## Environment
