@@ -1,23 +1,35 @@
-# NOTE: also update pyproject.toml
-asgiref
+# What CI installs (ci/test.sh, the full-extras job): the core dependencies and every extra, plus what the tests drive.
+# NOTE: also update pyproject.toml (the pins and the sqlalchemy cap are in both)
+
+# core (DEC-57: strict OTel pins)
+opentelemetry-api>=1.44,<1.45
+opentelemetry-sdk>=1.44,<1.45
+opentelemetry-exporter-otlp-proto-http>=1.44,<1.45
+opentelemetry-semantic-conventions>=0.65b0,<0.66
+opentelemetry-instrumentation-logging>=0.65b0,<0.66
+opentelemetry-exporter-prometheus>=0.65b0,<0.66
+
+# the extras: fastapi, sqlalchemy, requests, system-metrics, hyperscan, dev
+opentelemetry-instrumentation-fastapi>=0.65b0,<0.66
+opentelemetry-instrumentation-requests>=0.65b0,<0.66
+opentelemetry-instrumentation-sqlalchemy>=0.65b0,<0.66
+opentelemetry-instrumentation-system-metrics>=0.65b0,<0.66
 fastapi
-itsdangerous
-opentelemetry-api
-opentelemetry-exporter-otlp
-opentelemetry-exporter-prometheus
-opentelemetry-instrumentation-fastapi
-opentelemetry-instrumentation-logging
-opentelemetry-instrumentation-requests
-opentelemetry-instrumentation-sqlalchemy
-opentelemetry-instrumentation-system-metrics
-opentelemetry-sdk
-pydantic
 requests
 # TODO: temporary pin, since opentelemetry-instrumentation-sqlalchemy (<=0.66b0) silently skips sqlalchemy>=2.1
 #  check https://github.com/open-telemetry/opentelemetry-python-contrib/issues/5118 (and PR #5120)
-#  once a release supports 2.1, remove `<2.1` here AND in pyproject.toml, and set that release as the minimum for
-#  opentelemetry-instrumentation-sqlalchemy; then check that `sqlalchemy_example.py` prints a `SELECT` span
+#  once a release supports 2.1, remove `<2.1` here AND in pyproject.toml (twice), and set that release as the minimum
+#  for opentelemetry-instrumentation-sqlalchemy; then check that `sqlalchemy_example.py` prints a `SELECT` span
 sqlalchemy[asyncio]<2.1
-starlette
+hyperscan
+interegular
+pytest
+
+# v0 core dependencies until ASK-23 (pyproject.toml), and what the v0 tests import through the example apps
+opentelemetry-exporter-otlp-proto-grpc>=1.44,<1.45
+pydantic
 typing-extensions
+asgiref
+itsdangerous
+starlette
 uvicorn

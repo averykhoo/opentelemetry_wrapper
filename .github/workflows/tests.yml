@@ -1,5 +1,8 @@
-# DEC-56: on push and pull requests, Python 3.12-3.14; the steps are in ci/test.sh
-# the "with and without the optional extras" axis waits for the extras themselves (packaging, OTW-13): v0 has none
+# DEC-56: on push and pull requests, Python 3.12-3.14, with and without the optional extras; the steps are in ci/test.sh
+#   extras `all`:  requirements.txt (every extra) and the whole test suite
+#   extras `none`: the package installed alone (no extras): it imports and runs `@otel` (AC-20, ci/smoke_core.py)
+# while the package root still imports v0 eagerly (ASK-23), the integrations v0 imports are core dependencies, so the
+# `none` job installs them too; it is the guard that the install stays importable and gRPC-free
 name: tests
 
 on:
@@ -17,9 +20,16 @@ jobs:
       fail-fast: false
       matrix:
         python: ['3.12', '3.13', '3.14']
+        extras: ['all', 'none']
+    name: tests (python ${{ matrix.python }}, extras ${{ matrix.extras }})
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
-      - run: bash ci/test.sh
+      - name: all extras, whole suite
+        if: matrix.extras == 'all'
+        run: bash ci/test.sh all
+      - name: no extras, import and run
+        if: matrix.extras == 'none'
+        run: bash ci/test.sh core
