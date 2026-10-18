@@ -5,6 +5,15 @@ the engine repo (`averykhoo/context-engine`). Every session appends at its clean
 feedback): after-action reviews, frictions, tokens spent on ceremony, engine bugs and refusals with a bad remedy,
 and simplifications that would help. Newest first; each entry dated, with its session key.
 
+## 2026-10-18h: the charter trimmed and the criteria aligned (DEC-77)
+
+### Simplifications that would help
+
+- **Lint could check the charter's measures against the criteria.** A goal's "How it is measured" column and the
+  criteria's Story column drifted apart (four mismatches found by the 2026-10-18g review), and this session checked
+  them with a throwaway script. When stories map one-to-one onto goals, lint could check that G-n's AC list equals
+  the rows citing its story.
+
 ## 2026-10-18g: open items and a parsimony review for the owner
 
 ### What worked
