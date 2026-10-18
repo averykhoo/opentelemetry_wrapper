@@ -127,6 +127,7 @@ Generated from each decision's frontmatter by `context-engine decision index`; n
 
 - [DEC-71](DEC-71-no-v0-patch-release-v0-is-not-touched.md): No v0 patch release: v0 is not touched *(owner, 2026-10-18)*
 - [DEC-72](DEC-72-charter-review-the-principles-are-a-ranking.md): Charter review: the principles are a ranking; never crash first, no secrets last *(owner, 2026-10-18)*
+- [DEC-74](DEC-74-a-value-that-fails-to-scrub-is-dropped-and.md): A value that fails to scrub is dropped and replaced by its own 'scrubbing failed' placeholder *(owner, 2026-10-18)*
 
 ## DEFERRED
 
