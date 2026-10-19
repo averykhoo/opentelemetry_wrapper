@@ -589,3 +589,4 @@
 {"at": "2026-10-19T09:22:39+08:00", "session": "2026-10-18l", "actor": "claude-code/2.1.287", "op": "new", "id": "BATON-1", "path": "docs/working/BATON-1-resume-otw-10-from-branch-worktree-agent.md", "fields": ["type", "id", "title", "session", "state", "created", "why"], "mechanical": false}
 {"at": "2026-10-19T09:23:24+08:00", "session": "2026-10-18l", "actor": "claude-code/2.1.287", "op": "comment", "id": "OTW-10", "path": "tasks/OTW-10-workstream-7-generators-and-context-managers.md", "fields": ["updated", "body"], "mechanical": false}
 {"at": "2026-10-19T09:24:12+08:00", "session": "2026-10-18l", "actor": "claude-code/2.1.287", "op": "session.close", "id": "2026-10-18l", "path": "docs/ledger/session-log.md", "fields": ["kind"], "mechanical": false}
+{"at": "2026-10-19T09:24:45+08:00", "session": "2026-10-18l", "actor": "claude-code/2.1.287", "op": "banner.set", "id": "2026-10-18l", "path": "HANDOFF.md", "fields": ["banner"], "mechanical": false}
