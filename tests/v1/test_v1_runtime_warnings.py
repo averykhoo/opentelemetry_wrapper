@@ -3,6 +3,7 @@ runtime warnings go to stderr once, never through `warnings.warn` (DEC-81): the 
 the warnings implicit configuration raises at the first span or call. an explicit `otel.configure(...)` and decoration
 time keep `warnings.warn`, so an error filter still raises there
 """
+import pytest
 import json
 
 from tests.v0._harness import scenario
@@ -64,6 +65,7 @@ def _reports(result):
     return records
 
 
+@pytest.mark.criterion('AC-22')
 def test_runtime_warnings_do_not_raise_under_an_error_filter():  # DEC-81
     result = RUNTIME.result()
     assert result['runtime_raised'] == []
@@ -71,6 +73,8 @@ def test_runtime_warnings_do_not_raise_under_an_error_filter():  # DEC-81
     assert result['configured'] is True
 
 
+@pytest.mark.criterion('AC-2')
+@pytest.mark.criterion('AC-22')
 def test_runtime_warnings_are_one_stderr_line_each_once_per_site():  # DEC-81
     messages = [r['message'] for r in _reports(RUNTIME.result())]
     unnamed = [m for m in messages if 'two unnamed `with otel:` blocks' in m and 'two_blocks' in m]
@@ -81,6 +85,7 @@ def test_runtime_warnings_are_one_stderr_line_each_once_per_site():  # DEC-81
     assert all('site' in r for r in _reports(RUNTIME.result()))
 
 
+@pytest.mark.criterion('AC-22')
 def test_decoration_time_and_explicit_configure_still_warn_through_warnings():  # DEC-81, DEC-49
     result = RUNTIME.result()
     assert 'it is not callable' in result['decoration_raised']

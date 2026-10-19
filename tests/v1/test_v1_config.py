@@ -43,6 +43,7 @@ except TypeError:
 ''', env={'OTEL_SERVICE_NAME': 'from-env'})
 
 
+@pytest.mark.criterion('AC-3')
 def test_explicit_beats_env_and_configuration_is_final_once_built():  # AC-3 (DEC-27 rule 2)
     result = FINAL.result()
     assert result['first'] == [] and result['same_again'] == []
@@ -50,6 +51,7 @@ def test_explicit_beats_env_and_configuration_is_final_once_built():  # AC-3 (DE
     assert result['service_name'] == 'explicit'
 
 
+@pytest.mark.criterion('AC-3')
 def test_only_the_log_level_may_change_after_configuration():  # AC-3 (DEC-9)
     result = FINAL.result()
     assert result['log_level_only'] == []
@@ -79,6 +81,7 @@ emit('exporters', len(_config._state.sinks))
 ''', env={'OTEL_SERVICE_NAME': 'from-env'})
 
 
+@pytest.mark.criterion('AC-3')
 def test_the_first_span_configures_from_env_vars_and_exports_nothing_without_an_endpoint():  # AC-3 (DEC-27, DEC-28)
     result = IMPLICIT.result()
     assert result['before'] == [False, 'ProxyTracerProvider']
@@ -94,6 +97,7 @@ _config.set_exporters_enabled(False)  # nothing to send, and nothing listens on 
 ''', env={'OTEL_EXPORTER_OTLP_ENDPOINT': 'http://127.0.0.1:9', 'OTEL_METRICS_EXPORTER': 'none'})
 
 
+@pytest.mark.criterion('AC-3')
 def test_an_endpoint_turns_on_the_otlp_exporters():  # AC-3 (DEC-28)
     result = ENDPOINT.result()
     assert result['count'] == 2  # traces and logs; metrics switched off by OTEL_METRICS_EXPORTER=none
@@ -142,6 +146,7 @@ emit('provider_kept', trace.get_tracer_provider() is provider)
 ''')
 
 
+@pytest.mark.criterion('AC-3')
 def test_an_sdk_provider_configured_first_gets_our_processors_attached():  # AC-3 (DEC-27 rule 5)
     result = SOMEONE_ELSE_SDK.result()
     assert result['result'] == 1 and result['provider_kept'] is True
@@ -149,6 +154,7 @@ def test_an_sdk_provider_configured_first_gets_our_processors_attached():  # AC-
     assert len([w for w in result['warnings'] if 'tracer provider (TracerProvider)' in w]) == 1
 
 
+@pytest.mark.criterion('AC-3')
 def test_a_foreign_provider_configured_first_is_left_alone_without_a_crash():  # AC-3 (DEC-27 rule 5)
     result = SOMEONE_ELSE_FOREIGN.result()
     assert result['result'] == 1 and result['provider_kept'] is True
@@ -185,6 +191,8 @@ emit('exporters', len(_config._state.sinks))  # fail closed: the console exporte
 ''')
 
 
+@pytest.mark.criterion('AC-5')
+@pytest.mark.criterion('AC-13')
 def test_every_exporter_goes_through_the_scrubbing_hook_which_fails_closed():  # AC-5 (scrubbed), OTW-8 hook
     result = SCRUBBING_HOOK.result()
     assert result['absent_is_pass_through'] is True
@@ -211,6 +219,7 @@ emit('log_level', otel.config['log_level'])
           'OTEL_TRACES_EXPORTER': 'none'})
 
 
+@pytest.mark.criterion('AC-27')
 def test_v0_names_are_read_with_a_warning_and_grpc_settings_warn_at_configuration():  # AC-27 (DEC-52, DEC-59)
     result = MIGRATION.result()
     assert result['namespace'] == 'shop'
@@ -325,6 +334,7 @@ with warnings.catch_warnings(record=True) as caught:
 ''')
 
 
+@pytest.mark.criterion('AC-3')
 def test_foreign_providers_for_several_signals_give_one_warning_naming_them():  # AC-3 (DEC-27 rule 5)
     (warning,) = FOREIGN_ALL.result()['warnings']
     assert 'tracer' in warning and 'logger' in warning and 'meter' in warning

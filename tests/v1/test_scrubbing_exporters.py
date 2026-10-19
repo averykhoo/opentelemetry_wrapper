@@ -54,6 +54,7 @@ def _failing_scrubber(trigger='boom'):
 
 
 # ----------------------------------------------------------------------------------------------- spans
+@pytest.mark.criterion('AC-13')
 def test_span_attributes_events_and_links_are_scrubbed_into_the_in_memory_exporter():
     memory = InMemorySpanExporter()
     provider, tracer = _tracer(ScrubbingSpanExporter(memory))
@@ -135,6 +136,7 @@ def _logger(exporter):
     return provider, provider.get_logger('test')
 
 
+@pytest.mark.criterion('AC-13')
 def test_log_attributes_and_body_are_scrubbed():
     memory = InMemoryLogRecordExporter()
     provider, logger = _logger(ScrubbingLogExporter(memory))
@@ -152,6 +154,7 @@ def test_log_attributes_and_body_are_scrubbed():
 
 
 @pytest.mark.filterwarnings('ignore::DeprecationWarning')
+@pytest.mark.criterion('AC-13')
 def test_stdlib_logging_through_the_otel_handler_is_scrubbed():
     from opentelemetry.sdk._logs import LoggingHandler
     memory = InMemoryLogRecordExporter()
@@ -169,6 +172,7 @@ def test_stdlib_logging_through_the_otel_handler_is_scrubbed():
 
 
 # ----------------------------------------------------------------------------------------------- fail closed
+@pytest.mark.criterion('AC-13')
 def test_a_value_that_fails_to_scrub_is_dropped_with_its_own_placeholder_and_the_rest_exported(capsys):
     memory = InMemorySpanExporter()
     provider, tracer = _tracer(ScrubbingSpanExporter(memory, _failing_scrubber()))
@@ -200,6 +204,7 @@ def test_debug_variable_reports_every_failure_with_its_traceback(capsys, monkeyp
     assert len(lines) == 2 and all('ZeroDivisionError' in json.loads(x)['traceback'] for x in lines)
 
 
+@pytest.mark.criterion('AC-13')
 def test_log_body_and_argv_fail_closed(capsys):
     s = _failing_scrubber()
     memory = InMemoryLogRecordExporter()
@@ -248,6 +253,7 @@ def test_a_span_that_cannot_be_rebuilt_is_dropped_not_exported_unscrubbed(monkey
 
 
 # ----------------------------------------------------------------------------------------------- helpers
+@pytest.mark.criterion('AC-15')
 def test_scrub_argv_covers_ac15():
     argv = ['app', '--db-password=hunter2', '--token', 's3cret', '--db-url', 'postgresql://u:hunter2@h/db',
             '-p', 'keep', '--verbose']
@@ -256,6 +262,7 @@ def test_scrub_argv_covers_ac15():
     assert scrub_argv(('python', '-m', 'app')) == ['python', '-m', 'app']
 
 
+@pytest.mark.criterion('AC-13')
 def test_scrub_mapping_for_the_stderr_json_logs():
     line = {'message': 'login with password=hunter2', 'level': 'INFO', 'extra': {'token': 's3cret', 'n': 1},
             'otelTraceID': '4bf92f3577b34da6a3ce929d0e0e4736'}
@@ -267,6 +274,7 @@ def test_scrub_mapping_for_the_stderr_json_logs():
     assert scrub_text(f'Traceback ...\nValueError: Bearer {JWT}') == f'Traceback ...\nValueError: Bearer {REDACTED}'
 
 
+@pytest.mark.criterion('AC-13')
 def test_the_exporters_use_the_shared_default_scrubber(monkeypatch):
     custom = Scrubber(allow_keys=['password'])
     monkeypatch.setattr(scrubbing, '_default', custom)

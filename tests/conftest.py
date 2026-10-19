@@ -35,6 +35,7 @@ def pytest_configure(config):
     config.addinivalue_line('markers', 'v0_specific: pins a v0 detail that v1 is expected to change (docs/decisions)')
     config.addinivalue_line('markers', 'upstream: a canary for upstream behaviour we rely on (tests/upstream, set '
                                        'automatically); `pytest -m upstream` runs just those')
+    config.addinivalue_line('markers', 'criterion(id): the AC-n criterion in docs/criteria.md that this test claims')
 
 
 _UPSTREAM_DIR = Path(__file__).resolve().parent / 'upstream'

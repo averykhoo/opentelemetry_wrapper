@@ -15,6 +15,7 @@ def resolve(explicit=None, **environ):
     return _env.resolve(explicit or {}, environ)
 
 
+@pytest.mark.criterion('AC-3')
 def test_defaults_build_no_exporters():  # AC-3 (DEC-28)
     settings, notes = resolve()
     assert notes == []
@@ -22,6 +23,7 @@ def test_defaults_build_no_exporters():  # AC-3 (DEC-28)
     assert (settings.log_level, settings.log_format, settings.prometheus_path) == ('info', 'json', '/metrics')
 
 
+@pytest.mark.criterion('AC-3')
 def test_an_endpoint_turns_on_otlp_per_signal_and_the_exporter_variables_choose():  # AC-3 (DEC-28)
     settings, _ = resolve(OTEL_EXPORTER_OTLP_ENDPOINT='http://collector:4318', OTEL_METRICS_EXPORTER='none',
                           OTEL_LOGS_EXPORTER='console,otlp')
@@ -32,12 +34,14 @@ def test_an_endpoint_turns_on_otlp_per_signal_and_the_exporter_variables_choose(
     assert (settings.traces_exporter, settings.logs_exporter) == ((), ('otlp',))
 
 
+@pytest.mark.criterion('AC-3')
 def test_explicit_beats_env():  # AC-3 (DEC-27 rule 2)
     settings, _ = resolve({'log_level': 'WARNING', 'traces_exporter': ['console']},
                           OTEL_WRAPPER_LOG_LEVEL='debug', OTEL_TRACES_EXPORTER='otlp')
     assert (settings.log_level, settings.traces_exporter) == ('warning', ('console',))
 
 
+@pytest.mark.criterion('AC-3')
 def test_same_meaning_compares_equal_and_the_log_level_is_set_apart():  # AC-3 (DEC-27, DEC-9)
     a, _ = resolve({'otlp_headers': {'b': '2', 'a': '1'}, 'log_level': 'debug'})
     b, _ = resolve({'otlp_headers': {'a': '1', 'b': '2'}})
@@ -52,17 +56,20 @@ def test_same_meaning_compares_equal_and_the_log_level_is_set_apart():  # AC-3 (
     ('OTEL_EXPORTER_PROMETHEUS_ENDPOINT', 'OTEL_WRAPPER_PROMETHEUS_PATH', '/prom', 'prometheus_path', '/prom'),
     ('OTEL_HEADER_ATTRIBUTES', 'OTEL_WRAPPER_HEADER_ATTRIBUTES', 'X-A,x-b', 'header_attributes', ('x-a', 'x-b')),
 ])
+@pytest.mark.criterion('AC-27')
 def test_v0_names_are_read_for_one_release_with_a_warning(old, new, value, field, expected):  # AC-27 (DEC-52)
     settings, notes = resolve(**{old: value})
     assert getattr(settings, field) == expected
     assert len(notes) == 1 and notes[0].startswith(old) and new in notes[0]
 
 
+@pytest.mark.criterion('AC-27')
 def test_a_new_name_beats_the_old_one():  # AC-27 (DEC-59)
     settings, notes = resolve(OTEL_EXPORTER_PROMETHEUS_ENDPOINT='/old', OTEL_WRAPPER_PROMETHEUS_PATH='/new')
     assert settings.prometheus_path == '/new' and len(notes) == 1
 
 
+@pytest.mark.criterion('AC-27')
 def test_v0s_log_level_name_only_warns():  # AC-27 (DEC-52)
     settings, notes = resolve(OTEL_LOG_LEVEL='debug')
     assert settings.log_level == 'info'
@@ -77,10 +84,12 @@ def test_v0s_log_level_name_only_warns():  # AC-27 (DEC-52)
     {'OTEL_EXPORTER_OTLP_TRACES_PROTOCOL': 'GRPC'},
     {'OTEL_EXPORTER_OTLP_INSECURE': 'true'},
 ], ids=lambda e: ','.join(e))
+@pytest.mark.criterion('AC-27')
 def test_grpc_settings_warn(environ):  # AC-27 (DEC-52)
     assert len(resolve(**environ)[1]) == 1
 
 
+@pytest.mark.criterion('AC-27')
 def test_an_explicit_grpc_endpoint_warns_and_http_does_not():  # AC-27
     assert len(resolve({'otlp_endpoint': 'localhost:4317'})[1]) == 1
     assert resolve({'otlp_endpoint': 'https://collector:4318'})[1] == []
@@ -94,6 +103,7 @@ def test_an_explicit_grpc_endpoint_warns_and_http_does_not():  # AC-27
     ({'OTEL_SDK_DISABLED': 'true'}, True),
     ({'OTEL_SDK_DISABLED': 'false'}, False),
 ])
+@pytest.mark.criterion('AC-4')
 def test_disabled_switch(environ, expected):  # AC-4 (DEC-24, DEC-5)
     assert _env.disabled(environ) is expected
 

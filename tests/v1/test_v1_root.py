@@ -33,6 +33,7 @@ def test_importing_the_root_or_v1_imports_no_v0(imports):  # DEC-80
     assert result['v1_loaded'] is True
 
 
+@pytest.mark.criterion('AC-26')
 def test_the_root_exports_v1_s_otel_and_warning_class():  # DEC-46, DEC-80
     result = run_python('''
 import opentelemetry_wrapper as root
