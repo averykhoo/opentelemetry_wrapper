@@ -26,12 +26,8 @@ import base64
 import copy
 import dataclasses
 import fnmatch
-import json
-import os
 import re
-import sys
 import threading
-import traceback
 from dataclasses import dataclass
 from typing import Any, Callable, Iterable, Mapping, Protocol, Sequence
 
@@ -41,45 +37,57 @@ from opentelemetry.sdk.trace.export import SpanExporter, SpanExportResult
 from opentelemetry.sdk.util import BoundedList
 from opentelemetry.trace import Link
 
+from opentelemetry_wrapper.v1._warnings import report
+
 __all__ = [
     'REDACTED', 'FAILED', 'NOTES_ATTRIBUTE', 'Rule', 'KEY_RULES', 'VALUE_RULES', 'DEFAULT_RULES',
     'DEFAULT_ALLOW_GLOBS', 'Engine', 'Matcher', 'RegexEngine', 'HyperscanEngine', 'Scrubber', 'default_scrubber',
     'set_default_scrubber', 'scrub_argv', 'scrub_mapping', 'scrub_text', 'ScrubbingSpanExporter',
-    'ScrubbingLogExporter', 'report_failure',
+    'ScrubbingLogExporter',
 ]
 
 REDACTED = '[REDACTED]'
 FAILED = '[REDACTED: scrubbing failed]'  # DEC-74: distinct from REDACTED
 NOTES_ATTRIBUTE = 'opentelemetry_wrapper.scrubbed'
-DEBUG_ENV = 'OTEL_WRAPPER_DEBUG'  # placeholder name: OTW-3 settles it (DEC-75, DEC-59)
 Note = str  # "<path>:<kind>.<rule>", e.g. "http.url:value.url_query", "argv[3]:key.password", "a:error.ValueError"
 _SEP = r'[._-]'
 
 
 # ----------------------------------------------------------------------------------------------- failure reporting
-_reported: set = set()
-_report_lock = threading.Lock()
+_UNKNOWN = object()  # no value to describe
 
 
-def report_failure(exc: BaseException, site: str) -> None:
+def _shape(value: Any, path: str | None) -> dict[str, Any]:
     """
-    one json line on stderr per (site, exception type), written directly, never through `warnings` or `logging`
-    (DEC-75); with ``OTEL_WRAPPER_DEBUG`` set, every occurrence, with its traceback. the value is never written.
-    OTW-3 may replace this function with its own reporter
+    what may be said about a value that failed to scrub (DEC-94): its type, its length where it has one, and its path
+    (named as in the notes); never its ``__str__`` or ``__repr__``; a failing ``__len__`` just leaves the length out
     """
+    shape: dict[str, Any] = {}
+    if value is not _UNKNOWN:
+        try:
+            t = type(value)
+            shape['value.type'] = f'{t.__module__}.{t.__qualname__}'
+        except Exception:  # noqa: BLE001 - e.g. a class whose __module__ or __qualname__ is odd
+            pass
+        try:
+            shape['value.length'] = len(value)
+        except Exception:  # noqa: BLE001 - unsized, or a __len__ that raises
+            pass
+    if path is not None:
+        shape['value.path'] = path
+    return shape
+
+
+def _report(exc: BaseException, site: str, value: Any = _UNKNOWN, path: str | None = None) -> None:
+    """a scrubbing failure goes through the wrapper's one reporter (DEC-75): one stderr JSON line per (site, exception
+    type), every occurrence with ``OTEL_WRAPPER_DEBUG=true``; the message is withheld, debug or not, since it may hold
+    the value (DEC-74, DEC-94), and the record carries the value's shape instead: ``value.type``, ``value.length``,
+    ``value.path``, each absent when unknown"""
     try:
-        debug = bool(os.environ.get(DEBUG_ENV))
-        key = (site, type(exc).__name__)
-        with _report_lock:
-            if key in _reported and not debug:
-                return
-            _reported.add(key)
-        line = {'opentelemetry_wrapper': 'internal error swallowed', 'site': site, 'error': type(exc).__name__}
-        if debug:
-            line['traceback'] = ''.join(traceback.format_exception(type(exc), exc, exc.__traceback__))
-        sys.stderr.write(json.dumps(line) + '\n')
-    except Exception:  # noqa: BLE001 - reporting must never raise either
-        pass
+        fields = _shape(value, path)
+    except Exception:  # noqa: BLE001 - the report goes out regardless
+        fields = {}
+    report(f'scrubbing.{site}', exc, withhold_message=True, fields=fields)
 
 
 # ----------------------------------------------------------------------------------------------- rules
@@ -424,10 +432,14 @@ _ARGV_KV = re.compile(r'^(-{0,2}[A-Za-z_][\w.-]*)=(.*)$', re.S)  # --db-password
 _ARGV_FLAG = re.compile(r'^--?([A-Za-z_][\w.-]+)$')  # --token, --api-key (2+ char names: '-p' is ambiguous)
 
 
-def _failed(exc: BaseException, path: str, notes: list[Note], site: str) -> str:
+def _note_failed(exc: BaseException, path: str, notes: list[Note]) -> str:
     notes.append(f'{path}:error.{type(exc).__name__}')
-    report_failure(exc, site)
     return FAILED
+
+
+def _failed(exc: BaseException, path: str, notes: list[Note], site: str, value: Any = _UNKNOWN) -> str:
+    _report(exc, site, value, path)
+    return _note_failed(exc, path, notes)
 
 
 class Scrubber:
@@ -456,11 +468,11 @@ class Scrubber:
         try:
             return self._scrub_mapping(attrs, path, notes, fail_soft=True), notes
         except Exception as exc:  # noqa: BLE001 - e.g. a mapping whose iteration raises
+            _report(exc, 'scrub_attributes', attrs, path or '*')  # the mapping as a whole failed: one report
             try:
-                return {k: _failed(exc, f'{path}.{k}' if path else str(k), notes, 'scrub_attributes')
-                        for k in attrs}, notes
+                return {k: _note_failed(exc, f'{path}.{k}' if path else str(k), notes) for k in attrs}, notes
             except Exception as exc2:  # noqa: BLE001
-                _failed(exc2, path or '*', notes, 'scrub_attributes')
+                _failed(exc2, path or '*', notes, 'scrub_attributes', attrs)
                 return {}, notes
 
     def scrub_text(self, text: str, path: str = 'body') -> tuple[str, list[Note]]:
@@ -471,7 +483,7 @@ class Scrubber:
         try:
             return self._scrub_any(value, path, notes, fail_soft=True), notes
         except Exception as exc:  # noqa: BLE001
-            return _failed(exc, path, notes, 'scrub_body'), notes
+            return _failed(exc, path, notes, 'scrub_body', value), notes
 
     def scrub_argv(self, argv: Sequence[str]) -> tuple[list[str], list[Note]]:
         out, notes, pending = list(argv), [], None
@@ -490,7 +502,7 @@ class Scrubber:
                 else:
                     out[i] = self._scrub_any(arg, f'argv[{i}]', notes)
             except Exception as exc:  # noqa: BLE001
-                out[i] = _failed(exc, f'argv[{i}]', notes, 'scrub_argv')
+                out[i] = _failed(exc, f'argv[{i}]', notes, 'scrub_argv', arg)
         if notes or not isinstance(argv, list):
             return out, notes
         return argv, notes
@@ -505,7 +517,7 @@ class Scrubber:
             except Exception as exc:  # noqa: BLE001
                 if not fail_soft:
                     raise
-                nv = _failed(exc, p, notes, 'scrub_mapping')
+                nv = _failed(exc, p, notes, 'scrub_mapping', v)
             if nv is not v:
                 if out is None:
                     out = dict(m)
@@ -536,7 +548,7 @@ class Scrubber:
                 except Exception as exc:  # noqa: BLE001
                     if not fail_soft:
                         raise
-                    items.append(_failed(exc, f'{path}[{i}]', notes, 'scrub_sequence'))
+                    items.append(_failed(exc, f'{path}[{i}]', notes, 'scrub_sequence', v))
             if all(a is b for a, b in zip(items, value)):
                 return value
             return tuple(items) if isinstance(value, tuple) else items
@@ -632,7 +644,7 @@ class ScrubbingSpanExporter(_Wrapper, SpanExporter):
             try:
                 out.append(self._scrub(span))
             except Exception as exc:  # noqa: BLE001 - fail closed: never export the span unscrubbed
-                report_failure(exc, 'ScrubbingSpanExporter.export')
+                _report(exc, 'ScrubbingSpanExporter.export', span, '*')
                 try:  # what is left: the span without its attributes, events and links, and a note
                     out.append(ReadableSpan(
                         name=span.name, context=span.context, parent=span.parent, resource=span.resource,
@@ -640,7 +652,7 @@ class ScrubbingSpanExporter(_Wrapper, SpanExporter):
                         status=span.status, start_time=span.start_time, end_time=span.end_time,
                         instrumentation_scope=span.instrumentation_scope))
                 except Exception as exc2:  # noqa: BLE001 - not even that: drop the span
-                    report_failure(exc2, 'ScrubbingSpanExporter.export.fallback')
+                    _report(exc2, 'ScrubbingSpanExporter.export.fallback', span, '*')
         return self.inner.export(out)
 
     def _scrub(self, span: ReadableSpan) -> ReadableSpan:
@@ -685,14 +697,14 @@ class ScrubbingLogExporter(_Wrapper):
             try:
                 out.append(self._scrub(rec))
             except Exception as exc:  # noqa: BLE001 - fail closed: never export the record unscrubbed
-                report_failure(exc, 'ScrubbingLogExporter.export')
+                _report(exc, 'ScrubbingLogExporter.export', rec, '*')
                 try:  # what is left: the record with its body and attributes dropped, and a note
                     new = copy.copy(rec.log_record)
                     new.body = FAILED
                     new.attributes = {NOTES_ATTRIBUTE: (f'*:error.{type(exc).__name__}',)}
                     out.append(dataclasses.replace(rec, log_record=new))
                 except Exception as exc2:  # noqa: BLE001 - not even that: drop the record
-                    report_failure(exc2, 'ScrubbingLogExporter.export.fallback')
+                    _report(exc2, 'ScrubbingLogExporter.export.fallback', rec, '*')
         return self.inner.export(out)
 
     def _scrub(self, rec: Any) -> Any:
