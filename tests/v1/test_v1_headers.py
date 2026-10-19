@@ -98,6 +98,55 @@ def test_plain_text_is_recorded_as_it_is():
         'http.request.header.x-userinfo': 'just text'}
 
 
+@pytest.mark.parametrize('value', [  # in the base64 alphabet, not JSON; 'example' and 'extra' decode to '{...'
+    'abcd1234', 'req-42', 'ZmFsc2U', 'Zm9vYmFy.YmF6', 'example', 'extra', 'example text', 'Win64'])
+def test_plain_text_in_the_base64_alphabet_is_recorded_as_it_is(value):
+    assert _headers.header_attributes('x-userinfo', value, _headers.Denylist(())) == {
+        'http.request.header.x-userinfo': value}
+
+
+SECRET = {'sub': 'f1b2c3', 'access_token': 'at-QWERTY', 'session_state': '9d0e-3c4b', 'sid': 's-1'}
+
+
+def b64_raw(raw: bytes) -> str:
+    return base64.b64encode(raw).decode('ascii').rstrip('=')
+
+
+@pytest.mark.criterion('AC-33')
+@pytest.mark.parametrize('raw', [
+    json.dumps(SECRET, indent=2).encode(),  # pretty-printed: 'ewo...'
+    b' ' + json.dumps(SECRET).encode(),  # 'IHs...'
+    b'\n' + json.dumps(SECRET).encode(),  # 'Cns...'
+    b'\r\n\t ' * 20 + json.dumps(SECRET).encode() + b'\n',  # more whitespace than one base64 quantum
+    b'\xef\xbb\xbf' + json.dumps(SECRET).encode(),  # a UTF-8 BOM: '77u/...'
+], ids=['indent', 'space', 'newline', 'much-whitespace', 'bom'])
+def test_base64_json_object_not_starting_ey_is_decoded_and_denied(raw):
+    """a base64 JSON object whose first bytes are not '{"' is decoded too, so the denylist runs (it used to be recorded
+    raw, the claims inside it with it)"""
+    value = b64_raw(raw)
+    assert not value.startswith('ey')
+    denylist = _headers.Denylist(('*token*', 'session_state', 'sid'))
+    attributes = _headers.header_attributes('x-userinfo', value, denylist)
+    assert attributes == {PREFIX + 'sub': 'f1b2c3'}
+
+
+@pytest.mark.criterion('AC-33')
+@pytest.mark.parametrize('value', [
+    b64_raw(json.dumps([SECRET]).encode()),  # a base64 JSON array: 'W3...'
+    b64_raw(json.dumps(SECRET, indent=2).encode())[:-7],  # pretty-printed, truncated
+    b64_raw(json.dumps(SECRET, indent=2).encode()) + '!x',  # pretty-printed, then not base64 at all
+    b64_raw(b'{"alg":\n"none"}') + '.' + b64_raw(json.dumps(SECRET, indent=1).encode()) + '.c2ln',  # a JWT, pretty
+    repr(SECRET),  # looks like JSON, isn't
+    '{"sub": "f1b2c3", "access_token": "at-QWERTY"',  # JSON, truncated
+    '﻿' + repr(SECRET),
+], ids=['b64-array', 'b64-truncated', 'b64-corrupt', 'jwt-pretty', 'repr', 'json-truncated', 'bom-repr'])
+def test_a_json_like_value_that_gives_no_claims_is_never_recorded(value):
+    """a value that is JSON, or base64 of it, but gives no claims: dropped, not recorded raw (the denylist can't see
+    into it, and the scrubber leaves base64 alone)"""
+    assert _headers.decode(value) is None
+    assert _headers.header_attributes('x-userinfo', value, _headers.Denylist(())) == {}
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 # AC-33: the denylist
 # ----------------------------------------------------------------------------------------------------------------------

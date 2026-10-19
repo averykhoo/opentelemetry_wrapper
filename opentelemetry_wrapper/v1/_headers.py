@@ -5,9 +5,9 @@ request context from headers (OTW-7, workstream 5; DEC-2, DEC-59, DEC-76)
   value (Keycloak userinfo, as Kong injects it) is decoded and flattened into `http.request.header.<name>.<claim>`;
   claims matching `OTEL_WRAPPER_HEADER_ATTRIBUTES_EXCLUDE` are dropped before they are recorded (DEC-2). the scrubber
   lets the rest through as-is (`scrubbing.DEFAULT_ALLOW_GLOBS`)
-* the raw value is never recorded: a value that looks like base64 but doesn't decode is dropped (the denylist can't
-  see into it), and the header is added to upstream's sanitize fields, so `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_*`
-  records `[REDACTED]` for it
+* the raw value is never recorded: a value that looks like JSON or base64 JSON (whatever its first bytes: whitespace,
+  a BOM, an array) but gives no claims is dropped (the denylist can't see into it), and the header is added to
+  upstream's sanitize fields, so `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_*` records `[REDACTED]` for it
 * response headers of `requests` calls (`OTEL_WRAPPER_RESPONSE_HEADER_ATTRIBUTES`, default v0's Kong / Envoy list)
   on the client span, as `http.response.header.<name>`
 
@@ -40,6 +40,8 @@ Scalar = Union[bool, str, int, float]
 _INT64 = (-(1 << 63), (1 << 63) - 1)
 _B64 = re.compile(r'[A-Za-z0-9+/_-]+={0,2}')  # standard or URL-safe alphabet, padded or not
 _B64_TOKEN = re.compile(r'[A-Za-z0-9+/_=.-]+')  # base64 segments, possibly dot-separated (a JWT)
+_WS = b' \t\r\n'
+_JSON_NEXT = {b'{': b'"}', b'[': b'"{[]-0123456789tfn'}  # what may follow an opening bracket (after whitespace)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -77,22 +79,58 @@ def _is_container(value: Any) -> bool:
     return isinstance(value, (dict, list))
 
 
+_BOMS = ('\ufeff', '\xef\xbb\xbf')  # a UTF-8 BOM, as text and as its bytes read as latin-1 (header values are)
+
+
+def _text(value: str) -> str:
+    """the value without surrounding whitespace or a leading BOM"""
+    text = value.strip()
+    for bom in _BOMS:
+        if text.startswith(bom):
+            return text[len(bom):].strip()
+    return text
+
+
+def _b64_json_like(segment: str) -> bool:
+    """
+    whether a base64 segment decodes to text that starts like JSON: after whitespace or a BOM, '{' then '"' or '}', or
+    '[' then a value, both after whitespace. judged on its longest decodable prefix, so a truncated or corrupt value
+    still counts; the byte after the bracket keeps plain words out ('example' decodes to '{\\x16\\xa6')
+    """
+    data = segment.rstrip('=')
+    data = data[:len(data) // 4 * 4]
+    if not data:
+        return False
+    try:
+        raw = b64decode_any(data)
+    except (binascii.Error, ValueError):
+        return False
+    if raw.startswith(b'\xef\xbb\xbf'):
+        raw = raw[3:]
+    raw = raw.lstrip(_WS)
+    first = raw[:1]
+    if first not in _JSON_NEXT:
+        return False
+    rest = raw[1:].lstrip(_WS)
+    return not rest or rest[:1] in _JSON_NEXT[first]  # nothing decodable after the bracket: it may still be JSON
+
+
 @lru_cache(maxsize=1024)  # the userinfo of a caller (almost) never changes between its requests
 def decode(value: str) -> Optional[Tuple[Tuple[str, Scalar], ...]]:
     """
-    a header value as flattened JSON: a JSON object or array, or one base64-encoded (any length, padded or not,
-    standard or URL-safe). None when it is neither
+    a header value as flattened JSON: a JSON object or array, or a JSON object base64-encoded (any length, padded or
+    not, standard or URL-safe; whitespace or a UTF-8 BOM around the JSON allowed). None when it is neither
     """
-    text = value.strip()
-    if text[:1] in ('{', '[') and text[-1:] in ('}', ']'):
+    text = _text(value)
+    if text[:1] in ('{', '['):
         try:
             parsed = json.loads(text)
         except ValueError:
             return None
         return tuple(flatten(parsed)) if _is_container(parsed) else None
-    if text.startswith('ey') and _B64.fullmatch(text):  # base64 of '{"'
+    if _B64.fullmatch(text):
         try:
-            parsed = json.loads(b64decode_any(text).decode('utf-8'))
+            parsed = json.loads(b64decode_any(text).decode('utf-8-sig'))  # json.loads allows the whitespace
         except (binascii.Error, ValueError):  # UnicodeDecodeError and JSONDecodeError are ValueErrors
             return None
         return tuple(flatten(parsed)) if isinstance(parsed, dict) else None
@@ -100,9 +138,20 @@ def decode(value: str) -> Optional[Tuple[Tuple[str, Scalar], ...]]:
 
 
 def looks_encoded(value: str) -> bool:
-    """base64 that may hold claims (`ey...`: base64 of '{"'), a JWT included: never recorded raw"""
-    text = value.strip()
-    return text.startswith('ey') and _B64_TOKEN.fullmatch(text) is not None
+    """
+    a value that may hold claims but gave none (`decode` returned None): never recorded raw, since the denylist can't
+    see into it. that is a value that starts like JSON, is `ey...` base64 (of '{"'), or starts with base64 (a JWT's
+    dot-separated segments included) any segment of which decodes to text starting like JSON
+    """
+    text = _text(value)
+    if text[:1] in ('{', '['):
+        return True
+    run = _B64_TOKEN.match(text)
+    if run is None:
+        return False
+    if text.startswith('ey') and run.end() == len(text):
+        return True
+    return any(_b64_json_like(segment) for segment in run.group().split('.'))
 
 
 # ----------------------------------------------------------------------------------------------------------------------
