@@ -287,11 +287,12 @@ emit('spans', take(exporter))
 ''')
 
 
-@pytest.mark.xfail(strict=True, reason='DEC-22: a generator function wrapper is itself a generator function, so '
-                                       'nothing runs at creation: the span is parented at the first next() (OTW-10)')
-def test_a_generator_is_parented_where_it_was_created():
+@pytest.mark.criterion('AC-17')
+def test_a_generator_is_parented_where_it_is_first_advanced_not_where_it_was_created():
+    # DEC-22 as amended 2026-10-19: the wrapper stays a generator function (FastAPI, pytest), so nothing runs at
+    # creation and the span is parented at the first next(), here outside `creator`'s span
     (gen,) = by_name(CREATED_ELSEWHERE.result()['spans'], 'numbers')
-    assert gen['parent'] == '__main__.creator'
+    assert gen['parent'] != '__main__.creator'
 
 
 # ----------------------------------------------------------------------------------------------------------------------

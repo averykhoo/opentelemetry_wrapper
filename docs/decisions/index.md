@@ -60,6 +60,7 @@ Generated from each decision's frontmatter by `context-engine decision index`; n
 - [DEC-49](DEC-49-one-otelwrapperwarning-through-warnings-warn-on.md): One `OtelWrapperWarning` through `warnings.warn`, on startup paths only (proposal 7) *(owner + agent, 2026-10-08)*
 - [DEC-50](DEC-50-otel-and-with-otel-mean-the-same-as-otel-and.md): `@otel()` and `with otel():` mean the same as `@otel` and `with otel:` (proposal 8) *(owner + agent, 2026-10-08)*
 - [DEC-53](DEC-53-classes-span-methods-and-constructors-selected.md): Classes span methods and constructors, selected dunders, `@otel.ignore`; `attributes` as a dict (proposal 11) *(owner + agent, 2026-10-08)*
+- [DEC-89](DEC-89-a-decorated-class-spans-only-the-members.md): A decorated class spans only the members defined in its own body, not inherited ones *(owner, 2026-10-19)*
 
 ### config
 
@@ -98,6 +99,7 @@ Generated from each decision's frontmatter by `context-engine decision index`; n
 - [DEC-79](DEC-79-push-close-otw-2-on-green-ci-then-build-the.md): Push, close OTW-2 on green CI, then build the rest with one ultracode agent per task, minimizing tokens *(owner, 2026-10-18)*
 - [DEC-86](DEC-86-stop-after-this-push-s-ci-is-green-the-owner.md): Stop after this push's CI is green; the owner clears context before more work. A 7-day GitHub token for CI logs lives in .scratch *(owner, 2026-10-19)*
 - [DEC-87](DEC-87-keep-going-on-the-v1-chain-through-ultracode.md): Keep going on the v1 chain through ultracode workflows, raising only what needs the owner *(owner, 2026-10-19)*
+- [DEC-88](DEC-88-push-main-now-and-after-each-merge-this-session.md): Push main now and after each merge this session, gated and CI-watched, no release *(owner, 2026-10-19)*
 
 ### release
 
