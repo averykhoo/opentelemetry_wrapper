@@ -1,6 +1,7 @@
 """
 v1's `@otel` on classes (OTW-6, DEC-53, DEC-48): members wrapped once at decoration time, never `__getattribute__`;
-selected dunders, properties opt-in, `@otel.ignore`; inherited methods; class-based context managers (DEC-22)
+selected dunders, properties opt-in, `@otel.ignore`; the class's own body only (DEC-89); class-based context
+managers (DEC-22)
 
 each scenario runs in a fresh interpreter (global OTel state can't be reset). The v0 class bugs these guard against
 (first class only, two spans through instances, the leak, the source read per property access) are also pinned by
@@ -203,7 +204,7 @@ def short_names(names):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# properties (opt-in), names and attributes, classes without source, inheritance, disabled, unsupported
+# properties (opt-in), names and attributes, classes without source, own body only, disabled, unsupported
 # ----------------------------------------------------------------------------------------------------------------------
 
 OPTIONS = scenario(__name__, 'v1_classes_options', PRELUDE + r'''
@@ -323,11 +324,11 @@ def test_a_class_without_source_has_method_and_property_spans_with_lines():  # v
     assert sorted(spans) == [['NoSource.m', 2], ['NoSource.p', 4]]
 
 
-def test_inherited_methods_are_wrapped_into_the_subclass_and_the_base_is_unchanged():
+def test_only_the_class_body_gets_spans_and_nothing_inherited_is_copied_in():  # DEC-89
     result = OPTIONS.result()
     assert result['base_unchanged'] == []
-    assert sorted(short_names(result['child'])) == ['Base.__init__', 'Base.shared', 'Child.overridden']
-    assert result['copied'] == ['__init__', 'overridden', 'shared']
+    assert short_names(result['child']) == ['Child.overridden']  # `Base.__init__` and `Base.shared`: no span
+    assert result['copied'] == ['overridden']
 
 
 @pytest.mark.criterion('AC-6')
@@ -379,6 +380,30 @@ try:
 except dataclasses.FrozenInstanceError:
     emit('frozen', True)
 emit('frozen_spans', names())
+
+@dataclasses.dataclass
+class Shape:
+    name: str
+
+    def describe(self):
+        return self.name
+
+@dataclasses.dataclass
+@otel  # underneath: it sees no generated `__init__`, and copies nothing of `Shape`'s in for `@dataclass` to keep
+class Square(Shape):
+    side: int = 1
+
+    def area(self):
+        return self.side ** 2
+
+@otel
+@dataclasses.dataclass
+class Circle(Shape):
+    radius: int = 1
+
+square, circle = Square('sq', 3), Circle('c', 2)
+emit('subclasses', [repr(square), square.area(), square.describe(), repr(circle), circle.describe(),
+                    sorted(n.rsplit('.', 2)[-2:] for n in names())])
 ''')
 
 
@@ -393,6 +418,12 @@ def test_a_dataclass_gets_constructor_post_init_and_method_spans_and_stays_a_dat
     assert result['behaviour'] == [3, [2, 4], True, 'Point(x=1, y=0)', 6]
     assert result['frozen'] is True
     assert [n.rsplit('.', 2)[-2:] for n in result['frozen_spans']] == [['Frozen', '__init__']]
+
+
+def test_a_dataclass_subclass_works_with_either_decorator_order_and_spans_only_its_own_body():  # DEC-89
+    assert DATACLASSES.result()['subclasses'] == [
+        "Square(name='sq', side=3)", 9, 'sq', "Circle(name='c', radius=2)", 'c',
+        [['Circle', '__init__'], ['Square', 'area']]]  # `describe` is `Shape`'s; `Square.__init__` came after `@otel`
 
 
 DISABLED = scenario(__name__, 'v1_classes_disabled', r'''
@@ -495,7 +526,7 @@ with Locked():
     body()
 emit('super_chain', [(s['name'], s['parent']) for s in take(exporter)])
 
-class PlainBase:  # not instrumented: its `__enter__` / `__exit__` are wrapped into the subclass
+class PlainBase:  # not instrumented: its `__enter__` / `__exit__` are not copied into the subclass (DEC-89)
     def __enter__(self):
         return self
 
@@ -610,13 +641,12 @@ def test_an_exception_through_the_block_is_recorded_unless_exit_suppresses_it():
     assert result['failing_enter_left_open'] is False
 
 
-def test_overrides_calling_the_base_and_inherited_enter_exit_give_one_span_per_with():
+def test_overrides_calling_the_base_give_one_span_per_with_and_an_undecorated_base_none():
     result = CONTEXT_MANAGERS.result()
     super_chain = result['super_chain']
     assert [s[0] for s in super_chain if 'Locked' in s[0] or 'Resource' in s[0]] == ['__main__.Locked.__enter__']
     assert all(s[1] == '__main__.Locked.__enter__' for s in super_chain if not s[0].endswith('__enter__'))
-    assert sorted(result['from_plain_base'], key=str) == [['__main__.PlainBase.__enter__', None],
-                                                          ['__main__.body', '__main__.PlainBase.__enter__']]
+    assert result['from_plain_base'] == [['__main__.body', None]]
 
 
 @pytest.mark.criterion('AC-11')
@@ -671,7 +701,7 @@ def test_an_exit_in_another_context_never_crashes_and_still_ends_the_span():  # 
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# review fixes: a context manager is wrapped as a pair or not at all; inherited copies keep the MRO and the signature
+# a context manager is wrapped as a pair or not at all; nothing inherited is copied in (DEC-89)
 # ----------------------------------------------------------------------------------------------------------------------
 
 PAIRS_AND_MRO = scenario(__name__, 'v1_classes_pairs_and_mro', PRELUDE + r'''
@@ -749,7 +779,33 @@ with DecoratedOverride():
     later()
 emit('decorated_override', [sorted(([s['name'], s['parent']] for s in take(exporter)), key=str), left_current()])
 
-# a diamond through a decorated class: the other branch's overrides still win, as without us
+@otel
+class Both:  # a sync pair of ours, and an async pair whose `__aenter__` is left out: `__aexit__` must stay unwrapped
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc_info):
+        return None
+
+    @otel.ignore
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc_info):
+        return None
+
+async def mixed():
+    both = Both()
+    with both:
+        async with both:  # an `__aexit__` of ours would close the sync block's span here
+            pass
+        later()
+
+asyncio.run(mixed())
+emit('mixed', [sorted(([s['name'], s['parent']] for s in take(exporter)), key=str), left_current(),
+               len(_classes._stacks)])
+
+# DEC-89: decorating a class in a diamond copies nothing in, so the other branch's overrides still win
 class X:
     def __init__(self):
         self.who = 'X'
@@ -776,7 +832,8 @@ class Other(X):
         return 'Other.p'
 
 class Sub(Base):
-    pass
+    def g(self):
+        return 'Sub.g'
 
 class Early(Sub, Other):  # defined before the decoration
     pass
@@ -785,7 +842,7 @@ def diamond(cls):
     d = cls()
     return [d.who, d.f(), d.p, cls.f(d), super(cls, d).f()]
 
-before = diamond(Early)
+before, before_dict = diamond(Early), set(vars(Sub))
 otel(Sub, properties=True)
 
 class Late(Sub, Other):
@@ -793,27 +850,7 @@ class Late(Sub, Other):
 
 emit('diamond', [before, diamond(Early), diamond(Late)])
 emit('diamond_spans', short_names(names()))
-emit('sub', [Sub().f(), Sub().p, sorted(short_names(names()))])
-
-class Holder:  # an inherited property with a setter stays a data descriptor
-    def __init__(self):
-        self._v = 0
-
-    @property
-    def v(self):
-        return self._v
-
-    @v.setter
-    def v(self, value):
-        self._v = value
-
-@otel(properties=True)
-class SubHolder(Holder):
-    pass
-
-holder = SubHolder()
-holder.v = 5
-emit('setter', [holder.v, '_v' in vars(holder), 'v' in vars(holder)])
+emit('sub', [Sub().f(), Sub().p, Sub().g(), sorted(set(vars(Sub)) - before_dict), short_names(names())])
 
 # the signature of a class whose `__new__` is inherited and whose `__init__` is its own
 class NewBase:
@@ -848,26 +885,27 @@ def test_a_context_manager_is_wrapped_as_a_pair_or_not_at_all():  # DEC-22: neve
     assert half['OverridesBoth'] == [None, [['__main__.later', None]], 0]
 
 
+def test_a_side_whose_partner_is_left_out_is_not_wrapped_so_it_never_closes_another_pairs_span():
+    assert PAIRS_AND_MRO.result()['mixed'] == [
+        [['__main__.Both.__enter__', None], ['__main__.later', '__main__.Both.__enter__']], None, 0]
+
+
 def test_a_decorated_subclass_overriding_one_side_gets_one_span_per_with():
     assert PAIRS_AND_MRO.result()['decorated_override'] == [
         [['__main__.Pair.__enter__', None], ['__main__.later', '__main__.Pair.__enter__']], None]
 
 
-def test_inherited_copies_keep_the_mro_of_subclasses_with_a_diamond():
+def test_a_decorated_class_in_a_diamond_keeps_the_mro_and_gets_spans_for_its_body_only():  # DEC-89
     result = PAIRS_AND_MRO.result()
     before, early, late = result['diamond']
     assert before == ['Other', 'Other.f', 'Other.p', 'Other.f', 'Other.f']
     assert early == before and late == before  # subclasses defined before and after the decoration
-    assert result['diamond_spans'] == []  # the other branch's members are not ours: no span
-    assert result['sub'] == ['X.f', 'X.p', ['X.__init__', 'X.__init__', 'X.f', 'X.p']]  # the class itself: spans
+    assert result['diamond_spans'] == []  # nothing called is `Sub`'s own
+    assert result['sub'] == ['X.f', 'X.p', 'Sub.g', ['__opentelemetry_wrapper_class__'], ['Sub.g']]
 
 
-def test_an_inherited_property_keeps_its_setter():
-    assert PAIRS_AND_MRO.result()['setter'] == [5, True, False]
-
-
-def test_an_inherited_new_does_not_change_the_class_signature():
+def test_an_inherited_new_is_not_copied_in_and_the_class_signature_is_unchanged():  # DEC-89
     before, after, spans = PAIRS_AND_MRO.result()['signature']
-    assert before == ['(x: int, y: str = \'a\')', '(*args, **kwargs)']
+    assert before == ["(x: int, y: str = 'a')", '(*args, **kwargs)']
     assert after == before
-    assert spans == ['WithInit.__init__', 'NewBase.__new__']  # copied only where it is what `inspect` reports
+    assert spans == ['WithInit.__init__']  # `NewBase.__new__` is undecorated `NewBase`'s

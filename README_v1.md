@@ -87,8 +87,9 @@ class Item:
     price: float
 ```
 
-Inherited methods get spans too: they are wrapped into the decorated class, so its base classes are left as they are.
-Put `@otel` above `@dataclass`, so it sees the generated `__init__`.
+Only the methods defined in the decorated class itself get spans, not the ones it inherits: to span a base class's
+methods, decorate the base. Nothing is copied into the subclass, so method lookup and signatures are exactly as they
+were. Put `@otel` above `@dataclass`, so it sees the generated `__init__`.
 
 Decorating a class changes that class for the whole process, including when you do it to a library's class
 (`otel(SortedList)`). Built-in and extension types (`dict`, most C classes) can't be changed: they're returned as they
@@ -291,6 +292,8 @@ What else changed:
 - `service.name` is now the workload name rather than `namespace/deployment/pod`. The old string is in
   `opentelemetry_wrapper.instance.label`, and its parts are in `k8s.namespace.name`, `k8s.deployment.name` and
   `k8s.pod.name`.
+- A decorated class spans only the methods defined in its own body. v0 also spanned the ones it inherited: decorate
+  the base classes whose methods you want spans for.
 - Span names: async functions no longer get an `async ` prefix, and unnamed `with` blocks no longer include a line
   number.
 - Exports are HTTP only (no gRPC). If the endpoint uses port `4317` or `grpc://`, or `OTEL_EXPORTER_OTLP_PROTOCOL` is
