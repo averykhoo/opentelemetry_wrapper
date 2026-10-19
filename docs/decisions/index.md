@@ -97,6 +97,7 @@ Generated from each decision's frontmatter by `context-engine decision index`; n
 - [DEC-78](DEC-78-building-starts-otw-2-is-split-renovate-and.md): Building starts; OTW-2 is split: Renovate and auto-release move to a new item after the strict pins *(owner, 2026-10-18)*
 - [DEC-79](DEC-79-push-close-otw-2-on-green-ci-then-build-the.md): Push, close OTW-2 on green CI, then build the rest with one ultracode agent per task, minimizing tokens *(owner, 2026-10-18)*
 - [DEC-86](DEC-86-stop-after-this-push-s-ci-is-green-the-owner.md): Stop after this push's CI is green; the owner clears context before more work. A 7-day GitHub token for CI logs lives in .scratch *(owner, 2026-10-19)*
+- [DEC-87](DEC-87-keep-going-on-the-v1-chain-through-ultracode.md): Keep going on the v1 chain through ultracode workflows, raising only what needs the owner *(owner, 2026-10-19)*
 
 ### release
 
