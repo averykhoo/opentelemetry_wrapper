@@ -1,6 +1,6 @@
 """
-the no-extras install check (DEC-56, AC-20): run by `ci/test.sh core` from a directory outside the checkout, after
-`pip install .` (no extras), so what is imported is the installed package and nothing else was installed beside it
+the no-extras install check (DEC-56, AC-20): run by tests/test_install_core.py (`ci/test.sh core`, after `pip install .` with no extras) in a subprocess from a
+directory outside the checkout, so what is imported is the installed package and nothing else was installed beside it
 """
 import importlib.metadata
 import sys
