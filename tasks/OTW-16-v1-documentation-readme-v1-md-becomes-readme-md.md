@@ -9,7 +9,7 @@ deps: []
 source: session 2026-10-18a
 created: 2026-10-18
 moved: 2026-10-18a
-updated: 2026-10-18l
+updated: 2026-10-19a
 labels: [v1, docs]
 ---
 
@@ -26,3 +26,4 @@ labels: [v1, docs]
 ## Log
 
 - 2026-10-18l (claude-code/2.1.287): From OTW-8 (2026-10-19): README must say that anything not behind our exporter wrappers (a user's own processors or exporters) is unscrubbed.
+- 2026-10-19a (claude-code/2.1.287): Upgrading guide must say (DEC-89): v1 spans only a decorated class's own-body members, not inherited ones (v0 did); decorate the base to span its methods. Also DEC-22 as amended: a generator's span is parented at its first next().
