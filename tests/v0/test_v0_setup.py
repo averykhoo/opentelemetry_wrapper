@@ -8,6 +8,7 @@ import socket
 
 import pytest
 
+from tests import impl
 from tests.v0._harness import scenario
 
 
@@ -77,7 +78,7 @@ def _stderr_json(result):
 def test_instrument_all_twice_does_not_raise_or_duplicate_handlers(instrument_all_result):
     assert instrument_all_result['first_call_returns'] is None
     assert instrument_all_result['second_call_returns'] is None
-    assert instrument_all_result['handlers_added'] == 1
+    assert instrument_all_result['handlers_added'] == (1 if impl.IMPL == 'v0' else 2)  # v1: OTLP + JSON (OTW-11)
     messages = [log['message'] for log in _stderr_json(instrument_all_result)]
     assert messages.count('after instrument_all') == 1
 

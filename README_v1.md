@@ -208,6 +208,17 @@ off by default, as upstream has it (a comment changes the query text, which can 
 `pg_stat_statements` grouping); to add its comment (the traceparent, the driver and the framework) to every query,
 set `OTEL_WRAPPER_SQLALCHEMY_COMMENTER` before instrumenting.
 
+**Logging:** `otel.instrument(logging)` adds two handlers to the root logger, once however often it is called. One
+sends OTel log records (exported when an endpoint is set), each with the current span's trace and span ids (zeros
+outside spans, and still exported when sampling drops the span), its `extra={...}` as attributes and the stable
+`code.*` keys. The other writes one line of JSON per log to stderr, for log pipelines that don't speak OTLP: every
+field of the log record, plus `otelTraceID` / `otelSpanID` (the same ids, as `0x`-prefixed hex), `otelTraceSampled`,
+`otelServiceName`, and the local time as `asctime` (ISO 8601 with the offset), `tz_name` and
+`tz_utc_offset_seconds`. Anything can be logged: values that aren't JSON (a `Decimal`, a class, a pydantic model, an
+object) are converted, a log never raises, secrets are redacted and strings longer than 10,000 characters are cut.
+`OTEL_WRAPPER_LOG_FORMAT=off` turns the JSON lines off. `uvicorn.access` logs repeat the request spans, so they are
+written to stderr but not exported.
+
 **x-userinfo:** the header (base64 or plain JSON, as an API gateway such as Kong passes on Keycloak's userinfo) is
 decoded and every claim is recorded on the request span as `http.request.header.x-userinfo.<claim>` (custom ones such
 as `employee_id` included; nested ones flattened, e.g. `realm_access.roles.[0]`), except those matching
@@ -309,6 +320,11 @@ What else changed:
 - `instrument_sqlalchemy_engine(engine)` added a sqlcommenter comment to every query by default; v1 leaves it off,
   so `otel.instrument(engine)` runs queries unchanged. To turn v0's comment back on, set
   `OTEL_WRAPPER_SQLALCHEMY_COMMENTER=true` (v0's `commenter_options` are its comma-separated choices).
+- `instrument_logging(...)` took options per call; `otel.instrument(logging)` takes none. The level is
+  `OTEL_WRAPPER_LOG_LEVEL`, the JSON lines go to stderr (`OTEL_WRAPPER_LOG_FORMAT=off` turns them off), and there is
+  no text format and no `clobber_other_log_handlers`. The JSON lines keep v0's fields; `tz_utc_offset_seconds` is now
+  negative west of UTC (v0 wrote `68400` for UTC-5) and follows daylight saving per log, and functions and classes
+  are named `module.qualname`, as span names are.
 - `service.name` is now the workload name rather than `namespace/deployment/pod`. The old string is in
   `opentelemetry_wrapper.instance.label`, and its parts are in `k8s.namespace.name`, `k8s.deployment.name` and
   `k8s.pod.name`.

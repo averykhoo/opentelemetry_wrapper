@@ -2,13 +2,29 @@
 `instrument_logging`: one-line JSON logs on stderr carrying `otelTraceID` / `otelSpanID` (v1 keeps
 this: DEC-34, OTW-11).
 each scenario runs in a fresh interpreter, since it reconfigures the root logger and the log record factory
+
+under `OTW_IMPL=v1` (OTW-11) the same scenarios run against `otel.instrument(logging)`: two handlers (OTLP and the
+stderr JSON one) where v0 adds one without an OTLP endpoint, span names `module.qualname` (DEC-47), and no per-call
+options (DEC-43: `print_json`, `stream` and `clobber_other_log_handlers` are v0-only). v1 fixes the negative offset
 """
 import json
 import re
 
 import pytest
 
+from tests import impl
 from tests.v0._harness import scenario
+
+IMPL_IS_V0 = impl.IMPL == 'v0'
+HANDLERS_PER_CALL = 1 if IMPL_IS_V0 else 2  # v1: the OTLP handler and the JSON one (AC-6: two, not four)
+
+
+def span_name(qualname: str, is_async: bool = False) -> str:
+    """v0's `<module>.qualname` (`async ` before a coroutine's) or v1's `module.qualname` (DEC-47)"""
+    if IMPL_IS_V0:
+        return f'{"async " if is_async else ""}<__main__>.{qualname}'
+    return f'__main__.{qualname}'
+
 
 SERVICE_NAME = 'characterization-test-service'
 
@@ -129,8 +145,8 @@ def test_every_stderr_line_is_one_json_object(basic):
         assert isinstance(json.loads(line), dict), line
 
 
-def test_instrument_logging_twice_adds_one_handler(basic):
-    assert basic['handlers_added_by_first_call'] == 1
+def test_instrument_logging_twice_adds_handlers_once(basic):
+    assert basic['handlers_added_by_first_call'] == HANDLERS_PER_CALL
     assert basic['handlers_added_by_second_call'] == 0
 
 
@@ -147,8 +163,8 @@ def test_default_level_is_info(basic, basic_logs):
 
 def test_log_inside_a_span_carries_that_spans_ids(basic, basic_logs):
     spans = {s['name']: s for s in basic['spans']}
-    sync_span = spans['<__main__>.work']
-    async_span = spans['async <__main__>.async_work']
+    sync_span = spans[span_name('work')]
+    async_span = spans[span_name('async_work', is_async=True)]
 
     log = basic_logs['inside a span with-arg']
     assert log['otelTraceID'] == sync_span['trace_id']
@@ -228,8 +244,9 @@ def test_negative_utc_offset_asctime_is_correct():
     assert log['tz_name'] == 'EST'
 
 
-@pytest.mark.xfail(strict=True, reason='v0 bug list "Wrong timezone offset for negative offsets": '
-                                       'logging_json_formatter.py:99 uses timedelta.seconds (UTC-5 -> 68400)')
+@pytest.mark.xfail(IMPL_IS_V0, strict=True,
+                   reason='v0 bug list "Wrong timezone offset for negative offsets": '
+                          'logging_json_formatter.py:99 uses timedelta.seconds (UTC-5 -> 68400)')
 def test_negative_utc_offset_seconds():
     assert single_log(TZ_NEGATIVE)['tz_utc_offset_seconds'] == -5 * 3600
 
@@ -245,6 +262,7 @@ def text_and_stream():
     return result
 
 
+@pytest.mark.v0_specific  # no text mode in v1 (DEC-34: one-line JSON or off)
 def test_text_mode_writes_the_verbose_format_to_stderr(text_and_stream):
     (span,) = text_and_stream['span']
     lines = [line for line in text_and_stream.stderr_lines if 'text mode line' in line]
@@ -257,12 +275,14 @@ def test_text_mode_writes_the_verbose_format_to_stderr(text_and_stream):
     assert match.group(2) == span['span_id']
 
 
+@pytest.mark.v0_specific  # no per-call options in v1 (DEC-43): the JSON logs go to stderr
 def test_stream_argument_redirects_json_logs(text_and_stream):
     (line,) = text_and_stream['stream_contents'].splitlines()
     assert json.loads(line)['message'] == 'sent to the stream'
     assert 'sent to the stream' not in text_and_stream.stderr
 
 
+@pytest.mark.v0_specific  # v1 has no clobber_other_log_handlers yet (OTW-11: replace_log_handlers if needed)
 def test_clobbering_other_handlers():
     result = CLOBBER.result()
     assert result.returncode == 0, result.describe()
