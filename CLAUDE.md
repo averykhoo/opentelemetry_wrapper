@@ -59,7 +59,8 @@ or renumber an id. The pre-adoption design ids (PLAN.md's Q1-Q16, proposals 1-11
   pydantic 2.13.5. Besides `requirements.txt` it holds `pytest`, `flake8`, `mypy`, `types-requests`, `logfire`
   (only for the Q15 comparison, DEC-15), and, for the scrubbing benchmark (DEC-16) only, `greenery`, `interegular`,
   `regex`, `google-re2` and `hyperscan` (greenery 4.2.2, interegular 0.3.3, regex 2026.9.29, google-re2 1.1.20251105,
-  hyperscan 0.9.1). `flit` (for releases) is not installed.
+  hyperscan 0.9.1), and `aiosqlite` 0.22.1 for the AsyncEngine tests (DEC-91, 2026-10-19). `flit` (for releases) is not
+  installed.
 
 ## Gate
 
