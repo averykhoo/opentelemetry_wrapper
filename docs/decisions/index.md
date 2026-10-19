@@ -63,6 +63,7 @@ Generated from each decision's frontmatter by `context-engine decision index`; n
 - [DEC-89](DEC-89-a-decorated-class-spans-only-the-members.md): A decorated class spans only the members defined in its own body, not inherited ones *(owner, 2026-10-19)*
 - [DEC-90](DEC-90-otel-wrapper-header-attributes-exclude-adds-to.md): OTEL_WRAPPER_HEADER_ATTRIBUTES_EXCLUDE adds to the default denylist; only configure() in code replaces it *(owner, 2026-10-19)*
 - [DEC-91](DEC-91-sqlalchemy-sqlcommenter-is-off-by-default-in-v1.md): SQLAlchemy sqlcommenter is off by default in v1 (env opt-in); aiosqlite joins the test dependencies *(owner, 2026-10-19)*
+- [DEC-92](DEC-92-otel-metrics-exporter-prometheus-serves-on-9464.md): OTEL_METRICS_EXPORTER=prometheus serves on 9464; a scrape path is served with and without its trailing slash, no redirect *(owner, 2026-10-19)*
 
 ### config
 
