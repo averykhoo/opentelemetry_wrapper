@@ -3,15 +3,32 @@ class and dataclass instrumentation (charter goal G-6)
 
 these run in fresh interpreters: v0 wraps `__getattribute__` only for the FIRST class it instruments (see the
 first-class bug below), so in a shared process the results would depend on test order
+
+under `OTW_IMPL=v1` (OTW-6) the same scenarios run against v1's `@otel` on classes, with v1's names (`span()` below),
+properties asked for with `properties=True` (opt-in in v1, DEC-53), one span from `__enter__` to `__exit__` (DEC-22)
+and `@otel` on each dataclass in place of `instrument_dataclasses()` (dropped, DEC-42). v1 fixes the class bugs the
+strict xfails pin, so they only expect to fail under v0; they claim AC-11
 """
 import pytest
 
+from tests import impl
 from tests.v0._harness import scenario
+
+IMPL_IS_V0 = impl.IMPL == 'v0'
+
+
+def span(qualname, prefix=''):
+    """the span name of `__main__.<qualname>`: v0's `<__main__>.<qualname>` with its `async ` / `property ` prefix,
+    v1's `__main__.<qualname>` (DEC-47, DEC-52)"""
+    return f'{prefix}<__main__>.{qualname}' if IMPL_IS_V0 else f'__main__.{qualname}'
+
 
 CLASSES = scenario(__name__, 'classes', r'''
 import asyncio, functools, gc, weakref
-from tests.impl import decorate
+from tests.impl import IMPL, decorate
 exp = setup_spans()
+# v1's properties are opt-in (DEC-53); v0 has no such option
+decorate_class = (lambda cls: decorate(cls, properties=True)) if IMPL == 'v1' else decorate
 
 class First:
     attr = 1
@@ -70,7 +87,7 @@ class First:
         def nested_method(self):
             return 10
 
-emit('decorate_returns_same_class', decorate(First) is First)
+emit('decorate_returns_same_class', decorate_class(First) is First)
 emit('decorate_twice_returns_same_class', decorate(decorate(First)) is First)
 take(exp)
 
@@ -96,14 +113,17 @@ emit('context_manager', take(exp))
 x.attr; x.value; x.__class__;       emit('plain_attributes', take(exp))
 x.predecorated();                   emit('predecorated_method', take(exp))
 x.__call__();                       emit('dunder_call_explicit', take(exp))
-x.__enter__();                      emit('dunder_enter_explicit', take(exp))
+x.__enter__()
+if IMPL == 'v1':
+    x.__exit__(None, None, None)  # v1: one span from `__enter__` to `__exit__` (DEC-22), so close it
+emit('dunder_enter_explicit', take(exp))
 assert x.Nested().nested_method() == 10; emit('nested_class', take(exp))
 
 decorate(First)
 y = First(); y.method();            emit('after_decorating_again', take(exp))
 
 # a second, unrelated class
-@decorate
+@decorate_class
 class Second:
     def __init__(self):
         pass
@@ -132,17 +152,23 @@ emit('unused_instance_alive_after_del', ref_unused() is not None)
 DATACLASSES = scenario(__name__, 'dataclasses', r'''
 import dataclasses
 from dataclasses import dataclass as dataclass_imported_too_early
-from tests.impl import instrument_dataclasses
+from tests.impl import IMPL, decorate, instrument_dataclasses
 exp = setup_spans()
 
-instrument_dataclasses()
-patched = dataclasses.dataclass
-instrument_dataclasses()
-emit('instrument_twice_keeps_one_patch', dataclasses.dataclass is patched)
-emit('dataclass_is_patched', dataclasses.dataclass is not dataclass_imported_too_early)
-take(exp)
+if IMPL == 'v1':  # v1 drops instrument_dataclasses() (DEC-42): `@otel` over each `@dataclass` instead
+    def dataclass(cls=None, **kwargs):
+        if cls is None:
+            return lambda cls: decorate(dataclasses.dataclass(cls, **kwargs))
+        return decorate(dataclasses.dataclass(cls))
+else:
+    instrument_dataclasses()
+    patched = dataclasses.dataclass
+    instrument_dataclasses()
+    emit('instrument_twice_keeps_one_patch', dataclasses.dataclass is patched)
+    emit('dataclass_is_patched', dataclasses.dataclass is not dataclass_imported_too_early)
+    take(exp)
 
-from dataclasses import dataclass
+    from dataclasses import dataclass
 
 @dataclass
 class Point:
@@ -194,12 +220,13 @@ emit('imported_too_early', take(exp))
 
 
 NO_SOURCE = scenario(__name__, 'class_without_source', r'''
-from tests.impl import decorate
+from tests.impl import IMPL, decorate
 exp = setup_spans()
+decorate_class = (lambda cls: decorate(cls, properties=True)) if IMPL == 'v1' else decorate
 namespace = {}
 source = "class NoSource:\n    def m(self):\n        return 1\n    @property\n    def p(self):\n        return 2\n"
 exec(compile(source, '<generated>', 'exec'), namespace)  # like a frozen app: no source file to read
-NoSource = decorate(namespace['NoSource'])
+NoSource = decorate_class(namespace['NoSource'])
 instance = NoSource()
 emit('method', instance.m())
 emit('method_spans', names(exp))
@@ -234,55 +261,60 @@ def test_class_decoration_is_in_place_and_idempotent(classes):
 
 
 def test_constructor_spans(classes):
-    assert names(classes['construct']) == ['<__main__>.First.__new__', '<__main__>.First.__init__']
+    assert names(classes['construct']) == [span('First.__new__'), span('First.__init__')]
     assert all(r['status'] == 'OK' for r in classes['construct'])
 
 
 def test_method_spans_nest_for_calls_through_self(classes):
     records = classes['method']
-    assert sorted(names(records)) == ['<__main__>.First.helper', '<__main__>.First.method']
+    assert sorted(names(records)) == [span('First.helper'), span('First.method')]
     helper = [r for r in records if r['name'].endswith('.helper')][0]
-    assert helper['parent'] == '<__main__>.First.method'
+    assert helper['parent'] == span('First.method')
 
 
 def test_calling_a_method_twice_gives_one_span_per_call(classes):
-    assert sorted(names(classes['method_again'])) == ['<__main__>.First.helper', '<__main__>.First.method']
+    assert sorted(names(classes['method_again'])) == [span('First.helper'), span('First.method')]
 
 
 def test_decorating_the_class_again_adds_no_spans(classes):
     assert sorted(names(classes['after_decorating_again'])) == sorted([
-        '<__main__>.First.__new__', '<__main__>.First.__init__', '<__main__>.First.method', '<__main__>.First.helper'])
+        span('First.__new__'), span('First.__init__'), span('First.method'), span('First.helper')])
 
 
 def test_async_method(classes):
-    assert names(classes['async_method']) == ['async <__main__>.First.amethod']
+    assert names(classes['async_method']) == [span('First.amethod', 'async ')]
 
 
 def test_raising_method_propagates_and_is_error(classes):
     assert classes['exception_propagates'] is True
     (record,) = classes['raising_method']
-    assert record['name'] == '<__main__>.First.raises'
+    assert record['name'] == span('First.raises')
     assert record['status'] == 'ERROR'
 
 
 def test_property_span(classes):
     (record,) = classes['property']
-    assert record['name'] == 'property <__main__>.First.prop'
+    assert record['name'] == span('First.prop', 'property ')
     assert record['status'] == 'OK'
 
 
+@pytest.mark.v0_specific  # v1: a span only when the value is computed, as a cached read runs no code (DEC-53)
 def test_cached_property_gets_a_span_on_every_access(classes):
     # even when the value is already cached in the instance __dict__
     assert names(classes['cached_property_twice']) == ['property <__main__>.First.cprop'] * 2
 
 
 def test_staticmethod_and_classmethod(classes):
-    assert names(classes['staticmethod']) == ['<__main__>.First.static']
-    assert names(classes['classmethod']) == ['<__main__>.First.clsmeth']
+    assert names(classes['staticmethod']) == [span('First.static')]
+    assert names(classes['classmethod']) == [span('First.clsmeth')]
 
 
-def test_dunder_call_and_context_manager(classes):
-    assert names(classes['call']) == ['<__main__>.First.__call__']
+def test_dunder_call(classes):
+    assert names(classes['call']) == [span('First.__call__')]
+
+
+@pytest.mark.v0_specific  # v1: one span from `__enter__` to `__exit__`, current in between (DEC-22)
+def test_context_manager_methods_get_a_span_each(classes):
     assert names(classes['context_manager']) == ['<__main__>.First.__enter__', '<__main__>.First.__exit__']
 
 
@@ -302,32 +334,35 @@ DOUBLE_SPAN_REASON = ('found by this suite (v0 bug list, 2nd section): a method 
                       'bound method is not recognised as instrumented -> two nested spans with the same name')
 
 
-@pytest.mark.xfail(strict=True, reason=DOUBLE_SPAN_REASON)
+@pytest.mark.criterion('AC-11')
+@pytest.mark.xfail(IMPL_IS_V0, strict=True, reason=DOUBLE_SPAN_REASON)
 @pytest.mark.parametrize('key, name', [
-    ('predecorated_method', '<__main__>.First.predecorated'),
-    ('dunder_call_explicit', '<__main__>.First.__call__'),
-    ('dunder_enter_explicit', '<__main__>.First.__enter__'),
+    ('predecorated_method', span('First.predecorated')),
+    ('dunder_call_explicit', span('First.__call__')),
+    ('dunder_enter_explicit', span('First.__enter__')),
 ])
 def test_already_instrumented_method_accessed_via_instance_gets_one_span(classes, key, name):
     assert names(classes[key]) == [name]
 
 
 @pytest.mark.parametrize('key, name', [
-    ('predecorated_method', '<__main__>.First.predecorated'),
-    ('dunder_call_explicit', '<__main__>.First.__call__'),
-    ('dunder_enter_explicit', '<__main__>.First.__enter__'),
+    ('predecorated_method', span('First.predecorated')),
+    ('dunder_call_explicit', span('First.__call__')),
+    ('dunder_enter_explicit', span('First.__enter__')),
 ])
 def test_already_instrumented_method_accessed_via_instance_is_traced(classes, key, name):
     # holds before and after the double-span fix above
     assert set(names(classes[key])) == {name}
 
 
-@pytest.mark.xfail(strict=True, reason='found by this suite (v0 bug list, 2nd section): _CACHE_GETATTRIBUTE '
-                                       'is keyed by the original __getattribute__, which is object.__getattribute__ '
-                                       'for every ordinary class, so only the first instrumented class gets method and '
-                                       'property spans (instrument_decorator.py:226); nested classes count as later')
+@pytest.mark.criterion('AC-11')
+@pytest.mark.xfail(IMPL_IS_V0, strict=True,
+                   reason='found by this suite (v0 bug list, 2nd section): _CACHE_GETATTRIBUTE '
+                          'is keyed by the original __getattribute__, which is object.__getattribute__ '
+                          'for every ordinary class, so only the first instrumented class gets method and '
+                          'property spans (instrument_decorator.py:226); nested classes count as later')
 def test_nested_class_methods_are_traced(classes):
-    assert names(classes['nested_class']) == ['<__main__>.First.Nested.nested_method']
+    assert names(classes['nested_class']) == [span('First.Nested.nested_method')]
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -335,16 +370,17 @@ def test_nested_class_methods_are_traced(classes):
 # ----------------------------------------------------------------------------------------------------------------------
 
 def test_second_class_constructor_is_traced(classes):
-    assert names(classes['second_construct']) == ['<__main__>.Second.__init__']
+    assert names(classes['second_construct']) == [span('Second.__init__')]
 
 
-@pytest.mark.xfail(strict=True, reason='found by this suite (v0 bug list, 2nd section): only the first class '
-                                       'instrumented in a process gets method/property spans, because '
-                                       '_CACHE_GETATTRIBUTE is keyed by object.__getattribute__ '
-                                       '(instrument_decorator.py:226)')
+@pytest.mark.criterion('AC-11')
+@pytest.mark.xfail(IMPL_IS_V0, strict=True,
+                   reason='found by this suite (v0 bug list, 2nd section): only the first class '
+                          'instrumented in a process gets method/property spans, because '
+                          '_CACHE_GETATTRIBUTE is keyed by object.__getattribute__ '
+                          '(instrument_decorator.py:226)')
 def test_second_class_methods_and_properties_are_traced(classes):
-    assert names(classes['second_method_and_property']) == ['<__main__>.Second.method',
-                                                            'property <__main__>.Second.prop']
+    assert names(classes['second_method_and_property']) == [span('Second.method'), span('Second.prop', 'property ')]
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -357,9 +393,11 @@ def test_class_without_source_methods_still_work():
     assert result['method_spans'] == ['NoSource.m']  # no module or file to name it after
 
 
-@pytest.mark.xfail(strict=True, reason='v0 bug list "Never crash holes": every property access on an instrumented '
-                                       'class calls inspect.getsourcelines (instrument_decorator.py:247), which '
-                                       'raises OSError when source is unavailable (reproduced here)')
+@pytest.mark.criterion('AC-11')
+@pytest.mark.xfail(IMPL_IS_V0, strict=True,
+                   reason='v0 bug list "Never crash holes": every property access on an instrumented '
+                          'class calls inspect.getsourcelines (instrument_decorator.py:247), which '
+                          'raises OSError when source is unavailable (reproduced here)')
 def test_class_without_source_property_access_does_not_crash():
     result = NO_SOURCE.result()
     assert result.values.get('property_error') is None
@@ -374,9 +412,11 @@ def test_instance_without_method_access_is_freed(classes):
     assert classes['unused_instance_alive_after_del'] is False
 
 
-@pytest.mark.xfail(strict=True, reason='v0 bug list "Memory leak in class instrumentation": bound methods are cached '
-                                       'forever in _CACHE_INSTRUMENTED (instrument_decorator.py:110/263), keeping '
-                                       'their instance alive')
+@pytest.mark.criterion('AC-11')
+@pytest.mark.xfail(IMPL_IS_V0, strict=True,
+                   reason='v0 bug list "Memory leak in class instrumentation": bound methods are cached '
+                          'forever in _CACHE_INSTRUMENTED (instrument_decorator.py:110/263), keeping '
+                          'their instance alive')
 def test_instance_is_freed_after_its_methods_were_used(classes):
     assert classes['used_instance_alive_after_del'] is False
 
@@ -385,6 +425,7 @@ def test_instance_is_freed_after_its_methods_were_used(classes):
 # dataclasses
 # ----------------------------------------------------------------------------------------------------------------------
 
+@pytest.mark.v0_specific  # v1 drops instrument_dataclasses() (DEC-42)
 def test_instrument_dataclasses_is_idempotent(dataclasses_result):
     assert dataclasses_result['instrument_twice_keeps_one_patch'] is True
     assert dataclasses_result['dataclass_is_patched'] is True
@@ -400,40 +441,42 @@ def test_dataclass_still_behaves_like_a_dataclass(dataclasses_result):
 
 def test_dataclass_constructor_and_post_init_spans(dataclasses_result):
     records = dataclasses_result['construct']
-    assert set(names(records)) == {'<__main__>.Point.__init__', '<__main__>.Point.__post_init__'}
-    assert names(records).count('<__main__>.Point.__init__') == 1
-    assert any(r['parent'] == '<__main__>.Point.__init__' for r in records if r['name'].endswith('__post_init__'))
+    assert set(names(records)) == {span('Point.__init__'), span('Point.__post_init__')}
+    assert names(records).count(span('Point.__init__')) == 1
+    assert any(r['parent'] == span('Point.__init__') for r in records if r['name'].endswith('__post_init__'))
 
 
-@pytest.mark.xfail(strict=True, reason=DOUBLE_SPAN_REASON + ' (here: __init__ calls self.__post_init__())')
+@pytest.mark.criterion('AC-11')
+@pytest.mark.xfail(IMPL_IS_V0, strict=True, reason=DOUBLE_SPAN_REASON + ' (here: __init__ calls self.__post_init__())')
 def test_dataclass_post_init_gets_one_span(dataclasses_result):
-    assert sorted(names(dataclasses_result['construct'])) == ['<__main__>.Point.__init__',
-                                                              '<__main__>.Point.__post_init__']
+    assert sorted(names(dataclasses_result['construct'])) == [span('Point.__init__'), span('Point.__post_init__')]
 
 
 def test_dataclass_method_span(dataclasses_result):
     # `scaled` constructs another Point, so its constructor spans are children of the method span
     records = dataclasses_result['method']
-    assert set(names(records)) == {'<__main__>.Point.__init__', '<__main__>.Point.__post_init__',
-                                   '<__main__>.Point.scaled'}
-    assert names(records).count('<__main__>.Point.scaled') == 1
+    assert set(names(records)) == {span('Point.__init__'), span('Point.__post_init__'), span('Point.scaled')}
+    assert names(records).count(span('Point.scaled')) == 1
     init = [r for r in records if r['name'].endswith('__init__')][0]
-    assert init['parent'] == '<__main__>.Point.scaled'
+    assert init['parent'] == span('Point.scaled')
 
 
 def test_dataclass_with_arguments_is_instrumented(dataclasses_result):
-    # @dataclass(frozen=True) goes through the "decorator factory" path of the patch
-    assert names(dataclasses_result['frozen_construct']) == ['<__main__>.Frozen.__init__']
+    # @dataclass(frozen=True) goes through the "decorator factory" path of the patch (v1: of the scenario's shim)
+    assert names(dataclasses_result['frozen_construct']) == [span('Frozen.__init__')]
 
 
-@pytest.mark.xfail(strict=True, reason='found by this suite (v0 bug list, 2nd section): only the first '
-                                       'instrumented class gets method spans (_CACHE_GETATTRIBUTE keyed by '
-                                       'object.__getattribute__), so every dataclass after the first one has '
-                                       'constructor spans only')
+@pytest.mark.criterion('AC-11')
+@pytest.mark.xfail(IMPL_IS_V0, strict=True,
+                   reason='found by this suite (v0 bug list, 2nd section): only the first '
+                          'instrumented class gets method spans (_CACHE_GETATTRIBUTE keyed by '
+                          'object.__getattribute__), so every dataclass after the first one has '
+                          'constructor spans only')
 def test_second_dataclass_method_is_traced(dataclasses_result):
-    assert names(dataclasses_result['frozen_method']) == ['<__main__>.Frozen.double']
+    assert names(dataclasses_result['frozen_method']) == [span('Frozen.double')]
 
 
+@pytest.mark.v0_specific  # v1 drops instrument_dataclasses() (DEC-42)
 def test_dataclass_imported_before_instrumenting_is_not_instrumented(dataclasses_result):
     # documented: instrument_dataclasses() must run before anything does `from dataclasses import dataclass`
     assert dataclasses_result['imported_too_early'] == []

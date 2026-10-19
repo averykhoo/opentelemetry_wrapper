@@ -87,8 +87,12 @@ class Item:
     price: float
 ```
 
+Inherited methods get spans too: they are wrapped into the decorated class, so its base classes are left as they are.
+Put `@otel` above `@dataclass`, so it sees the generated `__init__`.
+
 Decorating a class changes that class for the whole process, including when you do it to a library's class
-(`otel(SortedList)`).
+(`otel(SortedList)`). Built-in and extension types (`dict`, most C classes) can't be changed: they're returned as they
+are, with a warning.
 
 ### Generators
 

@@ -851,13 +851,13 @@ def test_an_async_generator_started_by_a_decorated_body_is_still_closed_by_the_l
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# DEC-22's class-based case: one span from `__enter__` to `__exit__`, current in between, re-entrant. It needs `@otel`
-# on classes (OTW-6), which v1 does not do yet: pinned here so it can't be dropped unnoticed
+# DEC-22's class-based case: one span from `__enter__` to `__exit__`, current in between, re-entrant (`@otel` on
+# classes, OTW-6; the rest of the class-based cases are in test_v1_classes.py)
 # ----------------------------------------------------------------------------------------------------------------------
 
 CLASS_CM = scenario(__name__, 'v1_generators_class_context_manager', PRELUDE + r'''
-with warnings.catch_warnings():
-    warnings.simplefilter('ignore')
+with warnings.catch_warnings(record=True) as caught:
+    warnings.simplefilter('always')
 
     @otel
     class Managed:
@@ -867,6 +867,7 @@ with warnings.catch_warnings():
 
         def __exit__(self, *exc_info):
             consumer_step()
+emit('warnings', otel_warnings(caught))
 
 
 @otel
@@ -883,11 +884,14 @@ emit('spans', take(exporter))
 ''')
 
 
-@pytest.mark.xfail(strict=True, reason='DEC-22: class-based context managers need class instrumentation (OTW-6)')
+@pytest.mark.criterion('AC-17')
 def test_a_class_based_context_manager_gets_one_span_from_enter_to_exit_current_in_between():
-    spans = CLASS_CM.result()['spans']
+    result = CLASS_CM.result()
+    assert result['warnings'] == []
+    spans = result['spans']
     managers = [s for s in spans if 'Managed' in s['name']]
     assert len(managers) == 2, spans  # one per `with`, not one per method call
     assert sorted(str(s['parent']) for s in managers) == sorted(['None', managers[0]['name']])  # nested
     names = {s['name'] for s in managers}
-    assert all(s['parent'] in names for s in by_name(spans, 'body') + by_name(spans, 'leaf'))
+    assert all(s['parent'] in names for s in by_name(spans, 'body') + by_name(spans, 'leaf')
+               + by_name(spans, 'consumer_step'))
