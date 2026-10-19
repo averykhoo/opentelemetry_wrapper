@@ -37,3 +37,11 @@ Design (prototyped locally with the plain OTel tracer; all four cases behaved as
   pytest `yield` fixtures break the same way.
 
 *Imported at adoption (2026-10-18) from `PLAN.md` § Decided, `PLAN.md` § Workstreams § 7. Generators and context managers, as committed at `24a0430`; now at `docs/archive/PLAN.md`.*
+
+## Amendments
+
+- **2026-10-19a (claude-code/2.1.287):** 2026-10-19 (session 2026-10-19a). The session asked the owner (multiple choice): "DEC-22 asks for two things that can't both hold for @otel on a generator function: the span parented where the generator is *created*, and the wrapper itself being a generator function, which FastAPI yield dependencies and pytest yield fixtures need. Calling a generator function runs none of its code, so the creation context can't be captured. Which wins?" The owner chose, verbatim:
+
+  > Keep generator fn (Recommended)
+
+  whose option read: "As built: FastAPI and pytest work, and the span is parented where the first next() runs. DEC-22 gets an amendment, and the strict xfail for creation-time parenting is deleted."
