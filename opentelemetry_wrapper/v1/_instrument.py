@@ -3,7 +3,8 @@
 
 each records what it already instrumented (weakly, where the target is an object), and swallows a failure with one
 warning, at instrumentation time only. an instrumentor's `DependencyConflict` is only logged upstream and produces no
-spans, so we check for it and warn ourselves. later workstreams extend these: SQLAlchemy (2), logging's JSON output
+spans, so we check for it and warn ourselves. SQLAlchemy has two ways in (DEC-1): the module, globally, for engines
+created later, and each engine, through its own `EngineTracer`. later workstreams extend these: logging's JSON output
 (8), the Prometheus route (9); the header hooks (5) are `_headers`
 """
 import importlib.util
@@ -13,7 +14,10 @@ import sys
 import types
 import weakref
 from typing import Any
+from typing import Dict
 from typing import List
+from typing import Mapping
+from typing import Optional
 
 from opentelemetry_wrapper.v1 import _config
 from opentelemetry_wrapper.v1 import _env
@@ -26,6 +30,14 @@ FASTAPI_EXCLUDE_SPANS = ['send', 'receive']  # verified: only the server span re
 _apps: 'weakref.WeakSet[Any]' = weakref.WeakSet()
 _engines: 'weakref.WeakSet[Any]' = weakref.WeakSet()
 _engine_ids: set = set()  # fallback for engines that can't be weakly referenced
+
+SQLALCHEMY_COMMENTER_ENV = 'OTEL_WRAPPER_SQLALCHEMY_COMMENTER'
+SQLALCHEMY_COMMENTER_FIELDS = ('db_driver', 'db_framework', 'opentelemetry_values')  # upstream's `commenter_options`
+# what upstream's `_instrument` names its `db.client.connections.usage` counter (the canary is
+# tests/upstream/test_sqlalchemy_engine_tracer.py)
+SQLALCHEMY_CONNECTIONS_USAGE = {
+    'name': 'db.client.connections.usage', 'unit': 'connections',
+    'description': 'The number of connections that are currently in state described by the state attribute.'}
 
 
 def instrument(target: Any = MISSING) -> Any:
@@ -152,32 +164,137 @@ def instrument_system_metrics(notes: List[str]) -> None:
     _run_instrumentor(SystemMetricsInstrumentor(), 'system metrics', notes)
 
 
+def _sqlalchemy_instrumentation_missing(what: str, error: ImportError, notes: List[str]) -> None:
+    """the `[sqlalchemy]` extra is missing (or sqlalchemy itself, which the instrumentation imports): one warning"""
+    notes.append(f'otel.instrument({what}) did nothing: the SQLAlchemy instrumentation cannot be imported ({error}). '
+                 f'Install opentelemetry_wrapper[sqlalchemy]')
+
+
+def _sqlalchemy_asyncio_available() -> bool:
+    try:
+        importlib.import_module('sqlalchemy.ext.asyncio')
+    except ImportError:
+        return False
+    return True
+
+
+def _sqlalchemy_sync_patches_applied() -> bool:
+    """upstream's `create_engine` and `Engine.connect` patches are in place (wrapt wrappers have `__wrapped__`)"""
+    import sqlalchemy
+    from sqlalchemy.engine.base import Engine
+    return hasattr(sqlalchemy.create_engine, '__wrapped__') and hasattr(Engine.connect, '__wrapped__')
+
+
 def instrument_sqlalchemy(notes: List[str]) -> None:
-    """engines created from now on (workstream 2 adds the engines that already exist)"""
-    from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
-    _run_instrumentor(SQLAlchemyInstrumentor(), 'sqlalchemy', notes)
+    """every engine created from now on, with `connect` spans (DEC-1); engines that already exist are not reached, so
+    they are passed in as well (`instrument_engine`)"""
+    try:
+        from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+    except ImportError as e:
+        _sqlalchemy_instrumentation_missing('sqlalchemy', e, notes)
+        return
+    instrumentor = SQLAlchemyInstrumentor()
+    try:
+        _run_instrumentor(instrumentor, 'sqlalchemy', notes, **sqlalchemy_commenter(notes))
+    except ImportError:
+        # without sqlalchemy's asyncio extension (sqlalchemy 2.1 without greenlet), upstream patches `create_engine`
+        # and `Engine.connect`, then fails on `sqlalchemy.ext.asyncio.create_async_engine` and never sets its flag:
+        # sync engines are traced, and a second call would patch them twice (two `connect` spans, two tracers)
+        if _sqlalchemy_asyncio_available() or not _sqlalchemy_sync_patches_applied():
+            raise
+        instrumentor._is_instrumented_by_opentelemetry = True
+
+
+def sqlalchemy_commenter(notes: List[str], environ: Optional[Mapping[str, str]] = None) -> Dict[str, Any]:
+    """`EngineTracer`'s sqlcommenter arguments, from `OTEL_WRAPPER_SQLALCHEMY_COMMENTER` (read at each call, like
+    `OTEL_WRAPPER_DISABLED`): unset or `false`, off (upstream's default); `true`, a comment with the driver, the
+    framework and the traceparent on every query; or a comma-separated choice of `db_driver`, `db_framework` and
+    `opentelemetry_values` (the traceparent), plus `attribute` to record the commented statement on the span too.
+    v0's `instrument_sqlalchemy_engine` turned it on by default; v1 leaves the SQL unchanged unless asked"""
+    environ = os.environ if environ is None else environ
+    raw = (environ.get(SQLALCHEMY_COMMENTER_ENV) or '').strip().casefold()
+    if raw in ('', 'false'):
+        return {}
+    words = [w.strip() for w in raw.split(',') if w.strip()]
+    unknown = [w for w in words if w not in SQLALCHEMY_COMMENTER_FIELDS + ('true', 'attribute')]
+    if unknown:
+        notes.append(f'{SQLALCHEMY_COMMENTER_ENV}: {", ".join(unknown)} not understood (use true, false, or any of '
+                     f'{", ".join(SQLALCHEMY_COMMENTER_FIELDS)} and attribute); ignored')
+    chosen = SQLALCHEMY_COMMENTER_FIELDS if 'true' in words else [w for w in words if w in SQLALCHEMY_COMMENTER_FIELDS]
+    if not chosen:
+        if 'attribute' in words:
+            notes.append(f'{SQLALCHEMY_COMMENTER_ENV}=attribute needs something to comment with (true, or any of '
+                         f'{", ".join(SQLALCHEMY_COMMENTER_FIELDS)}); the sqlcommenter stays off')
+        return {}
+    return {'enable_commenter': True,
+            'commenter_options': {field: field in chosen for field in SQLALCHEMY_COMMENTER_FIELDS},
+            'enable_attribute_commenter': 'attribute' in words}
+
+
+def _root_engine(engine: Any) -> Any:
+    """the engine an `OptionEngine` (`engine.execution_options(...)`) was made from, through any number of them. an
+    option engine shares its parent's pool and joins its parent's event dispatch: a tracer on the parent traces it
+    too, while a tracer on it alone is invisible from the parent, which would then get a second tracer (a leaked span
+    and a doubled connection count per query through the option engine). so the tracer goes on the root"""
+    for _ in range(100):  # a cycle would be a sqlalchemy bug; never loop on it
+        proxied = getattr(engine, '_proxied', None)  # semi-private: the canary is test_sqlalchemy_engine_tracer.py
+        if proxied is None or not _isinstance_of(proxied, 'sqlalchemy.engine', 'Engine'):
+            break
+        engine = proxied
+    return engine
+
+
+def _traced_by_upstream(engine: Any, engine_tracer: type) -> bool:
+    """an `EngineTracer` already listens to this engine: `otel.instrument(sqlalchemy)` attached one when it was
+    created. a second tracer would start a second span per query and leak the first"""
+    listeners = getattr(getattr(engine, 'dispatch', None), 'before_cursor_execute', ())
+    return any(isinstance(getattr(listener, '__self__', None), engine_tracer) for listener in listeners)
+
+
+def _sqlalchemy_tracer_and_counter() -> Any:
+    """what upstream's `_instrument` makes: the same instrumentation scope (schema url included), so a passed-in
+    engine's spans look like the global instrumentation's, and the `db.client.connections.usage` counter, which is a
+    local there, so we create our own from the same meter"""
+    from opentelemetry import metrics
+    from opentelemetry import trace
+    from opentelemetry.instrumentation.sqlalchemy.version import __version__
+    schema_url = None
+    try:  # semi-private (the canary is tests/upstream/test_sqlalchemy_engine_tracer.py)
+        from opentelemetry.instrumentation._semconv import _get_schema_url_for_signal_types
+        from opentelemetry.instrumentation._semconv import _OpenTelemetrySemanticConventionStability
+        from opentelemetry.instrumentation._semconv import _OpenTelemetryStabilitySignalType
+        _OpenTelemetrySemanticConventionStability._initialize()
+        schema_url = _get_schema_url_for_signal_types([_OpenTelemetryStabilitySignalType.DATABASE,
+                                                       _OpenTelemetryStabilitySignalType.HTTP])
+    except Exception:  # an upstream change: the spans lose their schema url, nothing else
+        pass
+    name = 'opentelemetry.instrumentation.sqlalchemy'
+    tracer = trace.get_tracer(name, __version__, schema_url=schema_url)
+    meter = metrics.get_meter(name, __version__, schema_url=schema_url)
+    connections_usage = meter.create_up_down_counter(**SQLALCHEMY_CONNECTIONS_USAGE)
+    return tracer, connections_usage
 
 
 def instrument_engine(engine: Any, notes: List[str]) -> Any:
-    """one engine's queries, once per engine; an AsyncEngine through its sync engine"""
-    from opentelemetry import metrics
-    from opentelemetry import trace
-    from opentelemetry.instrumentation.sqlalchemy.engine import EngineTracer
-    from opentelemetry.instrumentation.sqlalchemy.version import __version__
-
-    sync_engine = getattr(engine, 'sync_engine', engine)
+    """one engine's queries, once per engine, whether or not it existed before `otel.instrument(sqlalchemy)`; an
+    AsyncEngine through its sync engine, an option engine through the engine it was made from. no `connect` spans:
+    those come only from the global patch (DEC-1). attaching `EngineTracer` ourselves skips upstream's dependency
+    check, and works without sqlalchemy's asyncio extension"""
+    sync_engine = _root_engine(getattr(engine, 'sync_engine', engine))
     try:
         if sync_engine in _engines:
             return engine
     except TypeError:
         if id(sync_engine) in _engine_ids:
             return engine
-    tracer = trace.get_tracer('opentelemetry.instrumentation.sqlalchemy', __version__)
-    meter = metrics.get_meter('opentelemetry.instrumentation.sqlalchemy', __version__)
-    connections_usage = meter.create_up_down_counter(
-        name='db.client.connections.usage', unit='connections',
-        description='The number of connections that are currently in state described by the state attribute.')
-    EngineTracer(tracer, sync_engine, connections_usage)
+    try:
+        from opentelemetry.instrumentation.sqlalchemy.engine import EngineTracer
+    except ImportError as e:
+        _sqlalchemy_instrumentation_missing(_short(engine), e, notes)
+        return engine
+    if not _traced_by_upstream(sync_engine, EngineTracer):
+        tracer, connections_usage = _sqlalchemy_tracer_and_counter()
+        EngineTracer(tracer, sync_engine, connections_usage, **sqlalchemy_commenter(notes))
     try:
         _engines.add(sync_engine)
     except TypeError:

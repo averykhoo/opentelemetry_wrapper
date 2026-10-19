@@ -2,25 +2,36 @@
 `instrument_sqlalchemy_engine` / `instrument_sqlalchemy` with sqlite in-memory engines
 
 `SQLAlchemyInstrumentor` is a process-wide singleton (and its first instrument() patches create_engine), so every
-scenario runs in a fresh interpreter. async engines are not covered: the only async sqlite driver (aiosqlite) is not
-installed in the env
+scenario runs in a fresh interpreter. async engines are not covered here: v1's are, against aiosqlite, in
+tests/v1/test_v1_sqlalchemy.py
+
+under `OTW_IMPL=v1` (OTW-4) the same scenarios run against `otel.instrument(engine)` / `otel.instrument(sqlalchemy)`.
+v1 attaches its own tracer to each engine, so an engine passed in gets query spans but no `connect` spans, which come
+only from the global call (DEC-1): `CONNECT` below is v0's extra span. v1 fixes the engine bugs the strict xfails
+pin, so they only expect to fail under v0; they claim AC-9 (v1's own tests: `tests/v1/test_v1_sqlalchemy.py`)
 """
 import pytest
 
+from tests import impl
 from tests.v0._harness import scenario
 
 pytest.importorskip('sqlalchemy')
 
+IMPL_IS_V0 = impl.IMPL == 'v0'
+CONNECT = ['connect'] if IMPL_IS_V0 else []  # v0's per-engine call also instruments globally; v1's does not
+
 ONE_ENGINE = scenario(__name__, 'sqlalchemy_one_engine', r'''
 from sqlalchemy import create_engine, text
+from tests import impl
 from tests.impl import instrument_engine
-from opentelemetry_wrapper.v0.dependencies.sqlalchemy.engine_typedef import (
-    is_sqlalchemy_engine, is_sqlalchemy_sync_engine, is_sqlalchemy_async_engine)
 exp = setup_spans()
 
 engine = create_engine('sqlite:///:memory:')
-emit('engine_type_checks', [is_sqlalchemy_engine(engine), is_sqlalchemy_sync_engine(engine),
-                            is_sqlalchemy_async_engine(engine)])
+if impl.IMPL == 'v0':  # v0 internals (importing them under v1 would install v0's tracer provider first)
+    from opentelemetry_wrapper.v0.dependencies.sqlalchemy.engine_typedef import (
+        is_sqlalchemy_engine, is_sqlalchemy_sync_engine, is_sqlalchemy_async_engine)
+    emit('engine_type_checks', [is_sqlalchemy_engine(engine), is_sqlalchemy_sync_engine(engine),
+                                is_sqlalchemy_async_engine(engine)])
 emit('returns_same_engine', instrument_engine(engine) is engine)
 emit('second_call_returns_same_engine', instrument_engine(engine) is engine)
 emit('non_engine_passthrough', instrument_engine('not an engine'))
@@ -78,12 +89,14 @@ import sys
 sys.modules['sqlalchemy.ext.asyncio'] = None  # e.g. sqlalchemy 2.1 without greenlet: importing it fails
 from tests import impl
 impl.load()
-from opentelemetry_wrapper.v0.dependencies.sqlalchemy.engine_typedef import (
-    is_sqlalchemy_engine, is_sqlalchemy_sync_engine, is_sqlalchemy_async_engine)
 from sqlalchemy import create_engine, text
 exp = setup_spans()
 engine = create_engine('sqlite:///:memory:')
-emit('checks', [is_sqlalchemy_engine(engine), is_sqlalchemy_sync_engine(engine), is_sqlalchemy_async_engine(engine)])
+if impl.IMPL == 'v0':  # v0 internals
+    from opentelemetry_wrapper.v0.dependencies.sqlalchemy.engine_typedef import (
+        is_sqlalchemy_engine, is_sqlalchemy_sync_engine, is_sqlalchemy_async_engine)
+    emit('checks', [is_sqlalchemy_engine(engine), is_sqlalchemy_sync_engine(engine),
+                    is_sqlalchemy_async_engine(engine)])
 try:
     impl.instrument_engine(engine)
 except Exception as e:
@@ -127,6 +140,7 @@ def one_engine():
     return ONE_ENGINE.result()
 
 
+@pytest.mark.v0_specific  # v0's engine_typedef helpers; v1 checks types without importing sqlalchemy
 def test_engine_type_detection(one_engine):
     assert one_engine['engine_type_checks'] == [True, True, False]
 
@@ -141,15 +155,15 @@ def test_query_spans(one_engine):
     # CLAUDE.md § Gate, outside the gate: sqlalchemy_example.py -> `connect` + `SELECT :memory:` spans
     assert one_engine['rows'] == 0
     records = one_engine['first_query']
-    assert names(records) == ['connect', 'SELECT :memory:']
-    select = records[1]
+    assert names(records) == CONNECT + ['SELECT :memory:']
+    select = records[-1]
     assert select['kind'] == 'CLIENT'
     assert select['attributes']['db.system'] == 'sqlite'
     assert select['attributes']['db.statement'].startswith('SELECT * FROM sqlite_master')
 
 
 def test_instrumenting_twice_gives_one_span_per_query(one_engine):
-    assert names(one_engine['two_more_queries']) == ['connect', 'SELECT :memory:', 'SELECT :memory:']
+    assert names(one_engine['two_more_queries']) == CONNECT + ['SELECT :memory:', 'SELECT :memory:']
 
 
 @pytest.fixture(scope='module')
@@ -158,17 +172,20 @@ def two_engines():
 
 
 def test_first_of_two_engines_is_traced(two_engines):
-    assert names(two_engines['e1']) == ['connect', 'SELECT :memory:']
+    assert names(two_engines['e1']) == CONNECT + ['SELECT :memory:']
 
 
+@pytest.mark.v0_specific  # v1: an engine passed in gets no `connect` spans, only the global call does (DEC-1)
 def test_connect_is_traced_for_every_engine(two_engines):
     # `connect` spans come from upstream's global connect patch, not from the per-engine tracer
     assert 'connect' in names(two_engines['e2'])
 
 
-@pytest.mark.xfail(strict=True, reason='v0 bug list "Only the first sqlalchemy engine gets traced": '
-                                       'SQLAlchemyInstrumentor is a singleton, so the second '
-                                       'instrument_sqlalchemy_engine() call is a no-op (instrument_sqlalchemy.py:88)')
+@pytest.mark.xfail(IMPL_IS_V0, strict=True,
+                   reason='v0 bug list "Only the first sqlalchemy engine gets traced": '
+                          'SQLAlchemyInstrumentor is a singleton, so the second '
+                          'instrument_sqlalchemy_engine() call is a no-op (instrument_sqlalchemy.py:88)')
+@pytest.mark.criterion('AC-9')
 def test_second_of_two_engines_is_traced(two_engines):
     assert any(name.startswith('SELECT') for name in names(two_engines['e2']))
 
@@ -193,6 +210,7 @@ def test_global_instrumentation_misses_create_engine_imported_before_it(global_r
     assert names(global_result['created_after_via_early_import']) == ['connect']
 
 
+@pytest.mark.v0_specific  # v0's engine_typedef helpers (v1: tests/v1/test_v1_sqlalchemy.py imports without it)
 def test_import_and_engine_detection_work_without_the_asyncio_extension():
     # the pre-adoption HANDOFF.md, "State" (docs/evidence/history-to-2026-10-18.md): a missing asyncio extension no
     # longer breaks `import opentelemetry_wrapper`
@@ -200,16 +218,19 @@ def test_import_and_engine_detection_work_without_the_asyncio_extension():
     assert result['checks'] == [True, True, False]
 
 
-@pytest.mark.xfail(strict=True, reason='found by this suite (v0 bug list, 2nd section); simulated with '
-                                       'sys.modules["sqlalchemy.ext.asyncio"] = None): the upstream instrument() '
-                                       'patches sqlalchemy.ext.asyncio and raises (wrapt TargetModuleNotFoundError), '
-                                       'which instrument_sqlalchemy_engine does not catch ("never crash")')
+@pytest.mark.xfail(IMPL_IS_V0, strict=True,
+                   reason='found by this suite (v0 bug list, 2nd section); simulated with '
+                          'sys.modules["sqlalchemy.ext.asyncio"] = None): the upstream instrument() '
+                          'patches sqlalchemy.ext.asyncio and raises (wrapt TargetModuleNotFoundError), '
+                          'which instrument_sqlalchemy_engine does not catch ("never crash")')
+@pytest.mark.criterion('AC-9')
 def test_instrumenting_without_the_asyncio_extension_does_not_crash_and_traces():
     result = NO_ASYNCIO_EXTENSION.result()
     assert result.values.get('instrument_error') is None
-    assert result['spans'] == ['connect', 'SELECT :memory:']
+    assert result['spans'] == CONNECT + ['SELECT :memory:']
 
 
+@pytest.mark.v0_specific  # patches v0's module and its warning text; v1: tests/v1/test_v1_sqlalchemy.py (DEC-62)
 def test_unsupported_sqlalchemy_version_warns_once_and_skips_instrumenting():
     result = DEPENDENCY_CONFLICT.result()
     assert result['returned_engine'] is True

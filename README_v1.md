@@ -196,9 +196,17 @@ otel.instrument()                 # everything installed that can be instrumente
 ```
 
 **SQLAlchemy:** `otel.instrument(sqlalchemy)` only reaches engines created *after* the call, so call it before
-creating engines, or also pass the existing engines in. `otel.instrument(engine)` traces that engine's queries only:
-connection spans (`connect`) come from the global instrumentation and aren't available per engine.
-`otel.instrument()` leaves SQLAlchemy out, because query spans are noisy.
+creating engines, or also pass the existing engines in. It patches `sqlalchemy.create_engine`, so a `create_engine`
+imported by name (`from sqlalchemy import create_engine`) *before* the call still makes untraced engines.
+`otel.instrument(engine)` traces that engine's queries only, whenever it was created: connection spans (`connect`)
+come from the global instrumentation and aren't available per engine. Both together are fine: an engine is never
+traced twice. An `AsyncEngine` is traced through its sync engine, and an engine made with
+`engine.execution_options(...)` through the engine it was made from (they share its connections), so passing either
+traces both. `otel.instrument()` leaves SQLAlchemy out, because query spans are noisy. Without the `[sqlalchemy]`
+extra, either call warns once and changes nothing. The [sqlcommenter](https://google.github.io/sqlcommenter/) is
+off by default, as upstream has it (a comment changes the query text, which can defeat statement caches and
+`pg_stat_statements` grouping); to add its comment (the traceparent, the driver and the framework) to every query,
+set `OTEL_WRAPPER_SQLALCHEMY_COMMENTER` before instrumenting.
 
 **x-userinfo:** the header (base64 or plain JSON, as an API gateway such as Kong passes on Keycloak's userinfo) is
 decoded and every claim is recorded on the request span as `http.request.header.x-userinfo.<claim>` (custom ones such
@@ -244,6 +252,7 @@ the log level can still change).
 | `OTEL_WRAPPER_HEADER_ATTRIBUTES` | comma-separated request headers to decode (base64 / JSON) and flatten into span attributes; the raw header is not recorded | `x-userinfo` |
 | `OTEL_WRAPPER_HEADER_ATTRIBUTES_EXCLUDE` | comma-separated glob patterns of decoded claims to leave out, matched against the flattened name (e.g. `realm_access.roles`, `email`); they are added to the default patterns, which only `otel.configure(header_attributes_exclude=[...])` replaces | `*token*,at_hash,c_hash,nonce,session_state,sid` (always applied unless replaced in code) |
 | `OTEL_WRAPPER_RESPONSE_HEADER_ATTRIBUTES` | comma-separated response headers from `requests` calls to record on the client span | Kong and Envoy headers, e.g. `X-Envoy-Upstream-Service-Time` |
+| `OTEL_WRAPPER_SQLALCHEMY_COMMENTER` | add a sqlcommenter comment to every SQLAlchemy query traced from then on: `true` (driver, framework and traceparent), or a comma-separated choice of `db_driver`, `db_framework` and `opentelemetry_values` (the traceparent), plus `attribute` to also record the commented statement on the span | `false` (queries run unchanged) |
 | `OTEL_WRAPPER_PROMETHEUS_PATH` | path for the `/metrics` route added to FastAPI apps; empty to disable | `/metrics` |
 | `OTEL_WRAPPER_CAPTURE_COMMAND_ARGS` | record the process's full command line (secrets redacted); `false` to leave it out | `true` |
 | `OTEL_WRAPPER_PODINFO_DIR` | where the pod's labels and annotations are mounted (Downward API volume, see below) | `/etc/podinfo` |
@@ -297,6 +306,9 @@ deprecated aliases:
 
 What else changed:
 
+- `instrument_sqlalchemy_engine(engine)` added a sqlcommenter comment to every query by default; v1 leaves it off,
+  so `otel.instrument(engine)` runs queries unchanged. To turn v0's comment back on, set
+  `OTEL_WRAPPER_SQLALCHEMY_COMMENTER=true` (v0's `commenter_options` are its comma-separated choices).
 - `service.name` is now the workload name rather than `namespace/deployment/pod`. The old string is in
   `opentelemetry_wrapper.instance.label`, and its parts are in `k8s.namespace.name`, `k8s.deployment.name` and
   `k8s.pod.name`.
