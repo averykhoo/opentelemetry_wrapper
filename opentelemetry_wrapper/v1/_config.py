@@ -460,6 +460,12 @@ def is_configured() -> bool:
     return _state is not None
 
 
+def settings() -> _env.Settings:
+    """the effective settings: the built ones, or (not configured yet) what the environment says now"""
+    with _lock:
+        return _state.settings if _state is not None else _env.resolve({})[0]
+
+
 def config_view() -> Mapping[str, Any]:
     """`otel.config`: the effective configuration, read-only, secrets redacted"""
     with _lock:

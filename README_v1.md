@@ -200,9 +200,16 @@ creating engines, or also pass the existing engines in. `otel.instrument(engine)
 connection spans (`connect`) come from the global instrumentation and aren't available per engine.
 `otel.instrument()` leaves SQLAlchemy out, because query spans are noisy.
 
-**x-userinfo:** every claim in the header is recorded (custom ones such as `employee_id` included), except those
-matching `OTEL_WRAPPER_HEADER_ATTRIBUTES_EXCLUDE` (tokens and session ids by default). Personal data such as `email`
-and `name` is recorded unless you add it to that list.
+**x-userinfo:** the header (base64 or plain JSON, as an API gateway such as Kong passes on Keycloak's userinfo) is
+decoded and every claim is recorded on the request span as `http.request.header.x-userinfo.<claim>` (custom ones such
+as `employee_id` included; nested ones flattened, e.g. `realm_access.roles.[0]`), except those matching
+`OTEL_WRAPPER_HEADER_ATTRIBUTES_EXCLUDE` (tokens and session ids by default). Personal data such as `email` and
+`name` is recorded unless you add it to that list; setting the variable replaces the default, so keep the default's
+patterns in it: `*token*,at_hash,c_hash,nonce,session_state,sid,email,name`. The raw header value is never recorded,
+also not by `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_*` (it shows as `[REDACTED]` there).
+
+**Upstream latency:** `requests` calls record the response headers in `OTEL_WRAPPER_RESPONSE_HEADER_ATTRIBUTES` on
+the client span, e.g. `http.response.header.x-envoy-upstream-service-time`.
 
 ## Configuration
 

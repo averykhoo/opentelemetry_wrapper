@@ -10,11 +10,13 @@ import json
 
 import pytest
 
+from tests import impl
 from tests.v0._harness import REPO_ROOT
 from tests.v0._harness import asgi_request
 from tests.v0._harness import scenario
 
 fastapi = pytest.importorskip('fastapi')
+IMPL_IS_V0 = impl.IMPL == 'v0'
 
 
 def make_app():
@@ -161,9 +163,10 @@ def test_base64_userinfo_is_flattened_onto_the_server_span(app, spans):
     assert all(not header_attributes(r) for r in records if r is not server)
 
 
-@pytest.mark.xfail(strict=True, reason='found by this suite (v0 bug list, 2nd section): base64 userinfo whose '
-                                       'json length is not 1 mod 3 is not decoded on python >= 3.11 (see '
-                                       'test_v0_extract_json_header.py), so it is recorded raw instead of flattened')
+@pytest.mark.xfail(IMPL_IS_V0, strict=True,
+                   reason='found by this suite (v0 bug list, 2nd section): base64 userinfo whose json length is not 1 '
+                          'mod 3 is not decoded on python >= 3.11 (see test_v0_extract_json_header.py), so it is '
+                          'recorded raw instead of flattened; v1 decodes it (OTW-7)')
 def test_base64_userinfo_of_another_length_is_flattened(app, spans):
     obj = dict(USERINFO, pad='')
     while len(json.dumps(obj).encode()) % 3 != 2:
@@ -185,13 +188,19 @@ def test_plain_json_userinfo_is_flattened(app, spans):
 
 
 def test_undecodable_userinfo_is_recorded_raw(app, spans):
+    spans.clear()
+    asgi_request(app, '/hello', headers=[('x-userinfo', 'just text')])
+    (server,) = server_spans(spans.records())
+    assert header_attributes(server) == {'http.request.header.x-userinfo': 'just text'}
+
+
+@pytest.mark.v0_specific  # v1 never records a value that looks encoded but doesn't decode (AC-33, OTW-7)
+def test_jwt_userinfo_is_recorded_raw(app, spans):
     jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.signature'
     spans.clear()
     asgi_request(app, '/hello', headers=[('x-userinfo', jwt)])
-    asgi_request(app, '/hello', headers=[('x-userinfo', 'just text')])
-    servers = server_spans(spans.records())
-    assert [header_attributes(s) for s in servers] == [{'http.request.header.x-userinfo': jwt},
-                                                       {'http.request.header.x-userinfo': 'just text'}]
+    (server,) = server_spans(spans.records())
+    assert header_attributes(server) == {'http.request.header.x-userinfo': jwt}
 
 
 def test_other_headers_are_not_captured_by_default(app, spans):

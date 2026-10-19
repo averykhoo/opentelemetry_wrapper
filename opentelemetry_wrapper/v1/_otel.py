@@ -209,6 +209,8 @@ class Otel:
                   log_format: Optional[str] = None,
                   prometheus_path: Optional[str] = None,
                   header_attributes: Optional[Sequence[str]] = None,
+                  header_attributes_exclude: Optional[Sequence[str]] = None,
+                  response_header_attributes: Optional[Sequence[str]] = None,
                   ) -> None:
         """explicit configuration, at startup, before `otel.instrument(...)`: explicit > env > default; final once
         built (a later different call warns once and is ignored, except the log level)"""
