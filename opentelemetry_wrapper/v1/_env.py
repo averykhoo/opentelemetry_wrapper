@@ -18,6 +18,12 @@ from typing import Tuple
 from urllib.parse import urlsplit
 
 SIGNALS = ('traces', 'metrics', 'logs')
+# DEC-2, confirmed 2026-10-18: credentials and session handles; personal data (`email`, `name`) is recorded
+DEFAULT_HEADER_ATTRIBUTES_EXCLUDE = ('*token*', 'at_hash', 'c_hash', 'nonce', 'session_state', 'sid')
+# v0's hardcoded list (`instrument_requests.py`); x-process-time-seconds is what v0's example app sets
+DEFAULT_RESPONSE_HEADER_ATTRIBUTES = ('x-kong-proxy-latency', 'x-kong-upstream-latency',
+                                      'x-envoy-upstream-service-time',  # upstream latency
+                                      'x-authz-response-time-seconds', 'x-process-time-seconds')
 EXPORTER_CHOICES = ('otlp', 'console', 'none')
 
 
@@ -49,7 +55,9 @@ class Settings:
     log_level: str = 'info'
     log_format: str = 'json'
     prometheus_path: str = '/metrics'  # used by workstream 9
-    header_attributes: Tuple[str, ...] = ('x-userinfo',)  # used by workstream 5
+    header_attributes: Tuple[str, ...] = ('x-userinfo',)  # request headers to decode onto the server span (OTW-7)
+    header_attributes_exclude: Tuple[str, ...] = DEFAULT_HEADER_ATTRIBUTES_EXCLUDE  # claim denylist (DEC-2)
+    response_header_attributes: Tuple[str, ...] = DEFAULT_RESPONSE_HEADER_ATTRIBUTES  # `requests` client spans
 
     def without_log_level(self) -> 'Settings':
         return Settings(**{**asdict_shallow(self), 'log_level': ''})
@@ -114,6 +122,8 @@ _EXPECTED = {  # what `otel.configure(...)` takes, by option: (description, chec
     'log_format': ('a string', _is_str),
     'prometheus_path': ('a string', _is_str),
     'header_attributes': ('a string or a list of strings', _is_strings),
+    'header_attributes_exclude': ('a string or a list of strings', _is_strings),
+    'response_header_attributes': ('a string or a list of strings', _is_strings),
 }
 
 
@@ -234,7 +244,27 @@ def resolve(explicit: Mapping[str, Any], environ: Optional[Mapping[str, str]] = 
     elif isinstance(header_attributes, str):
         header_attributes = _split(header_attributes)
     values['header_attributes'] = tuple(h.lower() for h in header_attributes)
+    # DEC-90: the variable adds to the default denylist (a typo in it can't start recording tokens); only an explicit
+    # list replaces it, and an explicit [] clears it. a blank variable is unset
+    exclude_env = _env('OTEL_WRAPPER_HEADER_ATTRIBUTES_EXCLUDE', environ)
+    exclude_default = DEFAULT_HEADER_ATTRIBUTES_EXCLUDE
+    if exclude_env is not None:
+        exclude_default = tuple(dict.fromkeys(DEFAULT_HEADER_ATTRIBUTES_EXCLUDE + _split(exclude_env)))
+    values['header_attributes_exclude'] = _strings(explicit.get('header_attributes_exclude'), None,
+                                                   exclude_default, lower=False)
+    values['response_header_attributes'] = _strings(explicit.get('response_header_attributes'),
+                                                    _env('OTEL_WRAPPER_RESPONSE_HEADER_ATTRIBUTES', environ),
+                                                    DEFAULT_RESPONSE_HEADER_ATTRIBUTES, lower=True)
     return Settings(**values), notes
+
+
+def _strings(explicit: Any, env: Optional[str], default: Tuple[str, ...], lower: bool) -> Tuple[str, ...]:
+    """a list option: explicit (a string is comma-separated) > env (comma-separated) > default"""
+    value: Any = explicit if explicit is not None else env
+    if value is None:
+        return default
+    items = _split(value) if isinstance(value, str) else tuple(v.strip() for v in value if v.strip())
+    return tuple(v.lower() for v in items) if lower else items
 
 
 def _looks_like_grpc(endpoint: str) -> bool:

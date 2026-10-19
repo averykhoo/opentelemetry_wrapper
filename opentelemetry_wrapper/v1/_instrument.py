@@ -3,11 +3,12 @@
 
 each records what it already instrumented (weakly, where the target is an object), and swallows a failure with one
 warning, at instrumentation time only. an instrumentor's `DependencyConflict` is only logged upstream and produces no
-spans, so we check for it and warn ourselves. later workstreams extend these: SQLAlchemy (2), headers (5),
-logging's JSON output (8), the Prometheus route (9)
+spans, so we check for it and warn ourselves. later workstreams extend these: SQLAlchemy (2), logging's JSON output
+(8), the Prometheus route (9); the header hooks (5) are `_headers`
 """
 import importlib.util
 import logging
+import os
 import sys
 import types
 import weakref
@@ -16,6 +17,7 @@ from typing import List
 
 from opentelemetry_wrapper.v1 import _config
 from opentelemetry_wrapper.v1 import _env
+from opentelemetry_wrapper.v1 import _headers
 from opentelemetry_wrapper.v1._warnings import warn
 
 MISSING: Any = object()
@@ -136,8 +138,13 @@ def instrument_logging(notes: List[str]) -> None:
 
 
 def instrument_requests(notes: List[str]) -> None:
+    """client spans, with the listed response headers (upstream latency, OTW-7); a forwarded x-userinfo that header
+    capture records is redacted"""
     from opentelemetry.instrumentation.requests import RequestsInstrumentor
-    _run_instrumentor(RequestsInstrumentor(), 'requests', notes)
+    settings = _config.settings()
+    _run_instrumentor(RequestsInstrumentor(), 'requests', notes,
+                      request_hook=_headers.requests_request_hook(settings.header_attributes),
+                      response_hook=_headers.requests_response_hook(settings.response_header_attributes))
 
 
 def instrument_system_metrics(notes: List[str]) -> None:
@@ -192,6 +199,11 @@ def instrument_app(app: Any, notes: List[str]) -> Any:
     if conflict is not None:
         notes.append(f'the app was not instrumented: {conflict}. (upstream only logs this, and produces no spans)')
         return app
-    FastAPIInstrumentor.instrument_app(app, exclude_spans=FASTAPI_EXCLUDE_SPANS)
+    settings = _config.settings()
+    FastAPIInstrumentor.instrument_app(  # the caller's x-userinfo claims on the server span, never the raw value
+        app, exclude_spans=FASTAPI_EXCLUDE_SPANS,
+        server_request_hook=_headers.server_request_hook(settings.header_attributes,
+                                                         settings.header_attributes_exclude),
+        http_capture_headers_sanitize_fields=_headers.sanitize_fields(settings.header_attributes, os.environ))
     _apps.add(app)
     return app
