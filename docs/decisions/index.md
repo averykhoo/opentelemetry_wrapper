@@ -60,6 +60,7 @@ Generated from each decision's frontmatter by `context-engine decision index`; n
 - [DEC-49](DEC-49-one-otelwrapperwarning-through-warnings-warn-on.md): One `OtelWrapperWarning` through `warnings.warn`, on startup paths only (proposal 7) *(owner + agent, 2026-10-08)*
 - [DEC-50](DEC-50-otel-and-with-otel-mean-the-same-as-otel-and.md): `@otel()` and `with otel():` mean the same as `@otel` and `with otel:` (proposal 8) *(owner + agent, 2026-10-08)*
 - [DEC-53](DEC-53-classes-span-methods-and-constructors-selected.md): Classes span methods and constructors, selected dunders, `@otel.ignore`; `attributes` as a dict (proposal 11) *(owner + agent, 2026-10-08)*
+- [DEC-89](DEC-89-a-decorated-class-spans-only-the-members.md): A decorated class spans only the members defined in its own body, not inherited ones *(owner, 2026-10-19)*
 
 ### config
 
