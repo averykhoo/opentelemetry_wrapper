@@ -3,8 +3,10 @@ request context from headers (OTW-7, workstream 5; DEC-2, DEC-59, DEC-76)
 
 * request headers (`OTEL_WRAPPER_HEADER_ATTRIBUTES`, default `x-userinfo`) on the server span: a JSON or base64 JSON
   value (Keycloak userinfo, as Kong injects it) is decoded and flattened into `http.request.header.<name>.<claim>`;
-  claims matching `OTEL_WRAPPER_HEADER_ATTRIBUTES_EXCLUDE` are dropped before they are recorded (DEC-2). the scrubber
-  lets the rest through as-is (`scrubbing.DEFAULT_ALLOW_GLOBS`)
+  claims matching the denylist are dropped before they are recorded (DEC-2): the default patterns plus those in
+  `OTEL_WRAPPER_HEADER_ATTRIBUTES_EXCLUDE`, which adds to them (DEC-90); only an explicit
+  `otel.configure(header_attributes_exclude=[...])` replaces them. the scrubber lets the rest through as-is
+  (`scrubbing.DEFAULT_ALLOW_GLOBS`)
 * the raw value is never recorded: a value that looks like JSON or base64 JSON (whatever its first bytes: whitespace,
   a BOM, an array) but gives no claims is dropped (the denylist can't see into it), and the header is added to
   upstream's sanitize fields, so `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_*` records `[REDACTED]` for it

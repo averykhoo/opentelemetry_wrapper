@@ -177,15 +177,42 @@ def test_denylist_patterns(pattern, path, denied):
     assert _headers.Denylist([pattern]).denies(path) is denied
 
 
-def test_denylist_from_env_and_explicit():
-    environ = {'OTEL_WRAPPER_HEADER_ATTRIBUTES_EXCLUDE': ' email , realm_access.* '}
-    assert _env.resolve({}, environ)[0].header_attributes_exclude == ('email', 'realm_access.*')
-    # a blank variable is unset: the denylist is not cleared by accident; an explicit empty list does clear it
+@pytest.mark.criterion('AC-33')
+def test_denylist_variable_adds_to_the_default():
+    """DEC-90: the variable adds its patterns to the default ones, so `...EXCLUDE=email` drops email and still drops
+    the tokens (it used to replace the default and record them)"""
+    settings, notes = _env.resolve({}, {'OTEL_WRAPPER_HEADER_ATTRIBUTES_EXCLUDE': 'email'})
+    assert settings.header_attributes_exclude == _env.DEFAULT_HEADER_ATTRIBUTES_EXCLUDE + ('email',)
+    assert notes == []
+    attributes = _headers.header_attributes('x-userinfo', b64(USERINFO),
+                                            _headers.Denylist(settings.header_attributes_exclude))
+    assert attributes == expected_claims(USERINFO, denied=DENIED_BY_DEFAULT | {'email'})
+    assert PREFIX + 'access_token' not in attributes and PREFIX + 'refresh_token' not in attributes
+    assert PREFIX + 'email' not in attributes and attributes[PREFIX + 'name'] == 'Ann Lee'
+    # a default pattern repeated in the variable is listed once; spaces and empty items are dropped
+    environ = {'OTEL_WRAPPER_HEADER_ATTRIBUTES_EXCLUDE': ' email , *token*,, realm_access.* '}
+    assert _env.resolve({}, environ)[0].header_attributes_exclude == \
+        _env.DEFAULT_HEADER_ATTRIBUTES_EXCLUDE + ('email', 'realm_access.*')
+
+
+@pytest.mark.criterion('AC-33')
+def test_denylist_precedence_explicit_replaces_env_and_default():
+    """explicit > env > default, where 'env' is the default plus the variable's patterns: only an explicit list
+    replaces the default (an explicit [] clears it), and a blank variable is unset"""
+    environ = {'OTEL_WRAPPER_HEADER_ATTRIBUTES_EXCLUDE': 'email'}
+    assert _env.resolve({}, {})[0].header_attributes_exclude == _env.DEFAULT_HEADER_ATTRIBUTES_EXCLUDE
     assert _env.resolve({}, {'OTEL_WRAPPER_HEADER_ATTRIBUTES_EXCLUDE': ' '})[0].header_attributes_exclude == \
         _env.DEFAULT_HEADER_ATTRIBUTES_EXCLUDE
-    assert _env.resolve({'header_attributes_exclude': []}, environ)[0].header_attributes_exclude == ()
-    assert _env.resolve({'header_attributes_exclude': 'sub,email'}, environ)[0].header_attributes_exclude == \
-        ('sub', 'email')
+    assert _env.resolve({}, environ)[0].header_attributes_exclude == \
+        _env.DEFAULT_HEADER_ATTRIBUTES_EXCLUDE + ('email',)
+    for env in ({}, environ):
+        assert _env.resolve({'header_attributes_exclude': []}, env)[0].header_attributes_exclude == ()
+        assert _env.resolve({'header_attributes_exclude': 'sub,email'}, env)[0].header_attributes_exclude == \
+            ('sub', 'email')
+        assert _env.resolve({'header_attributes_exclude': ['sid']}, env)[0].header_attributes_exclude == ('sid',)
+    replaced = _env.resolve({'header_attributes_exclude': ['email']}, environ)[0].header_attributes_exclude
+    attributes = _headers.header_attributes('x-userinfo', b64(USERINFO), _headers.Denylist(replaced))
+    assert attributes[PREFIX + 'access_token'] == 'at-QWERTY'  # replaced in code: the default no longer applies
 
 
 def test_response_header_attributes_from_env_and_explicit():
@@ -401,9 +428,10 @@ def test_configured_denylist_and_headers():
     result = CONFIGURED.result()
     server = _server(result['server'])
     attributes = _userinfo_attributes(server)
-    # the variable replaces the default: its patterns are dropped, the default's are recorded
-    assert attributes == expected_claims(USERINFO, denied={'email', 'realm_access', 'employee_id'})
-    assert attributes[PREFIX + 'sid'] == '9d0e-3c4b'
+    # the variable adds to the default (DEC-90): its patterns are dropped, and so are the default's
+    assert attributes == expected_claims(USERINFO, denied=DENIED_BY_DEFAULT | {'email', 'realm_access', 'employee_id'})
+    assert PREFIX + 'sid' not in attributes and PREFIX + 'access_token' not in attributes
+    assert 'at-QWERTY' not in json.dumps(result['server']) and 'rt-ASDFGH' not in json.dumps(result['server'])
     assert server['attributes']['http.request.header.x-claims.team.id'] == 7
     headers = {k: v for k, v in _client(result['client'])['attributes'].items()
                if k.startswith('http.response.header.')}

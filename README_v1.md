@@ -203,9 +203,10 @@ connection spans (`connect`) come from the global instrumentation and aren't ava
 **x-userinfo:** the header (base64 or plain JSON, as an API gateway such as Kong passes on Keycloak's userinfo) is
 decoded and every claim is recorded on the request span as `http.request.header.x-userinfo.<claim>` (custom ones such
 as `employee_id` included; nested ones flattened, e.g. `realm_access.roles.[0]`), except those matching
-`OTEL_WRAPPER_HEADER_ATTRIBUTES_EXCLUDE` (tokens and session ids by default). Personal data such as `email` and
-`name` is recorded unless you add it to that list; setting the variable replaces the default, so keep the default's
-patterns in it: `*token*,at_hash,c_hash,nonce,session_state,sid,email,name`. The raw header value is never recorded,
+the denylist (tokens and session ids by default). Personal data such as `email` and `name` is recorded unless you
+add it: `OTEL_WRAPPER_HEADER_ATTRIBUTES_EXCLUDE=email,name` adds those patterns to the default ones, so tokens stay
+out whatever the variable says. Only `otel.configure(header_attributes_exclude=[...])` in code replaces the default
+list (`[]` clears it, recording every claim). The raw header value is never recorded,
 also not by `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_*` (it shows as `[REDACTED]` there).
 
 **Upstream latency:** `requests` calls record the response headers in `OTEL_WRAPPER_RESPONSE_HEADER_ATTRIBUTES` on
@@ -241,7 +242,7 @@ the log level can still change).
 | `OTEL_WRAPPER_LOG_LEVEL` | log level set by `otel.instrument(logging)` | `info` |
 | `OTEL_WRAPPER_LOG_FORMAT` | log output on stderr: `json` (one line per log, secrets redacted) or `off` | `json` |
 | `OTEL_WRAPPER_HEADER_ATTRIBUTES` | comma-separated request headers to decode (base64 / JSON) and flatten into span attributes; the raw header is not recorded | `x-userinfo` |
-| `OTEL_WRAPPER_HEADER_ATTRIBUTES_EXCLUDE` | comma-separated glob patterns of decoded claims to leave out, matched against the flattened name (e.g. `realm_access.roles`, `email`) | `*token*,at_hash,c_hash,nonce,session_state,sid` |
+| `OTEL_WRAPPER_HEADER_ATTRIBUTES_EXCLUDE` | comma-separated glob patterns of decoded claims to leave out, matched against the flattened name (e.g. `realm_access.roles`, `email`); they are added to the default patterns, which only `otel.configure(header_attributes_exclude=[...])` replaces | `*token*,at_hash,c_hash,nonce,session_state,sid` (always applied unless replaced in code) |
 | `OTEL_WRAPPER_RESPONSE_HEADER_ATTRIBUTES` | comma-separated response headers from `requests` calls to record on the client span | Kong and Envoy headers, e.g. `X-Envoy-Upstream-Service-Time` |
 | `OTEL_WRAPPER_PROMETHEUS_PATH` | path for the `/metrics` route added to FastAPI apps; empty to disable | `/metrics` |
 | `OTEL_WRAPPER_CAPTURE_COMMAND_ARGS` | record the process's full command line (secrets redacted); `false` to leave it out | `true` |

@@ -244,10 +244,14 @@ def resolve(explicit: Mapping[str, Any], environ: Optional[Mapping[str, str]] = 
     elif isinstance(header_attributes, str):
         header_attributes = _split(header_attributes)
     values['header_attributes'] = tuple(h.lower() for h in header_attributes)
-    # a blank variable is unset, so the denylist is never cleared by accident (an explicit [] does clear it)
-    values['header_attributes_exclude'] = _strings(explicit.get('header_attributes_exclude'),
-                                                   _env('OTEL_WRAPPER_HEADER_ATTRIBUTES_EXCLUDE', environ),
-                                                   DEFAULT_HEADER_ATTRIBUTES_EXCLUDE, lower=False)
+    # DEC-90: the variable adds to the default denylist (a typo in it can't start recording tokens); only an explicit
+    # list replaces it, and an explicit [] clears it. a blank variable is unset
+    exclude_env = _env('OTEL_WRAPPER_HEADER_ATTRIBUTES_EXCLUDE', environ)
+    exclude_default = DEFAULT_HEADER_ATTRIBUTES_EXCLUDE
+    if exclude_env is not None:
+        exclude_default = tuple(dict.fromkeys(DEFAULT_HEADER_ATTRIBUTES_EXCLUDE + _split(exclude_env)))
+    values['header_attributes_exclude'] = _strings(explicit.get('header_attributes_exclude'), None,
+                                                   exclude_default, lower=False)
     values['response_header_attributes'] = _strings(explicit.get('response_header_attributes'),
                                                     _env('OTEL_WRAPPER_RESPONSE_HEADER_ATTRIBUTES', environ),
                                                     DEFAULT_RESPONSE_HEADER_ATTRIBUTES, lower=True)
