@@ -23,6 +23,8 @@ from opentelemetry_wrapper.v1 import _introspect
 from tests.v0._harness import scenario
 from tests.v1._prelude import PRELUDE
 
+pytestmark = pytest.mark.criterion('AC-10')  # every test here claims the introspection criterion
+
 THIS_FILE = os.path.abspath(__file__)
 MODULE = __name__
 
