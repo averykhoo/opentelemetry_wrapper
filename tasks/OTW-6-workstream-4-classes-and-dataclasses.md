@@ -4,14 +4,16 @@ id: OTW-6
 title: 'Workstream 4: classes and dataclasses'
 brief: wrap cls.__dict__ at decoration time; never patch __getattribute__
 pri: NEXT
-state: open
+state: closed
 deps: [OTW-10]
 source: session 2026-10-18a
 created: 2026-10-18
-moved: 2026-10-18l
-updated: 2026-10-18l
+moved: 2026-10-19a
+updated: 2026-10-19a
 aliases: [WS4]
 labels: [v1]
+status: deprecated
+closed: 2026-10-19a
 ---
 
 Criteria: AC-11. Decisions: DEC-42, DEC-48, DEC-53.
@@ -40,3 +42,7 @@ xfails (first-class-only spans, nested spans through instances, the leak) pass.
 
 - The decisions: [DEC-42](../docs/decisions/DEC-42-global-dataclass-instrumentation-is-dropped.md), [DEC-48](../docs/decisions/DEC-48-property-on-top-otel-underneath-proposal-6.md), [DEC-53](../docs/decisions/DEC-53-classes-span-methods-and-constructors-selected.md); [the criteria](../docs/criteria.md)
 - [v0 lessons](../docs/evidence/v0-lessons-2026-10-07.md)
+
+## Log
+
+- 2026-10-19a (claude-code/2.1.287): closed: done in 3be9a45: classes and dataclasses, own body only (DEC-89), class-based context managers, AC-11 tested
