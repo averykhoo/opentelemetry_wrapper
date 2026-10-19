@@ -3,13 +3,13 @@ type: Task
 id: OTW-7
 title: 'Workstream 5: headers'
 brief: denied claims are dropped before recording; the raw base64 header never appears
-pri: LATER
+pri: NOW
 state: open
 deps: [OTW-6, OTW-8]
 source: session 2026-10-18a
 created: 2026-10-18
-moved: 2026-10-18h
-updated: 2026-10-18h
+moved: 2026-10-19a
+updated: 2026-10-19a
 aliases: [WS5]
 labels: [v1]
 ---

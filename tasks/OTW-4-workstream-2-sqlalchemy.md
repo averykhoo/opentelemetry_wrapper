@@ -3,13 +3,13 @@ type: Task
 id: OTW-4
 title: 'Workstream 2: SQLAlchemy'
 brief: engines that already exist need a per-engine EngineTracer; the global patch only reaches later ones
-pri: LATER
+pri: NEXT
 state: open
 deps: [OTW-7]
 source: session 2026-10-18a
 created: 2026-10-18
-moved: 2026-10-18a
-updated: 2026-10-18a
+moved: 2026-10-19a
+updated: 2026-10-19a
 aliases: [WS2]
 labels: [v1]
 ---
