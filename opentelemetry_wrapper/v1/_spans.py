@@ -20,6 +20,8 @@ from opentelemetry_wrapper.v1._warnings import report
 
 PROCESS_EXIT_CODE = 'process.exit.code'  # semconv, incubating
 CLOSED_EARLY = 'opentelemetry_wrapper.closed_early'
+YIELDS = 'opentelemetry_wrapper.yields'  # generator spans: values yielded to the consumer
+ACTIVE_SECONDS = 'opentelemetry_wrapper.active_seconds'  # ... and the time the body ran, as against suspended
 CANCELLED = 'opentelemetry_wrapper.cancelled'
 INTERRUPTED = 'opentelemetry_wrapper.interrupted'
 _RECORDED = '__opentelemetry_wrapper_recorded__'  # marker on an exception whose stack trace is already on a span
@@ -63,12 +65,14 @@ def detach(token: object) -> None:
         report('span.detach', e)
 
 
-def finish(scope: Optional[Scope], exc: Optional[BaseException]) -> None:
+def finish(scope: Optional[Scope], exc: Optional[BaseException], attributes: Optional[Attributes] = None) -> None:
     """set the status (OK, or per DEC-3), end the span, and detach its context; never raises"""
     if scope is None:
         return
     span, token = scope
     try:
+        if attributes:
+            span.set_attributes(attributes)
         if exc is None:
             span.set_status(Status(StatusCode.OK))
         else:
