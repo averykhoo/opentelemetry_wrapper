@@ -4,7 +4,7 @@ id: OTW-7
 title: 'Workstream 5: headers'
 brief: denied claims are dropped before recording; the raw base64 header never appears
 pri: NOW
-state: open
+state: closed
 deps: [OTW-6, OTW-8]
 source: session 2026-10-18a
 created: 2026-10-18
@@ -12,6 +12,8 @@ moved: 2026-10-19a
 updated: 2026-10-19a
 aliases: [WS5]
 labels: [v1]
+status: deprecated
+closed: 2026-10-19a
 ---
 
 Criteria: AC-12, AC-30, AC-33. Decisions: DEC-2, DEC-59, DEC-76.
@@ -50,3 +52,4 @@ raw base64 value never appears, including with header capture on.
 ## Log
 
 - 2026-10-18f (claude-code/2.1.287): G-13 (DEC-76, STORY-13) is measured by AC-12 and the new AC-30: with no configuration, the caller's x-userinfo claims on the server span and X-Envoy-Upstream-Service-Time on the client span.
+- 2026-10-19a (claude-code/2.1.287): closed: done in 466304e: headers (x-userinfo decode and denylist, DEC-90; response headers); AC-12, AC-30, AC-33 tested
