@@ -95,12 +95,13 @@ def has_route(app: Any, path: str) -> bool:
 
 
 def place_route(app: Any, path: str) -> None:
-    """the scrape routes, at `path` without and with its trailing slash, each unless the app has its own at exactly
-    that path; first among the routes, so a catch-all such as a single-page app's `/{full_path:path}` can't answer
+    """the scrape routes, at `path` without and with its trailing slash, unless the app has its own at exactly either
+    form (then the app owns the path and neither is added); first among the routes, so a catch-all such as a single-page app's `/{full_path:path}` can't answer
     the scrape instead (Starlette takes the first)"""
     from starlette.routing import Route
-    missing = [form for form in forms(path) if not has_route(app, form)]
-    app.router.routes[:0] = [Route(form, endpoint=endpoint, include_in_schema=False) for form in missing]
+    if any(has_route(app, form) for form in forms(path)):
+        return
+    app.router.routes[:0] = [Route(form, endpoint=endpoint, include_in_schema=False) for form in forms(path)]
 
 
 class untraced_under_root_path:  # noqa: N801 - a middleware, named for what it does

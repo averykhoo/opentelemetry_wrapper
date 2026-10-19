@@ -284,7 +284,7 @@ emit('app_root_path', scrape(otel.instrument(FastAPI(root_path='/svc')), ['/svc/
 own = otel.instrument(FastAPI())
 
 
-@own.get('/metrics/')  # the app's own, at one of the two forms: that form is the app's, the other still scrapes
+@own.get('/metrics/')  # the app's own, at one of the two forms: the app owns the path, neither form scrapes
 def own_metrics():
     return 'mine'
 
@@ -364,5 +364,5 @@ def test_the_scrape_is_served_with_and_without_the_trailing_slash_without_a_redi
     assert root_path['/svc/metrics'] == scrape and root_path['/svc/metrics/'] == scrape
     assert root_path['/svc/metrics/foo'] == [404, None, False, ['/svc/metrics/foo']]
     assert result['app_root_path'] == {'/svc/metrics': scrape, '/svc/metrics/': scrape}
-    assert result['own']['/metrics'] == scrape
+    assert result['own']['/metrics'] != scrape, result['own']['/metrics']
     assert result['own']['/metrics/'] == [200, None, False, []]  # the app's route, untraced like the scrape
