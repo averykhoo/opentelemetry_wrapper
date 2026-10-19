@@ -4,7 +4,7 @@ id: OTW-12
 title: 'Workstream 9: metrics, push and scrape'
 brief: bind OTEL_EXPORTER_PROMETHEUS_HOST; add_route, never mount; bound the exit flush
 pri: NOW
-state: open
+state: closed
 deps: [OTW-11]
 source: session 2026-10-18a
 created: 2026-10-18
@@ -12,6 +12,8 @@ moved: 2026-10-19a
 updated: 2026-10-19a
 aliases: [WS9]
 labels: [v1]
+status: deprecated
+closed: 2026-10-19a
 ---
 
 Criteria: AC-19. Decisions: DEC-27, DEC-59.
@@ -66,3 +68,7 @@ no request span, while `/api/metrics` does; with two workers, the second warns o
 ## Read first
 
 - The decisions: [DEC-27](../docs/decisions/DEC-27-configuration-implicit-and-explicit-together.md), [DEC-59](../docs/decisions/DEC-59-environment-variables-standard-names-where-they.md); [the criteria](../docs/criteria.md)
+
+## Log
+
+- 2026-10-19a (claude-code/2.1.287): closed: done in c701a64: metrics push and scrape (reader, standalone server, /metrics route both forms, DEC-92); AC-19 tested
