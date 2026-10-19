@@ -3,12 +3,12 @@ type: Task
 id: OTW-16
 title: 'v1 documentation: README_v1.md becomes README.md, with an Upgrading guide'
 brief: the README states every decided behaviour; nothing in it contradicts a decision
-pri: LATER
+pri: NEXT
 state: open
 deps: []
 source: session 2026-10-18a
 created: 2026-10-18
-moved: 2026-10-18a
+moved: 2026-10-19a
 updated: 2026-10-19a
 labels: [v1, docs]
 ---
