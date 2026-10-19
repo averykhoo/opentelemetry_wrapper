@@ -94,6 +94,10 @@ Generated from each decision's frontmatter by `context-engine decision index`; n
 - [DEC-44](DEC-44-v1-requires-python-3-12-or-later.md): v1 requires Python 3.12 or later *(owner, 2026-10-08)*
 - [DEC-57](DEC-57-strict-otel-pins-capped-at-the-next-minor.md): Strict OTel pins, capped at the next minor *(owner, 2026-10-18)*
 
+### privacy
+
+- [DEC-94](DEC-94-with-otel-wrapper-debug-true-a-scrubbing.md): With OTEL_WRAPPER_DEBUG=true a scrubbing failure's report shows the real exception message *(owner, 2026-10-20)*
+
 ### process
 
 - [DEC-37](DEC-37-rollout-v1-ships-beside-v0-becomes-the-default.md): Rollout: v1 ships beside v0, becomes the default, then v0 is deleted after one release of aliases *(owner, 2026-10-08)*
