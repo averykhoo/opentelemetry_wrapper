@@ -3,13 +3,13 @@ type: Task
 id: OTW-11
 title: 'Workstream 8: logging'
 brief: two handlers on the root logger, no global log record factory
-pri: LATER
+pri: NEXT
 state: open
 deps: [OTW-4]
 source: session 2026-10-18a
 created: 2026-10-18
-moved: 2026-10-18h
-updated: 2026-10-18l
+moved: 2026-10-19a
+updated: 2026-10-19a
 aliases: [WS8]
 labels: [v1]
 ---
