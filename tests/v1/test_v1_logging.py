@@ -441,3 +441,103 @@ def test_a_long_string_is_truncated_to_v0s_length():
 def test_pydantic_1_warns_once_at_instrumentation():  # DEC-35
     warnings = PYDANTIC_1.result()['warnings']
     assert len(warnings) == 1 and 'pydantic 1' in warnings[0]
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# review findings: extras the SDK rejects, format arguments, pydantic's own types
+# ----------------------------------------------------------------------------------------------------------------------
+
+AWKWARD = scenario(__name__, 'v1_logging_awkward', LOG_PRELUDE + r'''
+import enum
+from pydantic import AnyUrl, SecretBytes, SecretStr
+
+
+class Level(enum.IntEnum):
+    HIGH = 3
+
+
+otel.instrument(logging)
+calls = 0
+
+
+def log(*args, **kwargs):
+    global calls
+    calls += 1
+    logging.warning(*args, **kwargs)
+
+
+log('int_float', extra={'coords': [1, 2.5]})  # mixed types in a sequence: the SDK warns and exports None
+log('int_str', extra={'mixed': [1, 'a']})
+log('tuple_obj', extra={'pair': (1, object())})
+log('nested', extra={'deep': {'flags': [True, 1], 2: 'two', '': 'empty', 'levels': [Level.HIGH, 4]}})
+log('int_key', extra={1: 'x'})  # a key that is not a str: the SDK's 'invalid key' warning
+log('list_none', extra={'ids': [1, None]})
+log('Authorization: Bearer %s', 'abcdefghijklmnopqrstuvwxyz0123456789')
+log('password=%s user=%s', 'hunter2secret', 'bob')
+log('password=%(pw)s', {'pw': 'dictsecret99'})
+log('plain %s', 'keepme')
+log(SecretStr('hunter2xyz'))
+log('pydantic_extras', extra={'sec': SecretStr('hunter2def'), 'raw': SecretBytes(b'hunter2bytes'),
+                              'url': AnyUrl('http://example.com/x')})
+emit('calls', calls)
+emit('exported', exported())
+''')
+
+
+@pytest.fixture(scope='module')
+def awkward():
+    result = AWKWARD.result()
+    assert result.returncode == 0, result.describe()
+    return result
+
+
+@pytest.fixture(scope='module')
+def awkward_lines(awkward):
+    return {line['message']: line for line in json_lines(awkward)}
+
+
+@pytest.fixture(scope='module')
+def awkward_exported(awkward):
+    return {record['body']: record['attributes'] for record in awkward['exported']}
+
+
+@pytest.mark.criterion('AC-31')
+def test_extras_the_sdk_would_reject_still_write_exactly_one_json_line_per_call(awkward, awkward_lines):
+    assert len(awkward.stderr.splitlines()) == len(json_lines(awkward)) == len(awkward_lines) == awkward['calls']
+    assert 'recursive logging' not in awkward.stderr and 'opentelemetry.attributes' not in awkward.stderr
+    assert awkward_lines['int_float']['coords'] == [1, 2.5]  # stderr keeps the values as they are
+    assert awkward_lines['int_key']['1'] == 'x'
+
+
+@pytest.mark.criterion('AC-18')
+def test_extras_the_sdk_would_reject_are_exported_as_valid_attributes(awkward, awkward_exported):
+    assert len(awkward['exported']) == awkward['calls']
+    assert awkward_exported['int_float']['coords'] == ['1', '2.5']  # mixed types: the items as text, never None
+    assert awkward_exported['int_str']['mixed'] == ['1', 'a']
+    first, second = awkward_exported['tuple_obj']['pair']
+    assert first == '1' and second.startswith('<object object at 0x')
+    deep = awkward_exported['nested']['deep']
+    assert deep['flags'] == ['True', '1'] and deep['2'] == 'two' and deep["''"] == 'empty'
+    assert deep['levels'] == [3, 4]  # an IntEnum member is a plain int: one type
+    assert awkward_exported['int_key']['1'] == 'x'
+    assert awkward_exported['list_none']['ids'] == [1, None]
+
+
+@pytest.mark.criterion('AC-13')
+def test_format_arguments_are_redacted_where_the_message_was(awkward, awkward_lines):
+    bearer = awkward_lines['Authorization: Bearer [REDACTED]']
+    assert bearer['args'] == ['[REDACTED]']
+    assert awkward_lines['password=[REDACTED] user=bob']['args'] == ['[REDACTED]', 'bob']
+    assert awkward_lines['password=[REDACTED]']['args'] == {'pw': '[REDACTED]'}
+    assert awkward_lines['plain keepme']['args'] == ['keepme']  # nothing redacted: the arguments are kept
+    for secret in ('abcdefghijklmnopqrstuvwxyz0123456789', 'hunter2secret', 'dictsecret99'):
+        assert secret not in awkward.stderr
+
+
+@pytest.mark.criterion('AC-13')
+def test_pydantic_secrets_are_masked_and_its_urls_are_text_on_stderr(awkward, awkward_lines):  # DEC-35
+    assert awkward_lines['**********']['msg'] == '**********'
+    line = awkward_lines['pydantic_extras']
+    assert line['sec'] == line['raw'] == '**********'
+    assert line['url'] == 'http://example.com/x'
+    assert 'hunter2' not in awkward.stderr and '_secret_value' not in awkward.stderr

@@ -15,9 +15,11 @@ logging (OTW-11, workstream 8): two handlers on the root logger, nothing else (D
 
 the JSON encoder takes anything (v0's "JSON-encode anything": NaN and infinities, complex, `Decimal`, modules,
 functions, classes, instances, surplus arguments), never raises and never imports pydantic: a pydantic 2 model is
-dumped with `model_dump(mode='json')` only when the app imported pydantic already (DEC-35). the line goes through the
-scrubber (workstream 5b) before it is truncated (long strings, as v0) and written. neither handler ever raises into
-the app: a failure is one stderr JSON line per site (DEC-75)
+dumped with `model_dump(mode='json')` only when the app imported pydantic already (DEC-35), its URLs as text, and a
+pydantic secret is always `**********`. the line goes through the scrubber (workstream 5b) before it is truncated
+(long strings, as v0) and written; the format arguments (`args`) are redacted wherever the message was, since a bare
+argument has none of the scrubber's context. neither handler ever raises into the app: a failure is one stderr JSON
+line per site (DEC-75)
 """
 import copy
 import dataclasses
@@ -81,6 +83,49 @@ def _pydantic_model_class() -> Optional[type]:
         return None
     model = getattr(main, 'BaseModel', None)
     return model if isinstance(model, type) else None
+
+
+SECRET_MASK = '**********'  # pydantic's own mask for a secret's value
+
+
+def _pydantic_secret_classes() -> tuple:
+    """pydantic's secret types (2's `Secret` / `SecretStr` / `SecretBytes`, and `pydantic.v1`'s), if the app imported
+    them; never imports pydantic. whatever the version, a secret is never written as its attributes"""
+    classes = []
+    for module_name, names in (('pydantic.types', ('_SecretBase', 'SecretStr', 'SecretBytes')),
+                               ('pydantic.v1.types', ('SecretStr', 'SecretBytes'))):
+        module = sys.modules.get(module_name)
+        for name in names:
+            cls = getattr(module, name, None) if module is not None else None
+            if isinstance(cls, type):
+                classes.append(cls)
+    return tuple(classes)
+
+
+def _pydantic_value_classes() -> tuple:
+    """pydantic 2's value types that are not models (URLs, `NameEmail`), if the app imported them (DEC-35)"""
+    if pydantic_major_version() != 2:
+        return ()
+    classes = []
+    for module_name, names in (('pydantic.networks', ('_BaseUrl', '_BaseMultiHostUrl', 'NameEmail')),
+                               ('pydantic_core', ('Url', 'MultiHostUrl'))):
+        module = sys.modules.get(module_name)
+        for name in names:
+            cls = getattr(module, name, None) if module is not None else None
+            if isinstance(cls, type):
+                classes.append(cls)
+    return tuple(classes)
+
+
+def _pydantic_value(obj: Any) -> Any:
+    """a pydantic 2 value type as pydantic writes it to JSON (`to_jsonable_python`), else as text"""
+    to_jsonable = getattr(sys.modules.get('pydantic_core'), 'to_jsonable_python', None)
+    if to_jsonable is not None:
+        try:
+            return to_jsonable(obj)
+        except Exception:
+            pass
+    return str(obj)
 
 
 def pydantic_major_version() -> Optional[int]:
@@ -174,6 +219,12 @@ def _container(obj: Any, depth: int, path: set) -> Any:
             return encode(getattr(obj, 'model_dump')(mode='json'), depth + 1, path)
         except Exception:
             pass  # a model that can't dump itself gets the generic encoder
+    secrets = _pydantic_secret_classes()
+    if secrets and isinstance(obj, secrets):
+        return SECRET_MASK  # never its `_secret_value`, and no call into the secret's own code
+    values = _pydantic_value_classes()
+    if values and isinstance(obj, values):
+        return encode(_pydantic_value(obj), depth + 1, path)
     if dataclasses.is_dataclass(obj):
         return {f.name: encode(getattr(obj, f.name, None), depth + 1, path) for f in dataclasses.fields(obj)}
     if callable(obj):  # a callable instance: named like a span, never its contents
@@ -211,6 +262,33 @@ def message_of(record: logging.LogRecord) -> str:
 def _scrub(data: Dict[str, Any]) -> Any:
     from opentelemetry_wrapper.v1 import scrubbing
     return scrubbing.scrub_mapping(data)  # never raises: what fails to scrub is replaced (fail closed, DEC-74)
+
+
+def _scrub_args(args: Any, encoded: Any, message: str, scrubbed_message: Any) -> Any:
+    """the format arguments, redacted where the message was: a bare argument has none of the context the scrubber
+    keys on (`password=`, `Bearer `), which sits in the format string, so an argument is kept only when the scrubbed
+    message is the message itself, or still shows the argument's text. fails closed: what can't be matched up is
+    redacted"""
+    from opentelemetry_wrapper.v1.scrubbing import REDACTED
+    if isinstance(scrubbed_message, str) and scrubbed_message == message:
+        return encoded  # nothing in the message was redacted (the arguments are scrubbed on their own already)
+
+    def seen(arg: Any) -> bool:
+        try:
+            return isinstance(scrubbed_message, str) and str(arg) in scrubbed_message
+        except Exception:
+            return False
+
+    try:
+        if isinstance(args, Mapping) and isinstance(encoded, dict) and len(args) == len(encoded):
+            return {k: (v if seen(arg) else REDACTED) for (k, v), arg in zip(encoded.items(), args.values())}
+        if isinstance(args, (tuple, list)) and isinstance(encoded, list) and len(args) == len(encoded):
+            return [v if seen(arg) else REDACTED for v, arg in zip(encoded, args)]
+        if args is None or args == () or args == {}:
+            return encoded
+    except Exception:
+        pass
+    return REDACTED
 
 
 class TraceContextFilter(logging.Filter):
@@ -261,7 +339,10 @@ class JsonFormatter(logging.Formatter):
         if record.stack_info:
             data['stack_info'] = self.formatStack(record.stack_info)
         encoded = {_key(k): encode(v) for k, v in data.items()}
-        return json.dumps(truncate(_scrub(encoded)), ensure_ascii=False, allow_nan=True)
+        scrubbed = dict(_scrub(encoded))
+        if 'args' in scrubbed:
+            scrubbed['args'] = _scrub_args(record.args, scrubbed['args'], data['message'], scrubbed.get('message'))
+        return json.dumps(truncate(scrubbed), ensure_ascii=False, allow_nan=True)
 
 
 class JsonHandler(logging.Handler):
@@ -310,32 +391,63 @@ _RECORD_FIELDS = frozenset(vars(logging.LogRecord('', 0, '', 0, '', (), None))) 
 _PRIMITIVES = (str, bool, int, float, bytes, type(None))
 
 
-def _attribute(value: Any, depth: int = 0) -> Any:
-    """an extra the SDK can take as an attribute value: what it would turn into text itself (`str`), turned into text
-    here, where a failing `__str__` can't make the SDK log a warning (which reaches the root logger: a second line)"""
-    if isinstance(value, _PRIMITIVES):
-        return value
-    if depth < MAX_DEPTH and isinstance(value, Mapping):
-        return {str(k): _attribute(v, depth + 1) for k, v in value.items()}
-    if depth < MAX_DEPTH and isinstance(value, (list, tuple)):
-        return [_attribute(v, depth + 1) for v in value]
+def _text(value: Any) -> str:
+    """`str(value)` as a plain `str`, or its repr when `__str__` fails"""
     try:
-        return str(value)
+        return str.__str__(str(value))
     except Exception:
         return _safe_repr(value)
 
 
+def _attribute_key(key: Any) -> str:
+    """a key the SDK takes (a non-empty `str`): `1` -> "1", `None` -> "null", `''` -> "''" """
+    text = key if isinstance(key, str) else _key(key)
+    return str.__str__(text) if text else _safe_repr(key)
+
+
+def _attribute(value: Any, depth: int = 0) -> Any:
+    """an extra the SDK takes as an attribute value without a warning (a warning reaches the root logger, so it would
+    be a second line, and the SDK would export the value as None): what it would turn into text itself (`str`), turned
+    into text here, where a failing `__str__` is caught; keys are non-empty `str`; primitives are their exact base type
+    and a sequence's items share one type (the SDK compares `type(item)`), else its items are text"""
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return bool(value)
+    if isinstance(value, int):
+        return int.__int__(value)  # an `IntEnum` member, say, as a plain `int`
+    if isinstance(value, float):
+        return float.__float__(value)
+    if isinstance(value, str):
+        return str.__str__(value)
+    if isinstance(value, bytes):
+        return bytes.__bytes__(value)
+    if depth < MAX_DEPTH and isinstance(value, Mapping):
+        return {_attribute_key(k): _attribute(v, depth + 1) for k, v in value.items()}
+    if depth < MAX_DEPTH and isinstance(value, (list, tuple)):
+        items = [_attribute(v, depth + 1) for v in value]
+        if len({list if isinstance(v, (list, tuple)) else type(v) for v in items if v is not None}) > 1:
+            items = [v if v is None or isinstance(v, str) else _text(original) for v, original in zip(items, value)]
+        return items
+    return _text(value)
+
+
 def _with_safe_extras(record: logging.LogRecord) -> logging.LogRecord:
-    """the record, or a copy whose extras are all attribute values"""
-    extras = {k: v for k, v in vars(record).items() if k not in _RECORD_FIELDS and not isinstance(v, _PRIMITIVES)}
-    if not extras:
+    """the record, or a copy whose extras all have valid keys and attribute values"""
+    if all(isinstance(k, str) and k and (k in _RECORD_FIELDS or isinstance(v, _PRIMITIVES))
+           for k, v in vars(record).items()):
         return record
     record = copy.copy(record)
-    for k, v in extras.items():
-        try:
-            setattr(record, k, _attribute(v))
-        except Exception:
-            setattr(record, k, _safe_repr(v))
+    fields = vars(record)
+    for bad in [k for k in fields if not (isinstance(k, str) and k)]:  # `extra={1: ...}`: the stdlib keeps the key
+        value = fields.pop(bad)
+        fields.setdefault(_attribute_key(bad), value)
+    for k, v in list(fields.items()):
+        if k not in _RECORD_FIELDS and not isinstance(v, _PRIMITIVES):
+            try:
+                fields[k] = _attribute(v)
+            except Exception:
+                fields[k] = _safe_repr(v)
     return record
 
 
