@@ -3,13 +3,13 @@ type: Task
 id: OTW-12
 title: 'Workstream 9: metrics, push and scrape'
 brief: bind OTEL_EXPORTER_PROMETHEUS_HOST; add_route, never mount; bound the exit flush
-pri: LATER
+pri: NEXT
 state: open
 deps: [OTW-11]
 source: session 2026-10-18a
 created: 2026-10-18
-moved: 2026-10-18a
-updated: 2026-10-18a
+moved: 2026-10-19a
+updated: 2026-10-19a
 aliases: [WS9]
 labels: [v1]
 ---
