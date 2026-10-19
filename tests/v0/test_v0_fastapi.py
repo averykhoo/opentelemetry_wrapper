@@ -308,6 +308,7 @@ emit('spans', take(exp))
 ''')
 
 
+@pytest.mark.v0_specific  # v1 adds the exact path with add_route and never mounts (AC-19, OTW-12)
 def test_trailing_slash_endpoint_mounts_the_prometheus_app_with_a_redirect():
     result = ENDPOINT_TRAILING_SLASH.result()
     assert result['/metrics'] == {'status': 307, 'location': '/metrics/', 'is_prometheus': False}

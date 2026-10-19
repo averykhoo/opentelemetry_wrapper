@@ -240,6 +240,13 @@ before the first span (e.g. `otel.configure(service_name='checkout')`); explicit
 Configuration is fixed once it's been set up: a later call with different options is ignored, with a warning (only
 the log level can still change).
 
+**Metrics:** push them (OTLP, when an endpoint is set) or let Prometheus scrape them, from the app's own port (the
+`/metrics` route on FastAPI apps, which makes no request span; only that exact path, so `/api/metrics` is traced as
+usual) or from a separate port (`OTEL_EXPORTER_PROMETHEUS_PORT`, which serves metrics on every path). With several
+workers per container (`uvicorn --workers N`, gunicorn), each worker has its own metrics: only one can listen on the
+Prometheus port (the others warn once and carry on), and the `/metrics` route answers from whichever worker took the
+request. In multi-worker deployments use push, or one worker per container.
+
 **Standard OpenTelemetry variables**
 
 | Variable | Effect | Default |

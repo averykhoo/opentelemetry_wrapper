@@ -208,6 +208,8 @@ class Otel:
                   log_level: Optional[str] = None,
                   log_format: Optional[str] = None,
                   prometheus_path: Optional[str] = None,
+                  prometheus_host: Optional[str] = None,
+                  prometheus_port: Optional[int] = None,
                   header_attributes: Optional[Sequence[str]] = None,
                   header_attributes_exclude: Optional[Sequence[str]] = None,
                   response_header_attributes: Optional[Sequence[str]] = None,

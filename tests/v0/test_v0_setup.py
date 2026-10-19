@@ -250,9 +250,10 @@ def test_prometheus_port_serves_metrics_on_every_path():
         assert result[path] == [200, True]
 
 
-@pytest.mark.xfail(strict=True, reason='v0 bug list "Prometheus port only binds to localhost" (from reading the code, '
-                                       'reproduced here): otel_providers.py:112 hardcodes addr="localhost" and '
-                                       'ignores OTEL_EXPORTER_PROMETHEUS_HOST')
+@pytest.mark.xfail(impl.IMPL == 'v0', strict=True,
+                   reason='v0 bug list "Prometheus port only binds to localhost" (from reading the code, reproduced '
+                          'here): otel_providers.py:112 hardcodes addr="localhost" and ignores '
+                          'OTEL_EXPORTER_PROMETHEUS_HOST; v1 binds it (AC-19, OTW-12)')
 def test_prometheus_host_env_var_is_honoured():
     result = PROMETHEUS_HOST.result()
     if result['non_loopback_ip'] is None:
