@@ -177,3 +177,60 @@ def test_the_schema_url_v1_computes_is_the_one_upstream_spans_carry():
     result = SCHEMA_URL.result()
     assert result['ours']
     assert result['upstream'] == [result['ours']]
+
+
+CONNECTIONS_USAGE = scenario(__name__, 'upstream_sqlalchemy_connections_usage', r'''
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import InMemoryMetricReader
+from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+import sqlalchemy
+from sqlalchemy import text
+
+reader = InMemoryMetricReader()
+instrumentor = SQLAlchemyInstrumentor()
+instrumentor.instrument(meter_provider=MeterProvider(metric_readers=[reader]))
+with sqlalchemy.create_engine('sqlite://').connect() as conn:
+    conn.execute(text('SELECT 1')).fetchall()
+emit('metrics', [{'name': m.name, 'unit': m.unit, 'description': m.description}
+                 for rm in reader.get_metrics_data().resource_metrics for sm in rm.scope_metrics
+                 for m in sm.metrics])
+emit('attribute', [name for name in vars(instrumentor) if 'usage' in name.lower()])
+''')
+
+OPTION_ENGINE = scenario(__name__, 'upstream_sqlalchemy_option_engine', _SETUP + r'''
+from opentelemetry.instrumentation.sqlalchemy.engine import EngineTracer
+
+parent = create_engine('sqlite://')
+option = parent.execution_options(isolation_level='AUTOCOMMIT')
+nested = option.execution_options(logging_token='nested')
+emit('proxied', [option._proxied is parent, nested._proxied is option])
+emit('same_pool', option.pool is parent.pool)
+lonely_parent = create_engine('sqlite://')
+lonely_option = lonely_parent.execution_options(isolation_level='AUTOCOMMIT')
+EngineTracer(tracer, lonely_option, connections_usage)
+emit('option_tracer_seen_from_parent', len(lonely_parent.dispatch.before_cursor_execute))
+EngineTracer(tracer, parent, connections_usage)
+emit('parent_tracer_seen_from_options', [len(e.dispatch.before_cursor_execute) for e in (option, nested)])
+emit('spans', [query(e) for e in (option, nested)])
+''')
+
+
+def test_the_connections_usage_counter_is_a_local_of_instrument_with_this_identity():
+    # v1 makes its own for an engine passed in (`SQLALCHEMY_CONNECTIONS_USAGE` in v1's `_instrument`), so a renamed
+    # or re-described upstream metric must fail here; `tests/v1/test_v1_sqlalchemy.py` checks that the two are one
+    result = CONNECTIONS_USAGE.result()
+    assert result['metrics'] == [{
+        'name': 'db.client.connections.usage', 'unit': 'connections',
+        'description': 'The number of connections that are currently in state described by the state attribute.'}]
+    assert result['attribute'] == []  # still not kept on the instrumentor, so there is nothing to fetch
+
+
+def test_an_option_engine_joins_its_parents_dispatch_but_not_the_other_way_round():
+    # v1 attaches the tracer to the root engine, found through `_proxied`, so an option engine and its parent share one
+    result = OPTION_ENGINE.result()
+    assert result['proxied'] == [True, True]
+    assert result['same_pool'] is True
+    assert result['option_tracer_seen_from_parent'] == 0
+    assert result['parent_tracer_seen_from_options'] == [1, 1]
+    for names in result['spans']:
+        assert len([n for n in names if _is_select(n)]) == 1, result['spans']

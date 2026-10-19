@@ -452,3 +452,207 @@ def test_an_unsupported_sqlalchemy_version_warns_on_the_global_call_but_engines_
     # `EngineTracer` attached directly skips upstream's dependency check (its hooks work on 2.1, DEC-62)
     assert r['before'] == ['SELECT'], r['before']
     assert r['later'] == [], r['later']
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# option engines (`engine.execution_options(...)`): they share their parent's pool and join its event dispatch
+# ----------------------------------------------------------------------------------------------------------------------
+
+OPTION_ENGINE_BODY = PRELUDE + r'''
+import logging
+from opentelemetry import trace
+from opentelemetry.sdk.trace import SpanProcessor
+
+
+class Count(SpanProcessor):
+    started = 0
+    ended = 0
+
+    def on_start(self, span, parent_context=None):
+        Count.started += 1
+
+    def on_end(self, span):
+        Count.ended += 1
+
+
+class Messages(logging.Handler):
+    def __init__(self):
+        super().__init__()
+        self.seen = []
+
+    def emit(self, record):
+        self.seen.append(record.getMessage())
+
+
+ORDER = %r
+engine = sqlalchemy.create_engine('sqlite://')
+autocommit = engine.execution_options(isolation_level='AUTOCOMMIT')
+nested = autocommit.execution_options(logging_token='nested')  # an option engine of an option engine
+first, *rest = {'option_first': [nested, autocommit, engine], 'parent_first': [engine, autocommit, nested]}[ORDER]
+otel.instrument(first)
+trace.get_tracer_provider().add_span_processor(Count())
+sdk_messages = Messages()
+logging.getLogger('opentelemetry.sdk.trace').addHandler(sdk_messages)
+with warnings.catch_warnings(record=True) as caught:
+    warnings.simplefilter('always')
+    returned = [otel.instrument(e) is e for e in rest]
+emit('returned', returned)
+emit('warnings', otel_warnings(caught))
+emit('listeners', [listeners(e) for e in (engine, autocommit, nested)])
+emit('spans', [query(e) for e in (engine, autocommit, nested)])
+emit('counts', [Count.started, Count.ended])
+emit('sdk_messages', sdk_messages.seen)
+'''
+OPTION_ENGINE_FIRST = scenario(__name__, 'v1_sqlalchemy_option_engine_first', OPTION_ENGINE_BODY % 'option_first')
+OPTION_ENGINE_PARENT_FIRST = scenario(__name__, 'v1_sqlalchemy_option_engine_parent_first',
+                                      OPTION_ENGINE_BODY % 'parent_first')
+
+
+@pytest.mark.criterion('AC-9')
+@pytest.mark.criterion('AC-6')
+@pytest.mark.parametrize('order', ['option_first', 'parent_first'])
+def test_an_option_engine_and_its_parent_share_one_tracer_in_either_order(order):  # AC-9, AC-6
+    # a tracer on the option engine alone was invisible from its parent, which then got a second one: two spans
+    # started per query through the option engine, one never ended, the other ended twice
+    r = {'option_first': OPTION_ENGINE_FIRST, 'parent_first': OPTION_ENGINE_PARENT_FIRST}[order].result()
+    assert r['returned'] == [True, True]
+    assert r['warnings'] == []
+    assert r['listeners'] == [1, 1, 1]
+    assert r['spans'] == [['SELECT'], ['SELECT'], ['SELECT']], r['spans']
+    assert r['counts'] == [3, 3], r['counts']
+    assert r['sdk_messages'] == []  # 'Calling end() on an ended span.'
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# the sqlcommenter (`OTEL_WRAPPER_SQLALCHEMY_COMMENTER`): v0 exposed `enable_commenter` / `commenter_options`
+# ----------------------------------------------------------------------------------------------------------------------
+
+def test_the_commenter_variable_maps_to_engine_tracers_arguments():
+    from opentelemetry_wrapper.v1._instrument import sqlalchemy_commenter as parse
+    name = 'OTEL_WRAPPER_SQLALCHEMY_COMMENTER'
+    every = {'db_driver': True, 'db_framework': True, 'opentelemetry_values': True}
+    for off in ({}, {name: ''}, {name: ' false '}, {name: 'FALSE'}):
+        notes: list = []
+        assert parse(notes, off) == {}
+        assert notes == []
+    notes = []
+    assert parse(notes, {name: 'True'}) == {'enable_commenter': True, 'commenter_options': every,
+                                            'enable_attribute_commenter': False}
+    assert parse(notes, {name: 'opentelemetry_values, attribute'}) == {
+        'enable_commenter': True, 'enable_attribute_commenter': True,
+        'commenter_options': {'db_driver': False, 'db_framework': False, 'opentelemetry_values': True}}
+    assert notes == []
+    notes = []
+    assert parse(notes, {name: 'db_driver,traceparent'})['commenter_options'] == {
+        'db_driver': True, 'db_framework': False, 'opentelemetry_values': False}
+    (note,) = notes
+    assert 'traceparent' in note and name in note, note
+    notes = []
+    assert parse(notes, {name: 'attribute'}) == {}
+    (note,) = notes
+    assert 'stays off' in note, note
+
+
+COMMENTER = scenario(__name__, 'v1_sqlalchemy_commenter', PRELUDE + r'''
+import os
+from sqlalchemy import event
+
+NAME = 'OTEL_WRAPPER_SQLALCHEMY_COMMENTER'
+
+
+def executed(engine):
+    """the statements the driver ran, and the query spans' recorded statements"""
+    seen = []
+
+    def listener(conn, cursor, statement, *args):
+        seen.append(statement)
+
+    event.listen(engine, 'after_cursor_execute', listener)
+    exporter.clear()
+    with engine.connect() as conn:
+        conn.execute(text('SELECT 1')).fetchall()
+    event.remove(engine, 'after_cursor_execute', listener)
+    recorded = [s.attributes.get('db.statement', s.attributes.get('db.query.text'))
+                for s in exporter.get_finished_spans() if s.name.startswith('SELECT')]
+    return {'executed': seen, 'recorded': recorded}
+
+
+results = {}
+with warnings.catch_warnings(record=True) as caught:
+    warnings.simplefilter('always')
+    for label, value in (('unset', None), ('true', 'true'),
+                         ('traceparent_attribute', 'opentelemetry_values,attribute')):
+        os.environ.pop(NAME, None)
+        if value is not None:
+            os.environ[NAME] = value
+        engine = sqlalchemy.create_engine('sqlite://')
+        otel.instrument(engine)
+        results[label] = executed(engine)
+    os.environ[NAME] = 'true'
+    otel.instrument(sqlalchemy)  # engines created from now on: the global instrumentation takes it too
+    results['global'] = executed(sqlalchemy.create_engine('sqlite://'))
+emit('warnings', otel_warnings(caught))
+emit('results', results)
+''')
+
+
+def test_the_sqlcommenter_is_off_unless_the_variable_asks_for_it():
+    r = COMMENTER.result()
+    assert r['warnings'] == []
+    assert r['results']['unset'] == {'executed': ['SELECT 1'], 'recorded': ['SELECT 1']}
+
+
+def test_the_sqlcommenter_comments_queries_through_engines_passed_in_and_the_global_call():
+    r = COMMENTER.result()['results']
+    for label in ('true', 'global'):
+        (statement,) = r[label]['executed']
+        assert statement.startswith('SELECT 1 /*'), (label, statement)
+        for field in ('db_driver=', 'db_framework=', 'traceparent='):
+            assert field in statement, (label, field, statement)
+        assert r[label]['recorded'] == ['SELECT 1'], (label, r[label])  # the comment is not recorded on the span
+    (statement,) = r['traceparent_attribute']['executed']
+    assert 'traceparent=' in statement and 'db_driver' not in statement, statement
+    assert r['traceparent_attribute']['recorded'] == [statement]
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# `db.client.connections.usage`: upstream creates it as a local in `_instrument`, so an engine passed in gets our own
+# ----------------------------------------------------------------------------------------------------------------------
+
+CONNECTIONS_USAGE = scenario(__name__, 'v1_sqlalchemy_connections_usage', r'''
+from opentelemetry import metrics
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import InMemoryMetricReader
+reader = InMemoryMetricReader()
+metrics.set_meter_provider(MeterProvider(metric_readers=[reader]))  # v1 follows a provider set first
+''' + PRELUDE + r'''
+with warnings.catch_warnings(record=True):
+    warnings.simplefilter('always')
+    passed_in = sqlalchemy.create_engine('sqlite:///file:passed_in?mode=memory&uri=true')
+    otel.instrument(passed_in)  # v1's counter
+    otel.instrument(sqlalchemy)
+    global_engine = sqlalchemy.create_engine('sqlite:///file:global?mode=memory&uri=true')  # upstream's counter
+query(passed_in)
+query(global_engine)
+from opentelemetry_wrapper.v1._instrument import SQLALCHEMY_CONNECTIONS_USAGE
+emit('ours', SQLALCHEMY_CONNECTIONS_USAGE)
+out = []
+for rm in reader.get_metrics_data().resource_metrics:
+    for sm in rm.scope_metrics:
+        if sm.scope.name == 'opentelemetry.instrumentation.sqlalchemy':
+            for m in sm.metrics:
+                out.append({'name': m.name, 'unit': m.unit, 'description': m.description,
+                            'points': sorted([p.attributes['pool.name'], p.attributes['state'], p.value]
+                                             for p in m.data.data_points)})
+emit('metrics', out)
+''')
+
+
+def test_an_engine_passed_in_records_the_same_connections_usage_metric_as_the_global_instrumentation():  # OTW-4
+    # one metric, not two: the counter v1 makes for an engine passed in has upstream's name, unit and description
+    r = CONNECTIONS_USAGE.result()
+    (metric,) = r['metrics']
+    assert {k: metric[k] for k in ('name', 'unit', 'description')} == r['ours']
+    assert metric['name'] == 'db.client.connections.usage'
+    assert metric['points'] == [['sqlite://:/file:global', 'idle', 1], ['sqlite://:/file:global', 'used', 0],
+                                ['sqlite://:/file:passed_in', 'idle', 1], ['sqlite://:/file:passed_in', 'used', 0]]
