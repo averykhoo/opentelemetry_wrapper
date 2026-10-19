@@ -634,3 +634,4 @@
 {"at": "2026-10-20T06:48:41+08:00", "session": "2026-10-19a", "actor": "claude-code/2.1.287", "op": "index", "id": "index", "path": "docs/decisions/index.md", "fields": ["index"], "mechanical": true}
 {"at": "2026-10-20T06:49:37+08:00", "session": "2026-10-19a", "actor": "claude-code/2.1.287", "op": "amend", "id": "DEC-94", "path": "docs/decisions/DEC-94-with-otel-wrapper-debug-true-a-scrubbing.md", "fields": [], "mechanical": false}
 {"at": "2026-10-20T07:31:39+08:00", "session": "2026-10-19a", "actor": "claude-code/2.1.287", "op": "amend", "id": "DEC-94", "path": "docs/decisions/DEC-94-with-otel-wrapper-debug-true-a-scrubbing.md", "fields": [], "mechanical": false}
+{"at": "2026-10-20T07:44:00+08:00", "session": "2026-10-19a", "actor": "claude-code/2.1.287", "op": "close", "id": "OTW-23", "path": "tasks/OTW-23-scrubbing-report-failure-otel-wrapper-debug.md", "fields": ["state", "status", "closed", "moved", "updated", "body"], "mechanical": false}
