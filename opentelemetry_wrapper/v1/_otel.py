@@ -13,6 +13,8 @@ from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
+from typing import TypeVar
+from typing import overload
 
 from opentelemetry import trace
 
@@ -27,6 +29,8 @@ from opentelemetry_wrapper.v1._warnings import report
 
 # one entry per open `with otel` block in this context: (scope or None, the token of the `set` that pushed it)
 _open_blocks: ContextVar[Tuple[Tuple[Any, Any], ...]] = ContextVar('opentelemetry_wrapper_open_blocks', default=())
+
+_T = TypeVar('_T')
 
 _ZERO_TRACE_ID = '0' * 32
 _ZERO_SPAN_ID = '0' * 16
@@ -51,6 +55,16 @@ class Otel:
     # ------------------------------------------------------------------------------------------------------------------
     # decorating, and making configured objects
     # ------------------------------------------------------------------------------------------------------------------
+
+    @overload  # `otel('name')`: a configured object
+    def __call__(self, name: str, /, *, attributes: Optional[Mapping[str, Any]] = None) -> 'Otel': ...
+
+    @overload  # `@otel` over anything: the decorated object keeps its exact type (AC-21)
+    def __call__(self, target: _T, /, *, name: Optional[str] = None,
+                 attributes: Optional[Mapping[str, Any]] = None) -> _T: ...
+
+    @overload  # `@otel(name=...)`, `otel()`: a configured object
+    def __call__(self, /, *, name: Optional[str] = None, attributes: Optional[Mapping[str, Any]] = None) -> 'Otel': ...
 
     def __call__(self, target: Any = MISSING, /, *, name: Optional[str] = None,
                  attributes: Optional[Mapping[str, Any]] = None) -> Any:
@@ -144,6 +158,12 @@ class Otel:
     # ------------------------------------------------------------------------------------------------------------------
     # libraries, apps and configuration
     # ------------------------------------------------------------------------------------------------------------------
+
+    @overload
+    def instrument(self, target: _T, /) -> _T: ...
+
+    @overload
+    def instrument(self, /) -> None: ...
 
     def instrument(self, target: Any = MISSING, /) -> Any:
         """`otel.instrument(app | engine | logging | requests | sqlalchemy)`; with no argument, logging, requests

@@ -110,7 +110,7 @@ def _decorate(target: Any, name: Optional[str], attributes: Optional[dict], note
     if isinstance(target, property):
         parts = [_decorate(f, name, attributes, notes) if f is not None else None
                  for f in (target.fget, target.fset, target.fdel)]
-        return type(target)(*parts, target.__doc__)
+        return type(target)(*parts, target.__doc__)  # type: ignore[call-arg]
     if inspect.ismethod(target):
         return types.MethodType(_decorate(target.__func__, name, attributes, notes), target.__self__)
     if not callable(target):
@@ -203,7 +203,7 @@ def _make_wrapper(target: Any, name: Optional[str], attributes: Optional[dict]) 
                 raise
 
     elif inspect.iscoroutinefunction(target):
-        async def wrapper(*args, **kwargs):
+        async def wrapper(*args, **kwargs):  # type: ignore[misc]
             __tracebackhide__ = __traceback_hide__ = True  # noqa: F841
             if disabled():
                 return await target(*args, **kwargs)
@@ -236,6 +236,6 @@ def _make_wrapper(target: Any, name: Optional[str], attributes: Optional[dict]) 
         # a function's __dict__ is copied as `functools.wraps` does; a callable instance's state never is
         functools.update_wrapper(wrapper, target, updated=('__dict__',) if inspect.isfunction(target) else ())
     except Exception:
-        wrapper.__wrapped__ = target
+        wrapper.__wrapped__ = target  # type: ignore[attr-defined]
     setattr(wrapper, MARK, True)
     return wrapper

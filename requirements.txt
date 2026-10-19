@@ -24,6 +24,7 @@ sqlalchemy[asyncio]<2.1
 hyperscan
 interegular
 pytest
+mypy
 
 # v0 core dependencies until 1.0.0 (DEC-80, pyproject.toml), and what the v0 tests import through the example apps
 opentelemetry-exporter-otlp-proto-grpc>=1.44,<1.45
