@@ -1,6 +1,7 @@
 """
 v1's `with otel:` blocks (DEC-47, DEC-20, DEC-50), the escape hatches (DEC-45) and the disabled mode (DEC-24, DEC-5)
 """
+import pytest
 from tests.v0._harness import scenario
 from tests.v1._prelude import PRELUDE
 
@@ -76,10 +77,12 @@ emit('race_spans', {s['name']: [s['span_id'][2:], s['parent']] for s in take(exp
 ''')
 
 
+@pytest.mark.criterion('AC-2')
 def test_with_otel_opens_a_span_that_is_current_inside_the_block():  # AC-2
     assert BLOCKS.result()['current_inside'] is True
 
 
+@pytest.mark.criterion('AC-2')
 def test_unnamed_blocks_are_named_after_the_enclosing_function_never_a_line():  # AC-2 (DEC-47, DEC-50)
     result = BLOCKS.result()
     assert result['names'] == sorted(['__main__.load_config', '__main__.<module>', '__main__.<module>', 'named',
@@ -89,6 +92,8 @@ def test_unnamed_blocks_are_named_after_the_enclosing_function_never_a_line():  
     assert result['child_parent'] == 'async block'
 
 
+@pytest.mark.criterion('AC-2')
+@pytest.mark.criterion('AC-22')
 def test_two_unnamed_blocks_in_one_function_report_once_on_stderr():  # AC-2 (DEC-47, DEC-81), AC-22
     result = BLOCKS.result()
     assert result['two_blocks_warnings'] == []  # a runtime report is not a `warnings.warn`
@@ -96,12 +101,14 @@ def test_two_unnamed_blocks_in_one_function_report_once_on_stderr():  # AC-2 (DE
     assert len(lines) == 1  # two calls of the function, one line
 
 
+@pytest.mark.criterion('AC-2')
 def test_nested_blocks_close_innermost_first():  # AC-2 (DEC-20)
     result = BLOCKS.result()
     assert result['nested'] == {'inner': 'outer', 'outer': None}
     assert result['nested_current_after_inner'] is True
 
 
+@pytest.mark.criterion('AC-2')
 def test_concurrent_tasks_never_close_each_others_spans():  # AC-2 (DEC-20)
     result = BLOCKS.result()
     ids, spans = result['race_ids'], result['race_spans']
@@ -120,6 +127,7 @@ with otel('x') as span:
 ''')
 
 
+@pytest.mark.criterion('AC-26')
 def test_span_is_never_none_and_ids_are_hex_strings():  # AC-26 (DEC-45)
     result = HATCHES.result()
     assert result['outside'] == [True, '0' * 32, '0' * 16]
@@ -170,6 +178,8 @@ emit('spans', [s['name'] for s in take(exporter)])
 ''')
 
 
+@pytest.mark.criterion('AC-4')
+@pytest.mark.criterion('AC-26')
 def test_disabled_decorators_return_the_target_and_blocks_yield_the_invalid_span():  # AC-4 (DEC-24, DEC-5)
     for scenario_ in (DISABLED, SDK_DISABLED):
         result = scenario_.result()
@@ -180,5 +190,6 @@ def test_disabled_decorators_return_the_target_and_blocks_yield_the_invalid_span
         assert result['spans'] == 0
 
 
+@pytest.mark.criterion('AC-4')
 def test_existing_wrappers_check_the_disabled_switch_at_call_time():  # AC-4 (DEC-24)
     assert DISABLED_LATER.result()['spans'] == ['__main__.f']

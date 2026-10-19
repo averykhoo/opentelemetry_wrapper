@@ -99,6 +99,7 @@ def test_the_contrib_window_matches_the_sdk_window():  # DEC-57: they release in
     assert sdk_lower <= installed_sdk
 
 
+@pytest.mark.criterion('AC-20')
 def test_core_dependencies_include_the_otlp_http_family():  # DEC-36
     names = {r.name for r in _core()}
     assert set(SDK_FAMILY + CONTRIB_FAMILY) <= names
@@ -115,6 +116,7 @@ def test_no_grpc_exporter_is_declared():  # DEC-36
     assert 'opentelemetry-exporter-otlp' not in declared  # the meta package: gRPC and HTTP together
 
 
+@pytest.mark.criterion('AC-20')
 def test_the_integrations_are_extras_with_their_instrumentor():  # DEC-35, AC-20
     extras = _extras()
     for extra, instrumentor in INSTRUMENTORS.items():
@@ -170,6 +172,7 @@ def test_requirements_txt_agrees_with_pyproject():  # CI installs requirements.t
         assert specs <= have[name], f'requirements.txt has {name}{sorted(have[name])}, pyproject has {sorted(specs)}'
 
 
+@pytest.mark.criterion('AC-20')
 def test_ci_keeps_both_extras_axes_and_fails_when_no_tests_are_collected():  # DEC-56
     workflow = (ROOT / '.github' / 'workflows' / 'tests.yml').read_text(encoding='utf-8')
     assert re.search(r"extras:\s*\[\s*'all'\s*,\s*'none'\s*\]", workflow)

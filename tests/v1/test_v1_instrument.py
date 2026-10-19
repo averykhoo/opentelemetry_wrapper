@@ -130,12 +130,14 @@ emit('wrapper_handlers', len(wrapper_handlers()))
 ''')
 
 
+@pytest.mark.criterion('AC-6')
 def test_an_app_instrumented_twice_is_the_same_app_without_warnings():  # AC-6
     r = APP_TWICE.result()
     assert r['same_object'] is True
     assert r['warnings'] == []
 
 
+@pytest.mark.criterion('AC-6')
 def test_an_app_instrumented_twice_gives_one_server_span_per_request():  # AC-6
     r = APP_TWICE.result()
     assert r['status'] == 200
@@ -157,16 +159,19 @@ def test_an_engine_instrumented_once_gives_a_select_span():  # AC-6 (positive co
     assert len(r['select_spans']) == 1, r['select_spans']
 
 
+@pytest.mark.criterion('AC-6')
 def test_an_engine_instrumented_twice_gives_one_select_span_per_query():  # AC-6
     assert len(ENGINE_TWICE.result()['select_spans']) == 1, ENGINE_TWICE.result()['select_spans']
 
 
+@pytest.mark.criterion('AC-6')
 def test_an_engine_instrumented_twice_listens_once():  # AC-6
     # a second listener would start a second span per query and leak it (upstream overwrites the span on the context,
     # so the first is never ended, and the exported spans alone can't show it)
     assert ENGINE_TWICE.result()['listeners'] == ENGINE_ONCE.result()['listeners']
 
 
+@pytest.mark.criterion('AC-6')
 def test_logging_instrumented_twice_adds_one_handler_in_total():  # AC-6
     r = LOGGING_TWICE.result()
     assert r['added'] == 1
@@ -214,24 +219,30 @@ emit('instrumented', RequestsInstrumentor().is_instrumented_by_opentelemetry)
 ''')
 
 
+@pytest.mark.criterion('AC-7')
 def test_an_unsupported_module_is_returned_unchanged_with_one_warning():  # AC-7
     r = UNSUPPORTED.result()
     assert r['module_unchanged'] is True
     assert len(r['module_warnings']) == 1, r['module_warnings']
 
 
+@pytest.mark.criterion('AC-7')
+@pytest.mark.criterion('AC-22')
 def test_an_unsupported_object_is_returned_unchanged_with_one_warning():  # AC-7
     r = UNSUPPORTED.result()
     assert r['int_unchanged'] is True
     assert len(r['int_warnings']) == 1, r['int_warnings']
 
 
+@pytest.mark.criterion('AC-7')
 def test_a_failing_integration_does_not_raise():  # AC-7
     r = FAILING.result()
     assert r['raised'] is None
     assert r['returned_requests'] is True
 
 
+@pytest.mark.criterion('AC-7')
+@pytest.mark.criterion('AC-22')
 def test_a_dependency_conflict_warns_once_and_instruments_nothing():  # AC-7
     r = FAILING.result()
     assert len(r['warnings']) == 1, r['warnings']
@@ -298,12 +309,14 @@ emit('warnings', w.messages)
 ''')
 
 
+@pytest.mark.criterion('AC-3')
 def test_instrumenting_configures_eagerly():  # AC-3
     r = EAGER.result()
     assert r['before'] is False
     assert r['after'] is True
 
 
+@pytest.mark.criterion('AC-3')
 def test_instrument_with_no_argument_returns_none_and_does_not_warn():  # AC-3
     r = NO_ARGUMENT.result()
     assert r['returned'] is None
@@ -343,6 +356,7 @@ SDK_DISABLED = scenario(__name__, 'v1_instrument_disabled_sdk', DISABLED_BODY, e
 
 
 @pytest.mark.parametrize('which', ['wrapper', 'sdk'])
+@pytest.mark.criterion('AC-4')
 def test_disabled_instruments_nothing_and_configures_nothing(which):  # AC-4
     r = {'wrapper': DISABLED, 'sdk': SDK_DISABLED}[which].result()
     assert r['same_app'] is True
@@ -385,6 +399,7 @@ emit('warnings', w.messages)
 ''')
 
 
+@pytest.mark.criterion('AC-7')
 def test_one_failing_integration_does_not_skip_the_rest_of_instrument_with_no_argument():  # AC-7
     r = FAILING_INTEGRATION.result()
     assert r['calls'] == ['logging', 'requests', 'system_metrics']

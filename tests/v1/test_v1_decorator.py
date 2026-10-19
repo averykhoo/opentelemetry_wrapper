@@ -3,6 +3,7 @@ v1's `@otel` on functions (OTW-3): spans, kinds, idempotency, never-crash, excep
 
 each scenario runs in a fresh interpreter (global OTel state can't be reset), so these pass under OTW_IMPL=v0 and v1
 """
+import pytest
 from tests.v0._harness import scenario
 from tests.v1._prelude import PRELUDE
 
@@ -56,11 +57,13 @@ emit('options', take(exporter))
 ''')
 
 
+@pytest.mark.criterion('AC-1')
 def test_sync_async_and_generator_wrappers_keep_kind_and_signature():  # AC-1
     for name, checks in FUNCTIONS.result()['kinds'].items():
         assert checks == [True] * 7, name
 
 
+@pytest.mark.criterion('AC-1')
 def test_one_span_per_call_named_module_qualname_with_stable_code_attributes():  # AC-1
     result = FUNCTIONS.result()
     assert result['results'] == [3, 42, [0, 1, 2], [0, 1]]
@@ -73,11 +76,13 @@ def test_one_span_per_call_named_module_qualname_with_stable_code_attributes(): 
         assert isinstance(s['attributes']['code.line.number'], int)
 
 
+@pytest.mark.criterion('AC-3')
 def test_decorating_configures_nothing_and_the_first_span_does():  # AC-3 (DEC-27 rule 1)
     assert FUNCTIONS.result()['configured_by_decorating'] is False
     assert FUNCTIONS.result()['configured_by_first_span'] is True
 
 
+@pytest.mark.criterion('AC-1')
 def test_bare_call_and_options():  # AC-1, DEC-50
     spans = FUNCTIONS.result()['options']
     assert [s['name'] for s in spans] == ['__main__.bare_call', 'price lookup']
@@ -106,6 +111,7 @@ emit('count', len(spans))
 ''')
 
 
+@pytest.mark.criterion('AC-32')
 def test_no_span_carries_arguments_or_return_values():  # AC-32 (DEC-26)
     result = NO_ARGUMENTS.result()
     assert result['count'] == 4
@@ -154,6 +160,7 @@ Data(); emit('post_init', [s['name'] for s in take(exporter)])
 ''')
 
 
+@pytest.mark.criterion('AC-6')
 def test_decorating_twice_behaves_as_once():  # AC-6
     result = IDEMPOTENT.result()
     assert result['same'] == [True, True, True]
@@ -162,6 +169,7 @@ def test_decorating_twice_behaves_as_once():  # AC-6
     assert result['partial_unchanged'] is True
 
 
+@pytest.mark.criterion('AC-6')
 def test_methods_reached_through_instances_call_and_post_init_give_one_span():  # AC-6
     result = IDEMPOTENT.result()
     assert result['through_instances'] == ['__main__.Thing.method'] + ['__main__.Thing.__call__'] * 3
@@ -196,6 +204,8 @@ emit('names', [s['name'] for s in take(exporter)])
 ''')
 
 
+@pytest.mark.criterion('AC-7')
+@pytest.mark.criterion('AC-22')
 def test_an_unsupported_target_is_returned_unchanged_with_one_warning():  # AC-7
     result = UNSUPPORTED.result()
     assert result['int_unchanged'] is True
@@ -240,6 +250,8 @@ def _report_lines(result):
     return lines
 
 
+@pytest.mark.criterion('AC-7')
+@pytest.mark.criterion('AC-22')
 def test_a_failure_inside_the_wrapper_never_raises_and_is_reported_once_per_site():  # AC-7, AC-22 (DEC-75)
     result = INTERNAL_FAILURE.result()
     assert result['results'] == [2, 3]  # PYTHONWARNINGS=error: the report is not a warning, so it can't raise
@@ -249,6 +261,7 @@ def test_a_failure_inside_the_wrapper_never_raises_and_is_reported_once_per_site
     assert 'traceback' not in lines[0]
 
 
+@pytest.mark.criterion('AC-22')
 def test_the_debug_variable_reports_every_occurrence_with_its_traceback():  # AC-22 (DEC-75)
     lines = _report_lines(INTERNAL_FAILURE_DEBUG.result())
     assert len(lines) == 3  # two calls and one block
@@ -327,6 +340,7 @@ emit('cancelled', [span.status.status_code.name, span.attributes.get('openteleme
 ''')
 
 
+@pytest.mark.criterion('AC-25')
 def test_error_on_innermost_span_with_stack_trace_and_error_type_only_outside():  # AC-25 (DEC-3)
     result = EXCEPTIONS.result()
     assert result['error_spans'] == {
@@ -338,6 +352,7 @@ def test_error_on_innermost_span_with_stack_trace_and_error_type_only_outside():
     assert result['marker_set'] is True
 
 
+@pytest.mark.criterion('AC-25')
 def test_control_flow_exceptions_leave_the_status_unset_with_their_markers():  # AC-25 (DEC-3)
     result = EXCEPTIONS.result()
     assert result['stop'][0] == 'UNSET' and result['stop'][2] == []
@@ -346,6 +361,7 @@ def test_control_flow_exceptions_leave_the_status_unset_with_their_markers():  #
     assert result['cancelled'] == ['UNSET', True]
 
 
+@pytest.mark.criterion('AC-25')
 def test_system_exit_is_error_only_for_a_non_zero_code():  # AC-25 (DEC-3)
     result = EXCEPTIONS.result()
     assert result['exit0'][0] == 'UNSET' and result['exit0'][1]['process.exit.code'] == 0
@@ -392,6 +408,7 @@ emit('spans', len(exporter.get_finished_spans()))
 ''')
 
 
+@pytest.mark.criterion('AC-4')
 def test_a_disabled_async_generator_forwards_asend_athrow_and_aclose():  # AC-4 (DEC-24)
     result = DISABLED_ASYNC_GENERATOR.result()
     assert result['plain'] == [[0, 1, 2], [['a', 'caught', 'closed']]]  # what the target does by itself

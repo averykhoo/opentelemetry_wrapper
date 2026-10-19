@@ -39,6 +39,7 @@ KEEP_KEYS = ["author", "authority", "http.authority", "gen_ai.usage.input_tokens
 
 
 @pytest.mark.parametrize("key", REDACT_KEYS)
+@pytest.mark.criterion('AC-13')
 def test_secret_key_redacts_whole_value(scrubber, key):
     out, notes = scrubber.scrub_attributes({key: "innocent-looking-value", "other": 1})
     assert out[key] == REDACTED and out["other"] == 1
@@ -46,6 +47,7 @@ def test_secret_key_redacts_whole_value(scrubber, key):
 
 
 @pytest.mark.parametrize("key", KEEP_KEYS)
+@pytest.mark.criterion('AC-13')
 def test_innocent_key_kept(scrubber, key):
     attrs = {key: "plain value 42"}
     out, notes = scrubber.scrub_attributes(attrs)
@@ -55,6 +57,7 @@ def test_innocent_key_kept(scrubber, key):
 @pytest.mark.parametrize("key", ["http.request.header.x-userinfo.auth_time", "http.request.header.x-userinfo.iss",
                                  "http.request.header.x-userinfo.employee_id",
                                  "http.request.header.x-userinfo.password"])
+@pytest.mark.criterion('AC-13')
 def test_allowlist_glob_is_never_touched(scrubber, key):
     attrs = {key: f"password=hunter2 Bearer {JWT}"}  # even a value that looks secret
     out, notes = scrubber.scrub_attributes(attrs)
@@ -126,6 +129,7 @@ REDACT_VALUES = [
 
 
 @pytest.mark.parametrize("text,expected,rule", REDACT_VALUES, ids=[c[2] + ":" + c[0][:24] for c in REDACT_VALUES])
+@pytest.mark.criterion('AC-13')
 def test_value_redacted_under_innocent_key(scrubber, text, expected, rule):
     out, notes = scrubber.scrub_attributes({"log.message": text})
     assert out["log.message"] == expected
@@ -157,12 +161,14 @@ KEEP_VALUES = [
 
 
 @pytest.mark.parametrize("text", KEEP_VALUES, ids=lambda t: t[:30])
+@pytest.mark.criterion('AC-13')
 def test_innocent_value_kept(scrubber, text):
     attrs = {"log.message": text}
     out, notes = scrubber.scrub_attributes(attrs)
     assert out is attrs and notes == []
 
 
+@pytest.mark.criterion('AC-13')
 def test_spec_must_keep_keys_and_values(scrubber):
     """OTW-8 spec: telemetry's own ids, digests and token *counts* are never scrubbed"""
     keys = ["input_tokens", "tokenizer", "token_count", "password_policy", "passwordless"]
@@ -235,6 +241,7 @@ def test_body_unchanged_returns_same_object(scrubber):
     assert scrubber.scrub_text("hello")[0] == "hello"
 
 
+@pytest.mark.criterion('AC-15')
 def test_scrub_argv(scrubber):
     argv = ["python", "app.py", "--db-password=hunter2", "--token", "abc", "--api-key", "abc", "-p", "hunter2",
             "--db-url", "postgresql://user:pass@host/db", "PGPASSWORD=x", "some_cmd", "-Dpassword=x", "--verbose"]
@@ -249,6 +256,7 @@ def test_scrub_argv(scrubber):
     assert scrubber.scrub_argv(clean)[0] is clean
 
 
+@pytest.mark.criterion('AC-15')
 def test_scrub_argv_short_p_flag_keeps_the_next_argument(scrubber):
     argv = ["mysql", "-p", "hunter2"]
     assert scrubber.scrub_argv(argv) == (argv, [])

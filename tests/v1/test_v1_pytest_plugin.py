@@ -5,6 +5,7 @@ switch the real exporters off for the tests that request them (or for the whole 
 the plugin is tested by running an inner pytest session in a temporary directory, in its own interpreter: it sets
 global OpenTelemetry state, which cannot be reset
 """
+import pytest
 import subprocess
 import sys
 import textwrap
@@ -73,12 +74,14 @@ def _run_inner(directory: Path, tests: str, ini: str = '') -> 'subprocess.Comple
                           encoding='utf-8', errors='replace')
 
 
+@pytest.mark.criterion('AC-5')
 def test_the_fixtures_capture_reset_and_opt_in_per_test(tmp_path):  # AC-5, DEC-10
     proc = _run_inner(tmp_path, INNER_TESTS)
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert '4 passed' in proc.stdout, proc.stdout
 
 
+@pytest.mark.criterion('AC-5')
 def test_otel_capture_in_the_ini_file_opts_the_whole_suite_in(tmp_path):  # AC-5, DEC-10
     proc = _run_inner(tmp_path, WHOLE_SUITE_TEST, ini='[pytest]\notel_capture = true\n')
     assert proc.returncode == 0, proc.stdout + proc.stderr

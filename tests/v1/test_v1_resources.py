@@ -51,6 +51,7 @@ def _attrs(resource):
     ('web-aeiou-x2x2z', None, 'web-aeiou', {}),  # vowels are outside the generated alphabet: not a ReplicaSet hash
     ('', None, None, {}),
 ])
+@pytest.mark.criterion('AC-14')
 def test_pod_name_table(pod, kind, candidate, attributes):
     shape = pod_name_shape(pod)
     assert (shape.kind, shape.candidate, dict(shape.attributes)) == (kind, candidate, attributes)
@@ -89,12 +90,14 @@ def _detect(root, environ=None):
     return _attrs(resource), detector.problems
 
 
+@pytest.mark.criterion('AC-14')
 def test_outside_kubernetes_the_resource_is_empty(tmp_path):
     _sa(tmp_path, namespace='prod')
     detector = KubernetesResourceDetector(root=tmp_path, environ={'HOSTNAME': 'web-5d8f7c9b4d-x2x2z'})
     assert _attrs(detector.detect()) == {}
 
 
+@pytest.mark.criterion('AC-14')
 def test_namespace_and_pod_from_the_service_account_files_and_hostname(tmp_path):
     _sa(tmp_path, namespace='prod')
     attrs, problems = _detect(tmp_path, {'HOSTNAME': 'web-5d8f7c9b4d-x2x2z'})
@@ -107,6 +110,7 @@ def test_namespace_and_pod_from_the_service_account_files_and_hostname(tmp_path)
     assert problems == []
 
 
+@pytest.mark.criterion('AC-14')
 def test_pod_name_falls_back_to_etc_hostname(tmp_path):
     (tmp_path / 'etc').mkdir()
     (tmp_path / 'etc/hostname').write_text('db-0\n')
@@ -162,6 +166,7 @@ def _podinfo(root, labels=None, annotations=None, directory='etc/podinfo'):
         (path / 'annotations').write_text(annotations, encoding='utf-8')
 
 
+@pytest.mark.criterion('AC-14')
 def test_service_name_follows_the_derivation_order(tmp_path):
     env = {'HOSTNAME': 'web-5d8f7c9b4d-x2x2z'}
     attrs, _ = _detect(tmp_path, env)
@@ -186,6 +191,7 @@ def test_service_name_follows_the_derivation_order(tmp_path):
     assert attrs['service.instance.id'] == 'fixed-id'  # only the annotation sets it
 
 
+@pytest.mark.criterion('AC-14')
 def test_downward_api_values_are_unescaped():
     text = ('a.b/note="line1\\nline2 \\"quoted\\" caf\\u00e9"\n'
             'plain="x"\n'
@@ -200,6 +206,7 @@ def test_downward_api_values_are_unescaped():
     assert set(parsed) == {'a.b/note', 'plain', 'raw', 'bad'}
 
 
+@pytest.mark.criterion('AC-14')
 def test_annotations_with_escaped_values_reach_the_resource(tmp_path):
     _podinfo(tmp_path, annotations='resource.opentelemetry.io/service.name="svc \\"x\\" \\u00e9"\n')
     assert _detect(tmp_path, {'HOSTNAME': 'standalone'})[0]['service.name'] == 'svc "x" é'
@@ -211,6 +218,7 @@ def test_the_podinfo_dir_is_configurable(tmp_path):
     assert attrs['service.name'] == 'elsewhere'
 
 
+@pytest.mark.criterion('AC-14')
 def test_a_missing_volume_is_silent(tmp_path):
     _sa(tmp_path, namespace='prod')
     with warnings.catch_warnings():
@@ -219,6 +227,7 @@ def test_a_missing_volume_is_silent(tmp_path):
     assert problems == [] and attrs['service.name'] == 'web'
 
 
+@pytest.mark.criterion('AC-14')
 def test_with_no_service_account_at_all_the_hostname_still_works(tmp_path):
     attrs, problems = _detect(tmp_path, {'HOSTNAME': 'web-5d8f7c9b4d-x2x2z'})  # automountServiceAccountToken: false
     assert 'k8s.namespace.name' not in attrs and attrs['k8s.pod.name'] == 'web-5d8f7c9b4d-x2x2z'
@@ -252,6 +261,7 @@ def _process(monkeypatch, argv, environ=None):
     return _attrs(detector.detect()), detector.problems
 
 
+@pytest.mark.criterion('AC-15')
 def test_command_args_keep_the_interpreter_and_flags_and_redact_secrets(monkeypatch):
     argv = ['/usr/bin/python3.12', '-X', 'utf8', '-m', 'app', '--password', 'hunter2-flag', '--api-key=hunter2-eq',
             '--db-url', 'postgresql://user:hunter2-url@db.example/app', '--workers', '4']
@@ -267,6 +277,7 @@ def test_command_args_keep_the_interpreter_and_flags_and_redact_secrets(monkeypa
     assert problems == []
 
 
+@pytest.mark.criterion('AC-15')
 def test_the_next_argument_after_a_secret_flag_is_redacted(monkeypatch):
     attrs, _ = _process(monkeypatch, ['python', 'run.py', '--token', 'abc123xyz', 'file.txt'])
     args = list(attrs['process.command_args'])
@@ -380,6 +391,7 @@ def test_a_failing_detector_adds_one_note_and_leaves_the_others_intact(monkeypat
     assert resource.attributes['service.name'].startswith('unknown_service:')
 
 
+@pytest.mark.criterion('AC-14')
 def test_service_name_falls_back_to_unknown_service_with_the_executable_name(monkeypatch, tmp_path):
     monkeypatch.setattr(sys, 'executable', '/usr/bin/pypy3')
     resource = detect_resource(environ={}, root=tmp_path)
@@ -396,6 +408,7 @@ def test_detection_is_fast():
 # AC-16: process.pid follows a fork (the SDK re-runs only its own process-dependent detectors)
 # ----------------------------------------------------------------------------------------------------------------------
 
+@pytest.mark.criterion('AC-16')
 def test_the_resource_follows_the_pid(monkeypatch):
     resource = ForkAwareResource({'process.pid': os.getpid(), 'process.parent_pid': os.getppid(), 'other': 'kept'})
     monkeypatch.setattr(os, 'getpid', lambda: 424242)
@@ -410,6 +423,7 @@ def test_a_pid_set_by_hand_is_not_overwritten(monkeypatch):
     assert _attrs(resource)['process.pid'] == 7
 
 
+@pytest.mark.criterion('AC-16')
 def test_merging_keeps_the_class_so_the_sdk_fork_hook_cannot_lose_the_fix(monkeypatch):
     resource = ForkAwareResource({'process.pid': os.getpid()})
     merged = resource.merge(ForkAwareResource({'service.instance.id': 'new'}))
@@ -434,6 +448,7 @@ emit('pids', [real, span.resource.attributes['process.pid'], 424242])
 ''')
 
 
+@pytest.mark.criterion('AC-16')
 def test_the_configured_resource_follows_the_pid_into_spans():
     real, seen, fake = PID_CHANGE.result()['pids']
     assert real != fake and seen == fake
@@ -471,6 +486,7 @@ emit('child', json.loads(data))
 
 
 @pytest.mark.skipif(not hasattr(os, 'fork'), reason='no fork on this platform (Linux CI runs it)')
+@pytest.mark.criterion('AC-16')
 def test_a_forked_worker_has_its_own_pid_and_instance_id():
     result = FORKED.result()
     parent, child = result['parent'], result['child']
@@ -508,6 +524,7 @@ OUTSIDE = scenario(__name__, 'v1_resources_outside', PRELUDE + 'otel.configure()
                    env={'KUBERNETES_SERVICE_HOST': None, 'OTEL_SERVICE_NAME': None, 'OTEL_RESOURCE_ATTRIBUTES': None})
 
 
+@pytest.mark.criterion('AC-14')
 def test_the_k8s_derivation_names_the_service_through_configure():
     attrs = DERIVED.result()['attrs']
     assert attrs['service.name'] == 'web' and attrs['k8s.deployment.name'] == 'web'
@@ -516,6 +533,7 @@ def test_the_k8s_derivation_names_the_service_through_configure():
     assert attrs['process.pid'] and attrs['process.command_args']
 
 
+@pytest.mark.criterion('AC-14')
 def test_otel_service_name_beats_the_k8s_derivation():
     attrs = FROM_ENV.result()['attrs']
     assert attrs['service.name'] == 'from-env' and attrs['k8s.deployment.name'] == 'web'  # only the name is overridden
