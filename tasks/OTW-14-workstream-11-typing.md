@@ -9,7 +9,7 @@ deps: [OTW-2]
 source: session 2026-10-18a
 created: 2026-10-18
 moved: 2026-10-18a
-updated: 2026-10-18a
+updated: 2026-10-18l
 aliases: [WS11]
 labels: [v1]
 ---
@@ -31,3 +31,7 @@ overloads, so mypy and pyright see the original signature (and the original clas
 ## Read first
 
 - The decisions: [DEC-25](../docs/decisions/DEC-25-our-spans-come-from-the-otel-tracer-the-exposed.md), [DEC-48](../docs/decisions/DEC-48-property-on-top-otel-underneath-proposal-6.md); [the criteria](../docs/criteria.md)
+
+## Log
+
+- 2026-10-18l (claude-code/2.1.287): cf97eee (merged): tests/typing (46 reveal_type checks under mypy 2.4 for every decorated form, with- and async-with forms, instrument; wrong call is an arg-type error; sabotaged: Any return fails 21), overloads in _otel.py, [tool.mypy] in pyproject, mypy in the dev extra and requirements.txt so CI runs it. pyright skipped (needs Node). mypy on v1: 13 -> 10 errors (the rest in files other items own). Left: first CI run.
