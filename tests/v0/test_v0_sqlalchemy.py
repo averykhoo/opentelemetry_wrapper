@@ -2,8 +2,8 @@
 `instrument_sqlalchemy_engine` / `instrument_sqlalchemy` with sqlite in-memory engines
 
 `SQLAlchemyInstrumentor` is a process-wide singleton (and its first instrument() patches create_engine), so every
-scenario runs in a fresh interpreter. async engines are not covered: the only async sqlite driver (aiosqlite) is not
-installed in the env
+scenario runs in a fresh interpreter. async engines are not covered here: v1's are, against aiosqlite, in
+tests/v1/test_v1_sqlalchemy.py
 
 under `OTW_IMPL=v1` (OTW-4) the same scenarios run against `otel.instrument(engine)` / `otel.instrument(sqlalchemy)`.
 v1 attaches its own tracer to each engine, so an engine passed in gets query spans but no `connect` spans, which come

@@ -203,9 +203,10 @@ come from the global instrumentation and aren't available per engine. Both toget
 traced twice. An `AsyncEngine` is traced through its sync engine, and an engine made with
 `engine.execution_options(...)` through the engine it was made from (they share its connections), so passing either
 traces both. `otel.instrument()` leaves SQLAlchemy out, because query spans are noisy. Without the `[sqlalchemy]`
-extra, either call warns once and changes nothing. To add a [sqlcommenter](https://google.github.io/sqlcommenter/)
-comment (the traceparent, the driver and the framework) to every query, set `OTEL_WRAPPER_SQLALCHEMY_COMMENTER`
-before instrumenting.
+extra, either call warns once and changes nothing. The [sqlcommenter](https://google.github.io/sqlcommenter/) is
+off by default, as upstream has it (a comment changes the query text, which can defeat statement caches and
+`pg_stat_statements` grouping); to add its comment (the traceparent, the driver and the framework) to every query,
+set `OTEL_WRAPPER_SQLALCHEMY_COMMENTER` before instrumenting.
 
 **x-userinfo:** the header (base64 or plain JSON, as an API gateway such as Kong passes on Keycloak's userinfo) is
 decoded and every claim is recorded on the request span as `http.request.header.x-userinfo.<claim>` (custom ones such
@@ -305,9 +306,9 @@ deprecated aliases:
 
 What else changed:
 
-- `instrument_sqlalchemy_engine(engine)` added a sqlcommenter comment to every query by default;
-  `otel.instrument(engine)` runs queries unchanged. For v0's comment, set `OTEL_WRAPPER_SQLALCHEMY_COMMENTER=true`
-  (v0's `commenter_options` are its comma-separated choices).
+- `instrument_sqlalchemy_engine(engine)` added a sqlcommenter comment to every query by default; v1 leaves it off,
+  so `otel.instrument(engine)` runs queries unchanged. To turn v0's comment back on, set
+  `OTEL_WRAPPER_SQLALCHEMY_COMMENTER=true` (v0's `commenter_options` are its comma-separated choices).
 - `service.name` is now the workload name rather than `namespace/deployment/pod`. The old string is in
   `opentelemetry_wrapper.instance.label`, and its parts are in `k8s.namespace.name`, `k8s.deployment.name` and
   `k8s.pod.name`.

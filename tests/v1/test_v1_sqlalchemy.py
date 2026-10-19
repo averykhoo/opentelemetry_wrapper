@@ -8,6 +8,9 @@ extension sync engines are still instrumented; without the SQLAlchemy instrument
 `SQLAlchemyInstrumentor` is a process-wide singleton that patches `create_engine` and `Engine.connect`, so every test
 reads a scenario that ran in its own interpreter
 """
+import importlib.util
+import os
+
 import pytest
 
 from tests.v0._harness import scenario
@@ -33,75 +36,11 @@ def listeners(engine):
     return len(engine.dispatch.before_cursor_execute)
 '''
 
-# aiosqlite (the async sqlite driver) is not installed here: this stands in for it, sqlite3 behind coroutines, enough
-# for sqlalchemy's own `sqlite+aiosqlite` dialect, which then runs real queries through the asyncio extension
-FAKE_AIOSQLITE = r'''
-import sqlite3
-import sys
-import types
-
-aiosqlite = types.ModuleType('aiosqlite')
-for _name in ('DatabaseError', 'Error', 'IntegrityError', 'NotSupportedError', 'OperationalError',
-              'ProgrammingError', 'sqlite_version', 'sqlite_version_info'):
-    setattr(aiosqlite, _name, getattr(sqlite3, _name))
-
-
-class _Cursor:
-    def __init__(self, cursor):
-        self._cursor = cursor
-
-    description = property(lambda self: self._cursor.description)
-    lastrowid = property(lambda self: self._cursor.lastrowid)
-    rowcount = property(lambda self: self._cursor.rowcount)
-
-    async def execute(self, *args):
-        self._cursor.execute(*args)
-
-    async def executemany(self, *args):
-        self._cursor.executemany(*args)
-
-    async def fetchall(self):
-        return self._cursor.fetchall()
-
-    async def fetchone(self):
-        return self._cursor.fetchone()
-
-    async def fetchmany(self, size=None):
-        return self._cursor.fetchmany(size)
-
-    async def close(self):
-        self._cursor.close()
-
-
-class _Connection:
-    def __init__(self, conn):
-        self._conn = conn
-
-    isolation_level = property(lambda self: self._conn.isolation_level)
-
-    async def cursor(self):
-        return _Cursor(self._conn.cursor())
-
-    async def create_function(self, *args, **kwargs):
-        self._conn.create_function(*args, **kwargs)
-
-    async def commit(self):
-        self._conn.commit()
-
-    async def rollback(self):
-        self._conn.rollback()
-
-    async def close(self):
-        self._conn.close()
-
-
-aiosqlite.Connection = _Connection
-sys.modules['aiosqlite'] = aiosqlite
-
-
-async def aiosqlite_creator():
-    return _Connection(sqlite3.connect(':memory:', check_same_thread=False))
-'''
+# the AsyncEngine tests run sqlalchemy's `sqlite+aiosqlite` dialect on the real driver (DEC-91: aiosqlite is a test
+# dependency, in requirements.txt and the `dev` extra). without it they skip, except under `OTW_INSTALL_TRIAL=all`
+# (CI's `ci/test.sh all`, which installs requirements.txt), where a missing driver is a failure, not a skip
+_NO_AIOSQLITE = os.environ.get('OTW_INSTALL_TRIAL', '') != 'all' and importlib.util.find_spec('aiosqlite') is None
+needs_aiosqlite = pytest.mark.skipif(_NO_AIOSQLITE, reason='aiosqlite (the async sqlite driver) is not installed')
 
 
 def _selects(names):
@@ -255,13 +194,13 @@ def test_an_instrumented_engine_is_not_kept_alive():  # DEC-1 (the WeakSet)
 # AsyncEngine
 # ----------------------------------------------------------------------------------------------------------------------
 
-ASYNC_ENGINE_BODY = FAKE_AIOSQLITE + PRELUDE + r'''
+ASYNC_ENGINE_BODY = PRELUDE + r'''
 import asyncio
 from sqlalchemy.ext.asyncio import create_async_engine
 INSTRUMENT_GLOBALLY = %r
 if INSTRUMENT_GLOBALLY:
     otel.instrument(sqlalchemy)
-engine = create_async_engine('sqlite+aiosqlite://', async_creator=aiosqlite_creator)
+engine = create_async_engine('sqlite+aiosqlite://')  # the real driver (DEC-91)
 with warnings.catch_warnings(record=True) as caught:
     warnings.simplefilter('always')
     returned = otel.instrument(engine)
@@ -287,6 +226,7 @@ ASYNC_ENGINE = scenario(__name__, 'v1_sqlalchemy_async_engine', ASYNC_ENGINE_BOD
 ASYNC_ENGINE_GLOBAL = scenario(__name__, 'v1_sqlalchemy_async_engine_global', ASYNC_ENGINE_BODY % True)
 
 
+@needs_aiosqlite
 @pytest.mark.criterion('AC-9')
 def test_an_async_engine_gives_select_spans_once():  # AC-9
     r = ASYNC_ENGINE.result()
@@ -297,6 +237,7 @@ def test_an_async_engine_gives_select_spans_once():  # AC-9
     assert r['listeners'] == 1
 
 
+@needs_aiosqlite
 @pytest.mark.criterion('AC-9')
 def test_an_async_engine_created_after_the_global_call_and_passed_in_keeps_one_tracer():  # AC-9, AC-6
     r = ASYNC_ENGINE_GLOBAL.result()

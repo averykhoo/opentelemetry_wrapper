@@ -78,11 +78,12 @@ system-metrics = [
 hyperscan = [
     "hyperscan",
 ]
-# interegular: the rule-overlap lint in the scrubbing tests; mypy: the typing tests
+# interegular: the rule-overlap lint in the scrubbing tests; mypy: the typing tests; aiosqlite: the AsyncEngine tests
 dev = [
     "pytest",
     "interegular",
     "mypy",  # OTW-14: the reveal_type tests (tests/typing)
+    "aiosqlite",  # DEC-91: a real async sqlite driver for the AsyncEngine tests
 ]
 
 [project.entry-points.pytest11]
