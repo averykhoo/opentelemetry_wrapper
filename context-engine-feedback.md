@@ -5,6 +5,41 @@ the engine repo (`averykhoo/context-engine`). Every session appends at its clean
 feedback): after-action reviews, frictions, tokens spent on ceremony, engine bugs and refusals with a bad remedy,
 and simplifications that would help. Newest first; each entry dated, with its session key.
 
+## 2026-10-19a: the v1 chain through one reusable build/review/fix workflow (DEC-87)
+
+### What worked
+
+- **One workflow script, reused per task through `args`** (build in a worktree, two adversarial reviewers with
+  distinct lenses, one fix agent): OTW-10, 6, 7, 4, 11, 12, 22, 16 and 23 each ran through it unchanged. The
+  reviewers found real bugs in almost every item (context lost across a yield, an async-generator shutdown race,
+  base64 userinfo leaking raw, raw %-args and pydantic secrets on stderr, a double EngineTracer, lazy route
+  placement). The top-level context held only verdicts; the session merged and gated each item first-hand.
+- **Builders return owner questions instead of choosing**, and the session batches them into one multiple-choice
+  prompt: eight owner decisions (DEC-88 to DEC-94) came out of it, each a one-round trip, then a small fix agent
+  applied the answer on the same branch before the merge.
+- **A test that runs `tests/v0` under `OTW_IMPL=v1` in a child interpreter** puts AC-8 into the default gate and CI.
+
+### Friction
+
+- **`doc archive` refuses `README.md`**, so moving v0's README into `docs/archive/` was done by hand.
+- **G-W5 turns red after every `task close` of the NOW item** until the next promote, and the close's reply says
+  "ask the owner". Inside a chain the owner already ordered (the banner's "then the chain ..."), it is noise: a
+  close could promote NEXT itself when NEXT holds exactly one item, or the remedy could say so.
+- **Workflow `scriptPath` is tied to the session's original project dir**: after a `cd` into a worktree changed the
+  working directory, re-invoking the persisted script was refused until it was copied into the scratchpad.
+- **The Haiku CI watchers**: two kept waking after reporting (background polls of their own), and one reported a job
+  "stuck" for 46 minutes from a stale `status` while its `completed_at` showed a green finish two minutes in. Each
+  was checked first-hand with one unauthenticated curl; the watcher's brief now says to trust `completed_at`.
+- **The 7-day GitHub token (DEC-86) stopped working after about a day** ("Bad credentials"), so logs of a failing
+  job could not have been read.
+- **The gate grew from 45 s to 150 s on this machine** as the v1 tests landed (scenario subprocesses); CI stays at
+  about 2 minutes per job.
+
+### Ceremony cost
+
+- Per item: merge, gate, worktree removal, close, promote, lint, push and a watcher: about 4 tool calls when batched
+  into one shell command. Owner intake was about 2 calls per question (the prompt, then `record new` / `amend`).
+
 ## 2026-10-18l: push, OTW-2 closed, then six workstreams through worktree task agents (DEC-79)
 
 ### What worked
