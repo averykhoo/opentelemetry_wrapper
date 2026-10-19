@@ -4,14 +4,16 @@ id: OTW-8
 title: 'Workstream 5b: scrubbing'
 brief: rules stay in a regex subset an automaton can handle; scrub on the exporter thread; fail closed
 pri: NEXT
-state: open
+state: closed
 deps: [OTW-2]
 source: session 2026-10-18a
 created: 2026-10-18
-moved: 2026-10-18a
+moved: 2026-10-18l
 updated: 2026-10-18l
 aliases: [WS5b]
 labels: [v1]
+status: deprecated
+closed: 2026-10-18l
 ---
 
 Criteria: AC-13; its `scrub_argv` serves AC-15, which OTW-9 claims. Decisions: DEC-16, DEC-18, DEC-58.
@@ -88,3 +90,4 @@ unscrubbed; README says so.
 
 - 2026-10-18l (claude-code/2.1.287): 453247a (merged in 604414c): opentelemetry_wrapper/v1/scrubbing.py (ScrubbingSpanExporter/ScrubbingLogExporter, scrub_argv, scrub_mapping, scrub_text, Scrubber with re/hyperscan/auto engines), 348 tests in tests/v1/test_scrubbing_*.py (25 sabotages all caught), benchmarks/scrubbing.py (us, re/hyperscan: span 10 attrs 136/99; 2 KB body with password 571/17; argv 79/98). Left: configure wraps every exporter and the stderr JSON logs (OTW-3); scrub_argv into process.command_args (OTW-9); README line that user processors are unscrubbed (OTW-16). Residual: the span rebuild uses the ReadableSpan constructor and dataclasses.replace on ReadableLogRecord (want canaries); OTEL_WRAPPER_DEBUG is a placeholder name and =0 enables it; bytes values not scanned; '--token --verbose x' redacts --verbose; v1 tests import the module directly, not via tests/impl.py.
 - 2026-10-18l (claude-code/2.1.287): 1246373 (merged): configure installs Scrubber(engine='auto') once per process unless the app set its own (DEC-83).
+- 2026-10-18l (claude-code/2.1.287): closed: done in 453247a (+ DEC-82 as built, DEC-83 in 1246373): scrubbing rules/engines/exporter wrappers wired into configure; AC-13 tested (38dbc82); CI green 39178694142. The README line on unscrubbed user processors moved to OTW-16.
