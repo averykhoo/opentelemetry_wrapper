@@ -85,7 +85,8 @@ def test_unnamed_blocks_are_named_after_the_enclosing_function_never_a_line():  
     assert result['names'] == sorted(['__main__.load_config', '__main__.<module>', '__main__.<module>', 'named',
                                       'async block', '__main__.main.<locals>.child'])
     assert all(isinstance(line, int) and line > 0 for line in result['line'])
-    assert result['named_attributes'] == {'k': 'v', 'count': 3}
+    # the user's attributes, and the caller's code attributes (DEC-21; OTW-5)
+    assert {k: v for k, v in result['named_attributes'].items() if not k.startswith('code.')} == {'k': 'v', 'count': 3}
     assert result['child_parent'] == 'async block'
 
 

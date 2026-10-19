@@ -1,31 +1,22 @@
 """
-span lifecycle for our own spans (DEC-25: from the OTel tracer), exception status per DEC-3, and minimal code info
-(stable `code.*` keys, DEC-31; workstream 3 refines the introspection)
+span lifecycle for our own spans (DEC-25: from the OTel tracer) and exception status per DEC-3; names and `code.*`
+attributes come from `_introspect`
 
 nothing here raises into the app: a failure is reported once on stderr (DEC-75) and the span is skipped
 """
-import functools
-import inspect
 import sys
-import threading
-from types import CodeType
 from typing import Any
 from typing import Dict
 from typing import Optional
-from typing import Set
 from typing import Tuple
 
 from opentelemetry import context
 from opentelemetry import trace
-from opentelemetry.semconv.attributes.code_attributes import CODE_FILE_PATH
-from opentelemetry.semconv.attributes.code_attributes import CODE_FUNCTION_NAME
-from opentelemetry.semconv.attributes.code_attributes import CODE_LINE_NUMBER
 from opentelemetry.semconv.attributes.error_attributes import ERROR_TYPE
 from opentelemetry.trace import Status
 from opentelemetry.trace import StatusCode
 
 from opentelemetry_wrapper.v1._warnings import report
-from opentelemetry_wrapper.v1._warnings import warn_at_runtime
 
 PROCESS_EXIT_CODE = 'process.exit.code'  # semconv, incubating
 CLOSED_EARLY = 'opentelemetry_wrapper.closed_early'
@@ -124,71 +115,3 @@ def record_exception(span: trace.Span, exc: BaseException) -> None:
             setattr(exc, _RECORDED, True)
         except Exception:  # an exception type that refuses attributes: outer spans record the trace again
             pass
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-# names and code info
-# ----------------------------------------------------------------------------------------------------------------------
-
-def _underlying(target: Any) -> Any:
-    """the function whose code the span describes: through bound methods, partials and `__wrapped__`"""
-    seen = 0
-    while seen < 100:
-        seen += 1
-        if isinstance(target, (staticmethod, classmethod)) or inspect.ismethod(target):
-            target = target.__func__
-        elif isinstance(target, functools.partial):
-            target = target.func
-        elif getattr(target, '__wrapped__', None) is not None and not isinstance(target, type):
-            target = target.__wrapped__
-        else:
-            return target
-    return target
-
-
-def describe(target: Any) -> Tuple[str, Attributes]:
-    """span name `module.qualname` (the shape of DEC-47) and the stable `code.*` attributes, looked up once"""
-    func = _underlying(target)
-    named = isinstance(getattr(func, '__qualname__', None), str) or isinstance(getattr(func, '__name__', None), str)
-    if not isinstance(func, type) and callable(func) and not (inspect.isroutine(func) and named):
-        call = getattr(type(func), '__call__', None)  # a callable instance: never its repr (high cardinality)
-        module, qualname = type(func).__module__, f'{type(func).__qualname__}.__call__'
-        code = getattr(call, '__code__', None)
-    else:
-        code = getattr(func, '__code__', None)
-        module = getattr(func, '__module__', None)
-        qualname = getattr(func, '__qualname__', None) or getattr(func, '__name__', None) or type(func).__qualname__
-        if module is None and inspect.isbuiltin(func):
-            module = getattr(getattr(func, '__self__', None), '__name__', None)
-    name = f'{module}.{qualname}' if module else qualname
-    attributes: Attributes = {CODE_FUNCTION_NAME: name}
-    if isinstance(code, CodeType):
-        attributes[CODE_FILE_PATH] = code.co_filename
-        attributes[CODE_LINE_NUMBER] = code.co_firstlineno
-    return name, attributes
-
-
-_call_sites: Dict[Tuple[CodeType, int], Tuple[str, Attributes]] = {}
-_lines_by_code: Dict[CodeType, Set[int]] = {}
-_sites_lock = threading.Lock()
-
-
-def describe_call_site(frame: Any) -> Tuple[str, Attributes]:
-    """an unnamed `with otel:` block: named after the enclosing function, never a line number (DEC-47)"""
-    code, line = frame.f_code, frame.f_lineno
-    cached = _call_sites.get((code, line))
-    if cached is not None:
-        return cached
-    module = frame.f_globals.get('__name__') or '<unknown>'
-    name = f'{module}.{code.co_qualname}'
-    described = name, {CODE_FUNCTION_NAME: name, CODE_FILE_PATH: code.co_filename, CODE_LINE_NUMBER: line}
-    with _sites_lock:
-        _call_sites[(code, line)] = described
-        lines = _lines_by_code.setdefault(code, set())
-        lines.add(line)
-        second = len(lines) == 2
-    if second:
-        # runtime: stderr once, never `warnings.warn`, which an error filter would raise into the app (DEC-81)
-        warn_at_runtime(f'two unnamed `with otel:` blocks in {name} share the span name {name!r}; '
-                        f'name them, e.g. `with otel(\'load settings\'):`', key=('unnamed', code))
-    return described
