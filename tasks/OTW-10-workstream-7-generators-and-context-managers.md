@@ -4,14 +4,16 @@ id: OTW-10
 title: 'Workstream 7: generators and context managers'
 brief: a generator function's wrapper must itself be a generator function
 pri: NOW
-state: open
+state: closed
 deps: [OTW-5]
 source: session 2026-10-18a
 created: 2026-10-18
-moved: 2026-10-18l
+moved: 2026-10-19a
 updated: 2026-10-19a
 aliases: [WS7]
 labels: [v1]
+status: deprecated
+closed: 2026-10-19a
 ---
 
 Criteria: AC-17. Decisions: DEC-22, DEC-3.
@@ -56,3 +58,4 @@ decorated with `@otel`.
 
 - 2026-10-18l (claude-code/2.1.287): Stopped mid-build at the owner's request (DEC-86); WIP on branch worktree-agent-a322b3ebbf1274cd5 (c76140d), unverified: see BATON-1.
 - 2026-10-19a (claude-code/2.1.287): Merged at 0668ae3 (gate 915/5/25). Code done; AC-17 stays planned: class-based context managers move to OTW-6 (strict xfail test_a_class_based_context_manager_gets_one_span_from_enter_to_exit_current_in_between), and DEC-22's creation-time parenting conflicts with 'the wrapper is a generator function' (strict xfail test_a_generator_is_parented_where_it_was_created) pending the owner.
+- 2026-10-19a (claude-code/2.1.287): closed: done in 0668ae3 + 87b0d66 (with the class-based case in 3be9a45): generator and async-generator wrappers, @contextmanager, AC-17 tested
