@@ -14,6 +14,7 @@
 import contextlib
 import functools
 import inspect
+import sys
 import time
 import types
 import weakref
@@ -175,16 +176,18 @@ def _sync_generator(target: Any, span_name: str, span_attributes: dict, hold: bo
             return (yield from gen)
         ensure_configured()
         scope = start(span_name, span_attributes, attach=hold)
-        yields, active = 0, 0.0
+        yields, active, saved = 0, 0.0, None
 
-        def run(call, argument=None):  # one step of the body, with the span current
-            nonlocal active
-            token = None if hold else _spans.attach(scope)
+        def run(call, argument=None):  # one step of the body, in its own context (the span current)
+            nonlocal active, saved
+            token = None if hold else _spans.attach(scope, saved)
             began = clock()
             try:
                 return call() if argument is None else call(argument)
             finally:
                 active += clock() - began
+                if token is not None:  # what the body entered before the yield is current again when it resumes
+                    saved = _spans.current()
                 _spans.detach(token)
 
         step, argument = gen.__next__, None
@@ -226,19 +229,21 @@ def _async_generator(target: Any, span_name: str, span_attributes: dict, hold: b
         else:
             ensure_configured()
             scope = start(span_name, span_attributes, attach=hold)
-        yields, active = 0, 0.0
+        yields, active, saved = 0, 0.0, None
 
         async def run(call, argument=None):
-            nonlocal active
-            token = None if hold else _spans.attach(scope)
+            nonlocal active, saved
+            token = None if hold else _spans.attach(scope, saved)
             began = clock()
             try:
                 return await (call() if argument is None else call(argument))
             finally:
                 active += clock() - began
+                if token is not None:
+                    saved = _spans.current()
                 _spans.detach(token)
 
-        step, argument = agen.__anext__, None
+        step, argument = functools.partial(_first_step, agen), None
         try:
             while True:
                 box = [await run(step, argument)]  # StopAsyncIteration at the end
@@ -261,6 +266,23 @@ def _async_generator(target: Any, span_name: str, span_attributes: dict, hold: b
             raise
 
     return wrapper
+
+
+def _first_step(agen: Any) -> Any:
+    """`agen.__anext__()` with the event loop's async-generator hooks off, so the loop tracks only our wrapper.
+    Otherwise `shutdown_asyncgens()` (at the end of `asyncio.run`) calls `aclose()` on both at once, and if the
+    target's cleanup awaits, the two collide ('aclose(): asynchronous generator is already running'). The wrapper
+    closes the target itself when it is closed or finalized; the hooks are read when an async generator is first
+    advanced, before its body runs, so async generators the body starts are tracked as usual"""
+    try:
+        hooks = sys.get_asyncgen_hooks()
+        sys.set_asyncgen_hooks(None, None)
+    except Exception:  # never in CPython; then the loop simply tracks both, as before
+        return agen.__anext__()
+    try:
+        return agen.__anext__()
+    finally:
+        sys.set_asyncgen_hooks(*hooks)
 
 
 def _tally(yields: int, active: float) -> dict:

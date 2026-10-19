@@ -46,13 +46,23 @@ def start(name: str, attributes: Optional[Attributes], attach: bool = True) -> O
         return None
 
 
-def attach(scope: Optional[Scope]) -> object:
+def attach(scope: Optional[Scope], saved: Optional[context.Context] = None) -> object:
+    """make the span current on top of the current context, or, given one, restore `saved` (a generator body's own
+    context at its last yield: the span and whatever the body entered below it)"""
     if scope is None:
         return None
     try:
-        return context.attach(trace.set_span_in_context(scope[0]))
+        return context.attach(saved if saved is not None else trace.set_span_in_context(scope[0]))
     except Exception as e:
         report('span.attach', e)
+        return None
+
+
+def current() -> Optional[context.Context]:
+    try:
+        return context.get_current()
+    except Exception as e:
+        report('span.context', e)
         return None
 
 

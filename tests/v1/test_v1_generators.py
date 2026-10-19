@@ -692,3 +692,202 @@ def test_a_decorated_pytest_yield_fixture_gets_its_value_and_its_teardown():
     assert result['exit_code'] == 0
     (fixture,) = [s for s in result['spans'] if s['name'].endswith('resource')]
     assert fixture['status'] == 'OK' and fixture['attributes']['opentelemetry_wrapper.yields'] == 1
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# a generator body's own context survives its yields: what it entered before a yield is current again after it
+# ----------------------------------------------------------------------------------------------------------------------
+
+ACROSS_YIELD = scenario(__name__, 'v1_generators_context_across_yield', PRELUDE + r'''
+from opentelemetry import baggage, context, trace
+
+tracer = trace.get_tracer('test')
+
+
+@otel
+@contextlib.contextmanager
+def managed():
+    yield
+
+
+def through_managed():
+    with managed():
+        leaf()
+        yield 1
+        leaf()
+
+
+def through_tracer():
+    with tracer.start_as_current_span('inner'):
+        leaf()
+        yield 1
+        leaf()
+
+
+def through_baggage():
+    token = context.attach(baggage.set_baggage('k', 'v'))
+    try:
+        yield baggage.get_baggage('k')
+        yield baggage.get_baggage('k')
+    finally:
+        context.detach(token)
+
+
+def drive(factory):
+    it = factory()
+    next(it)
+    seen = trace.get_current_span()  # between steps: none of the body's context leaks to the consumer
+    rest = list(it)
+    return getattr(seen, 'name', None), rest
+
+
+async def athrough_tracer():
+    with tracer.start_as_current_span('ainner'):
+        leaf()
+        yield 1
+        leaf()
+
+
+async def adrive(factory):
+    it = factory()
+    await it.__anext__()
+    seen = getattr(trace.get_current_span(), 'name', None)
+    async for _ in it:
+        pass
+    return seen
+
+
+for factory in (through_managed, through_tracer):
+    emit(factory.__name__, [drive(otel(factory))[0], take(exporter)])
+emit('baggage', [drive(otel(through_baggage))[1], baggage.get_baggage('k')])
+emit('async', [asyncio.run(adrive(otel(athrough_tracer))), take(exporter)])
+''')
+
+
+@pytest.mark.parametrize('case, inner', [('through_managed', '__main__.managed'), ('through_tracer', 'inner')])
+def test_what_a_generator_body_entered_before_a_yield_is_current_again_after_it(case, inner):
+    seen, spans = ACROSS_YIELD.result()[case]
+    assert seen is None
+    assert [s['parent'] for s in by_name(spans, 'leaf')] == [inner, inner]
+    (span,) = [s for s in spans if s['name'] == inner]
+    assert span['parent'] == f'__main__.{case}'
+
+
+def test_a_generator_body_keeps_its_baggage_across_a_yield_and_none_of_it_leaks_to_the_consumer():
+    assert ACROSS_YIELD.result()['baggage'] == [['v'], None]
+
+
+def test_what_an_async_generator_body_entered_before_a_yield_is_current_again_after_it():
+    seen, spans = ACROSS_YIELD.result()['async']
+    assert seen is None
+    assert [s['parent'] for s in by_name(spans, 'leaf')] == ['ainner', 'ainner']
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# an async generator left suspended when `asyncio.run` ends: its cleanup may await, and the loop closes it once
+# ----------------------------------------------------------------------------------------------------------------------
+
+SHUTDOWN = scenario(__name__, 'v1_generators_async_shutdown', PRELUDE + r'''
+log = []
+
+
+async def numbers():
+    try:
+        yield 1
+        yield 2
+    finally:
+        await asyncio.sleep(0.01)  # cleanup that awaits
+        log.append('cleaned up')
+
+
+async def nested():  # started by a decorated body: the loop still tracks it, and closes it at shutdown
+    try:
+        yield 1
+    finally:
+        await asyncio.sleep(0.01)
+        log.append('nested cleaned up')
+
+
+async def outer():
+    async for _ in nested():
+        yield 1
+
+
+def run(factory):
+    log.clear()
+    keep = []
+
+    async def main():
+        asyncio.get_running_loop().set_exception_handler(
+            lambda loop, ctx: log.append(['handler', ctx.get('message'), repr(ctx.get('exception'))]))
+        it = factory()
+        keep.append(it)  # alive and suspended when `asyncio.run` shuts the loop's async generators down
+        await it.__anext__()
+
+    asyncio.run(main())
+    return [list(log)]
+
+
+emit('plain', run(numbers))
+emit('wrapped', run(otel(numbers)) + [take(exporter)])
+emit('nested', run(otel(outer)) + [take(exporter)])
+''')
+
+
+def test_an_async_generator_left_suspended_at_loop_shutdown_is_closed_once_even_if_its_cleanup_awaits():
+    result = SHUTDOWN.result()
+    assert result['plain'] == [['cleaned up']]
+    log, spans = result['wrapped']
+    assert log == ['cleaned up']  # no 'aclose(): asynchronous generator is already running' from the loop
+    (span,) = by_name(spans, 'numbers')
+    assert span['status'] == 'UNSET' and span['attributes']['opentelemetry_wrapper.closed_early'] is True
+
+
+def test_an_async_generator_started_by_a_decorated_body_is_still_closed_by_the_loop():
+    log, spans = SHUTDOWN.result()['nested']
+    assert log == ['nested cleaned up']  # the hooks were back on when the body ran
+    (span,) = by_name(spans, 'outer')
+    assert span['attributes']['opentelemetry_wrapper.closed_early'] is True
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# DEC-22's class-based case: one span from `__enter__` to `__exit__`, current in between, re-entrant. It needs `@otel`
+# on classes (OTW-6), which v1 does not do yet: pinned here so it can't be dropped unnoticed
+# ----------------------------------------------------------------------------------------------------------------------
+
+CLASS_CM = scenario(__name__, 'v1_generators_class_context_manager', PRELUDE + r'''
+with warnings.catch_warnings():
+    warnings.simplefilter('ignore')
+
+    @otel
+    class Managed:
+        def __enter__(self):
+            leaf()
+            return self
+
+        def __exit__(self, *exc_info):
+            consumer_step()
+
+
+@otel
+def body():
+    pass
+
+
+managed = Managed()
+with managed:
+    body()
+    with managed:  # re-entrant: a span per enter -> exit
+        body()
+emit('spans', take(exporter))
+''')
+
+
+@pytest.mark.xfail(strict=True, reason='DEC-22: class-based context managers need class instrumentation (OTW-6)')
+def test_a_class_based_context_manager_gets_one_span_from_enter_to_exit_current_in_between():
+    spans = CLASS_CM.result()['spans']
+    managers = [s for s in spans if 'Managed' in s['name']]
+    assert len(managers) == 2, spans  # one per `with`, not one per method call
+    assert sorted(str(s['parent']) for s in managers) == sorted(['None', managers[0]['name']])  # nested
+    names = {s['name'] for s in managers}
+    assert all(s['parent'] in names for s in by_name(spans, 'body') + by_name(spans, 'leaf'))
