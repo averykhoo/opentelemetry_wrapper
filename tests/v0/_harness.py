@@ -35,7 +35,7 @@ from tests.v0._child import RESULT_MARKER
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PYTHON = sys.executable  # the conda env's interpreter, since that's what runs pytest
 
-SCENARIO_TIMEOUT_SECONDS = 120
+SCENARIO_TIMEOUT_SECONDS = 120  # the default budget, for one small script; a scenario can set its own
 
 _PRELUDE = 'from tests.v0._child import *  # noqa\n'
 
@@ -93,18 +93,35 @@ class Result:
         return out
 
 
-def _run(args: List[str], env: Dict[str, str], cwd: Path) -> Result:
+def _text(output: Union[str, bytes, None]) -> str:
+    # `TimeoutExpired` carries what was read so far, as bytes on POSIX even when the run was in text mode
+    if isinstance(output, bytes):
+        return output.decode('utf-8', errors='replace')
+    return output or ''
+
+
+def _run(args: List[str], env: Dict[str, str], cwd: Path, timeout: float = SCENARIO_TIMEOUT_SECONDS) -> Result:
     try:
-        proc = subprocess.run(args, env=env, cwd=str(cwd), capture_output=True, timeout=SCENARIO_TIMEOUT_SECONDS,
+        proc = subprocess.run(args, env=env, cwd=str(cwd), capture_output=True, timeout=timeout,
                               encoding='utf-8', errors='replace')
     except subprocess.TimeoutExpired as e:
-        return Result(args, -1, str(e.stdout or ''), f'TIMEOUT after {SCENARIO_TIMEOUT_SECONDS}s\n{e.stderr or ""}')
-    values = {}
-    for line in proc.stdout.splitlines():
-        if line.startswith(RESULT_MARKER):
-            item = json.loads(line[len(RESULT_MARKER):])
+        return Result(args, -1, _text(e.stdout), f'TIMEOUT after {timeout}s\n{_text(e.stderr)}')
+    return Result(args, proc.returncode, proc.stdout, proc.stderr, parse_results(proc.stdout))
+
+
+def parse_results(stdout: str) -> Dict[str, object]:
+    """
+    the values a child emitted. each is one json object after the marker; whatever another thread of the child wrote
+    on the same line (a console span exporter, say) is ignored
+    """
+    values: Dict[str, object] = {}
+    decoder = json.JSONDecoder()
+    for line in stdout.splitlines():
+        at = line.find(RESULT_MARKER)
+        if at >= 0:
+            item, _ = decoder.raw_decode(line, at + len(RESULT_MARKER))
             values[item['key']] = item['value']
-    return Result(args, proc.returncode, proc.stdout, proc.stderr, values)
+    return values
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -125,10 +142,21 @@ def _tmp_dir() -> Path:
         return _TMP_DIR
 
 
+def scenario_workers() -> int:
+    """
+    how many scenarios run at once: one per core, 2 to 8, unless `OTW_SCENARIO_WORKERS` says otherwise (a nested
+    suite sets it, so the two runs together start fewer interpreters than two full pools)
+    """
+    configured = os.environ.get('OTW_SCENARIO_WORKERS', '').strip()
+    if configured:
+        return max(1, int(configured))
+    return max(2, min(8, os.cpu_count() or 2))
+
+
 def _executor() -> ThreadPoolExecutor:
     global _EXECUTOR
     if _EXECUTOR is None:
-        _EXECUTOR = ThreadPoolExecutor(max_workers=max(2, min(8, os.cpu_count() or 2)))
+        _EXECUTOR = ThreadPoolExecutor(max_workers=scenario_workers())
     return _EXECUTOR
 
 
@@ -141,6 +169,7 @@ class Scenario:
     args: Sequence[str] = ()
     env: Optional[Dict[str, Optional[str]]] = None
     cwd: Path = REPO_ROOT
+    timeout: float = SCENARIO_TIMEOUT_SECONDS
     _future: Optional[Future] = None
 
     def _command(self) -> List[str]:
@@ -152,7 +181,11 @@ class Scenario:
 
     def start(self) -> None:
         if self._future is None:
-            self._future = _executor().submit(lambda: _run(self._command(), clean_env(self.env), self.cwd))
+            # the command and the environment are built here, in the calling (pytest's) thread, never in a worker:
+            # pytest sets and deletes PYTEST_CURRENT_TEST in os.environ around every test, and a worker iterating
+            # os.environ at that moment raises KeyError
+            command, env = self._command(), clean_env(self.env)
+            self._future = _executor().submit(_run, command, env, self.cwd, self.timeout)
 
     def result(self) -> Result:
         self.start()
@@ -168,11 +201,12 @@ def scenario(module: str,
              args: Sequence[str] = (),
              env: Optional[Dict[str, Optional[str]]] = None,
              cwd: Path = REPO_ROOT,
+             timeout: float = SCENARIO_TIMEOUT_SECONDS,
              ) -> Scenario:
     """register a scenario (call at module import time, so it can be started early)"""
     assert (code is None) != (script is None)
     assert name not in _REGISTRY, f'duplicate scenario name {name!r}'
-    _REGISTRY[name] = Scenario(module, name, code, Path(script) if script else None, tuple(args), env, cwd)
+    _REGISTRY[name] = Scenario(module, name, code, Path(script) if script else None, tuple(args), env, cwd, timeout)
     return _REGISTRY[name]
 
 

@@ -75,7 +75,10 @@ def test_request_spans(otw, spans):
     assert all(r['parent'] == 'GET /hello' for r in records if r is not server)
 
 
-@pytest.mark.v0_specific  # v1 excludes the ASGI send / receive spans, leaving only the server span (OTW-3, PLAN.md)
+# v1 excludes the ASGI send / receive spans, leaving only the server span: OTW-3's design and docs/archive/PLAN.md
+# workstream 1 (`exclude_spans=['send', 'receive']`), which no decision records yet (a decision or owner question is
+# owed, OTW-22)
+@pytest.mark.v0_specific
 def test_request_spans_include_the_asgi_send_spans(otw, spans):
     app = otw.instrument_app(make_app())
     spans.clear()

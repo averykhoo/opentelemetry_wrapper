@@ -133,6 +133,7 @@ from tests.impl import IMPL as otw_impl
 otw.load()
 from fastapi import FastAPI
 from sqlalchemy import create_engine
+from tests.v0._harness import asgi_request
 exp = setup_spans()
 
 def f():
@@ -160,13 +161,18 @@ emit('dataclasses_patched', dataclasses.dataclass is not original_dataclass)
 
 app = FastAPI()
 emit('app_returned_unchanged', otw.instrument_app(app) is app)
-emit('metrics_route_added', any(route.path == '/metrics' for route in app.router.routes))
 engine = create_engine('sqlite://')
 emit('engine_returned_unchanged', otw.instrument_engine(engine) is engine)
 otw.instrument_sqlalchemy(); otw.instrument_requests()
 if otw_impl == 'v0':  # v1 drops instrument_dataclasses
     otw.instrument_dataclasses()
 emit('spans', take(exp, include_library_spans=True))
+
+# the scrape route is read after a request: v1 places it at the app's first request (OTW-12), so before one it is
+# missing whether or not the wrapper is disabled. the request comes after the spans are taken, since fastapi's own
+# telemetry (scope `fastapi`) emits a server span to whatever global provider is set, wrapper or no wrapper
+emit('metrics_status', asgi_request(app, '/metrics').status)
+emit('metrics_route_added', any(route.path == '/metrics' for route in app.router.routes))
 ''', env={'OTEL_WRAPPER_DISABLED': ' True '})
 
 
@@ -178,6 +184,7 @@ def test_disabled_makes_every_entry_point_a_no_op():
     assert result['handlers_added'] == 0
     assert result['dataclasses_patched'] is False
     assert result['app_returned_unchanged'] is True
+    assert result['metrics_status'] == 404
     assert result['metrics_route_added'] is False
     assert result['engine_returned_unchanged'] is True
     assert result['spans'] == []
