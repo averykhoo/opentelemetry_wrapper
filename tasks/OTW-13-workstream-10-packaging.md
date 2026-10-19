@@ -4,14 +4,16 @@ id: OTW-13
 title: 'Workstream 10: packaging'
 brief: integrations become extras; no grpcio; OTel capped at the next minor
 pri: NEXT
-state: open
+state: closed
 deps: [OTW-2]
 source: session 2026-10-18a
 created: 2026-10-18
-moved: 2026-10-18a
+moved: 2026-10-18l
 updated: 2026-10-18l
 aliases: [WS10]
 labels: [v1]
+status: deprecated
+closed: 2026-10-18l
 ---
 
 Criteria: AC-20. Decisions: DEC-35, DEC-36, DEC-44, DEC-57, DEC-16.
@@ -48,3 +50,4 @@ its integration; CI covers both.
 
 - 2026-10-18l (claude-code/2.1.287): 576106a (merged): pyproject (requires-python >=3.12, SDK >=1.44,<1.45, contrib 0.65b0 window, extras fastapi/sqlalchemy/requests/system-metrics/hyperscan/dev, pytest11 entry point, no opentelemetry-exporter-otlp meta package), requirements.txt aligned, py.typed, ci/test.sh modes all|core + ci/smoke_core.py, workflow matrix python x extras, tests/test_packaging.py (22 static checks, 20 sabotages). v0's deps (incl. the gRPC exporter v0 imports) stay core until 1.0.0 (DEC-80, DEC-36 amended); main is the v1 line (DEC-84). Left: root becomes v1 with lazy v0 names (DEC-80, in progress); 'each extra enables its integration' is only checked statically; first CI run of the extras axis after the next push; hyperscan wheels on 3.14 unverified.
 - 2026-10-18l (claude-code/2.1.287): 1246373 (merged): the root exports v1's otel and OtelWrapperWarning; the 19 v0 names resolve lazily via __getattr__ (DEC-80); instrument_all moved to v0/_root.py unchanged; import opentelemetry_wrapper / .v1 imports no v0 (tests/v1/test_v1_root.py, sabotaged). ci/smoke_core.py checks the root import loads no v0. Stale ASK-23 comments in pyproject/workflow/requirements now cite DEC-80.
+- 2026-10-18l (claude-code/2.1.287): closed: done in 576106a, 1246373, 9ba946b, 12cb409: strict pins, extras, entry points (pytest11, resource detectors), py.typed, root is v1 with lazy v0 names (DEC-80), CI python x extras; AC-20 tested. CI run 39184909086 (38f04fe) green on all 6 jobs: the no-extras install trial ran (5 passed), the all-extras jobs ran each extra's integration. v0's deps stay core until 1.0.0 (DEC-80).

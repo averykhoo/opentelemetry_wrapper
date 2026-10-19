@@ -3,15 +3,17 @@ type: Task
 id: OTW-14
 title: 'Workstream 11: typing'
 brief: decorated objects keep their exact type under mypy
-pri: LATER
-state: open
+pri: NEXT
+state: closed
 deps: [OTW-2]
 source: session 2026-10-18a
 created: 2026-10-18
-moved: 2026-10-18a
+moved: 2026-10-18l
 updated: 2026-10-18l
 aliases: [WS11]
 labels: [v1]
+status: deprecated
+closed: 2026-10-18l
 ---
 
 Criteria: AC-21. Decisions: DEC-25, DEC-48.
@@ -35,3 +37,4 @@ overloads, so mypy and pyright see the original signature (and the original clas
 ## Log
 
 - 2026-10-18l (claude-code/2.1.287): cf97eee (merged): tests/typing (46 reveal_type checks under mypy 2.4 for every decorated form, with- and async-with forms, instrument; wrong call is an arg-type error; sabotaged: Any return fails 21), overloads in _otel.py, [tool.mypy] in pyproject, mypy in the dev extra and requirements.txt so CI runs it. pyright skipped (needs Node). mypy on v1: 13 -> 10 errors (the rest in files other items own). Left: first CI run.
+- 2026-10-18l (claude-code/2.1.287): closed: done in cf97eee: 46 reveal_type checks under mypy for every form; ran in CI run 39184909086 (38f04fe, all-extras jobs, 892 passed). pyright skipped (needs Node). @otel on a class returning it unchanged is OTW-6's.

@@ -4,7 +4,7 @@ id: OTW-3
 title: 'Workstream 1: configure, and idempotent, never-crash wrappers over the SDK and contrib'
 brief: global providers set once under the configuration lock; wrappers keep the target's kind and signature
 pri: NOW
-state: open
+state: closed
 deps: [OTW-2]
 source: session 2026-10-18a
 created: 2026-10-18
@@ -12,6 +12,8 @@ moved: 2026-10-18l
 updated: 2026-10-18l
 aliases: [WS1]
 labels: [v1]
+status: deprecated
+closed: 2026-10-18l
 ---
 
 Criteria: AC-1 to AC-7, AC-22, AC-25 to AC-27, AC-32; the plain `tests/v0` decorator tests under `OTW_IMPL=v1` (part of AC-8). Decisions: DEC-19, DEC-20, DEC-21, DEC-23, DEC-24, DEC-25, DEC-26, DEC-27, DEC-28, DEC-3, DEC-5, DEC-8, DEC-9, DEC-10, DEC-11, DEC-45, DEC-46, DEC-49, DEC-50, DEC-52.
@@ -65,3 +67,4 @@ built, someone-else-configured-first), disabled mode and the pytest plugin pass 
 - 2026-10-18l (claude-code/2.1.287): c1a93fa (merged): review fixes 1,3-10 with failing-first tests; bounded-shutdown and fork-Finalize tests; 13 v0 naming tests marked v0_specific (DEC-47/52/31), 3 xfails conditional on v0. OTW_IMPL=v1: 61 failed / 533 passed. In progress: DEC-81 (runtime warnings to stderr once).
 - 2026-10-18l (claude-code/2.1.287): 1246373 (merged): DEC-81, runtime warnings (second unnamed block, implicit configure at first span/call) go to stderr once per site via _warnings.runtime(); explicit configure and decoration keep warnings.warn (tests/v1/test_v1_runtime_warnings.py). Gate 781 passed; OTW_IMPL=v1 61 failed / 634 passed (all in tests/v0 classes/fastapi/logging/setup/sqlalchemy).
 - 2026-10-18l (claude-code/2.1.287): AC-1..7, 25, 26, 27, 32 tested (38dbc82). AC-22 stays planned: no test yet that our own entry points emit no spans or logs at runtime.
+- 2026-10-18l (claude-code/2.1.287): closed: done in 2db244e, c1a93fa, 1246373, 12cb409: v1 otel object, configure, never-crash idempotent wrappers, pytest plugin, runtime warnings to stderr (DEC-81); AC-1..7, 22, 25, 26, 27, 32 tested; the plain tests/v0 decorator tests pass under OTW_IMPL=v1 (13 v0-naming ones v0_specific per DEC-47/52/31). Gate 889 passed. AC-6's two-handlers clause moved to OTW-11 (WS8).

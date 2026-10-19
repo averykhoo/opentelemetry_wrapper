@@ -3,13 +3,13 @@ type: Task
 id: OTW-6
 title: 'Workstream 4: classes and dataclasses'
 brief: wrap cls.__dict__ at decoration time; never patch __getattribute__
-pri: LATER
+pri: NEXT
 state: open
 deps: [OTW-10]
 source: session 2026-10-18a
 created: 2026-10-18
-moved: 2026-10-18a
-updated: 2026-10-18a
+moved: 2026-10-18l
+updated: 2026-10-18l
 aliases: [WS4]
 labels: [v1]
 ---
