@@ -326,7 +326,7 @@ def instrument_app(app: Any, notes: List[str]) -> Any:
 def _excluded_urls(prometheus_path: str, environ: Mapping[str, str]) -> Optional[str]:
     """upstream's `excluded_urls`: the app's own choice (`OTEL_PYTHON_FASTAPI_EXCLUDED_URLS`, else
     `OTEL_PYTHON_EXCLUDED_URLS`, which passing the argument would otherwise replace), plus the Prometheus path
-    exactly"""
+    exactly, with and without its trailing slash"""
     from opentelemetry_wrapper.v1 import _prometheus
     if not prometheus_path:
         return None  # upstream reads the variables itself

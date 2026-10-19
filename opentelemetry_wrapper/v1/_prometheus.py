@@ -7,8 +7,11 @@ global registry, where our `PrometheusMetricReader` (built at configure time, `_
   `prometheus_client.start_http_server`. it is built from public pieces rather than by `start_http_server`, which sets
   `SO_REUSEADDR`: on Windows that lets a second worker bind a port the first one holds, silently, so scrapes reach
   either. here the second worker fails to bind on every platform, and the caller warns once
-* the route is `app.add_route(path, ...)`, never `app.mount`: a mount serves everything under `path/` and redirects
-  `path` there, which an exact-path exclusion from request spans would miss
+* the route is a plain `Route`, never `app.mount`: a mount serves everything under `path/` and redirects `path`
+  there, which an exact-path exclusion from request spans would miss. it is served both with and without a trailing
+  slash (`/metrics` and `/metrics/`, whichever form the path was given in), as two routes, so neither form redirects
+  and there is nothing for a proxy to break (DEC-92); both are untraced, and each yields to the app's own route at
+  exactly that path
 * several workers per container each have their own metrics; only one binds the port, and the route answers from
   whichever worker took the request. in multi-worker deployments use OTLP push, or one worker per container
 """
@@ -61,11 +64,18 @@ def start_server(host: str, port: int) -> Any:
     return server
 
 
+def forms(path: str) -> Tuple[str, str]:
+    """the two paths the scrape is served at: `path` without and with its trailing slash (DEC-92)"""
+    base = path.rstrip('/')
+    return base, base + '/'
+
+
 def excluded_url(path: str) -> str:
-    """a regex for upstream's `excluded_urls` that matches the request url of exactly this path: upstream searches
-    `scheme://host` + the scope's path, so `/api/metrics` and `/metricsfoo` still get request spans. (an app served
-    under a `root_path` has it in the scope's path too: `untraced_under_root_path` handles that)"""
-    return f'^[^:/]+://[^/]*{re.escape(path)}$'
+    """a regex for upstream's `excluded_urls` that matches the request url of exactly this path, with or without its
+    trailing slash: upstream searches `scheme://host` + the scope's path, so `/api/metrics`, `/metricsfoo` and
+    `/metrics/foo` still get request spans. (an app served under a `root_path` has it in the scope's path too:
+    `untraced_under_root_path` handles that)"""
+    return f'^[^:/]+://[^/]*{re.escape(forms(path)[0])}/?$'
 
 
 def endpoint(request: Any) -> Any:
@@ -85,26 +95,31 @@ def has_route(app: Any, path: str) -> bool:
 
 
 def place_route(app: Any, path: str) -> None:
-    """the scrape route, unless the app has its own at exactly that path; first among the routes, so a catch-all
-    such as a single-page app's `/{full_path:path}` can't answer the scrape instead (Starlette takes the first)"""
+    """the scrape routes, at `path` without and with its trailing slash, each unless the app has its own at exactly
+    that path; first among the routes, so a catch-all such as a single-page app's `/{full_path:path}` can't answer
+    the scrape instead (Starlette takes the first)"""
     from starlette.routing import Route
-    if not has_route(app, path):
-        app.router.routes.insert(0, Route(path, endpoint=endpoint, include_in_schema=False))
+    missing = [form for form in forms(path) if not has_route(app, form)]
+    app.router.routes[:0] = [Route(form, endpoint=endpoint, include_in_schema=False) for form in missing]
 
 
 class untraced_under_root_path:  # noqa: N801 - a middleware, named for what it does
-    """the outermost ASGI layer: a scrape of `root_path` + `path` (uvicorn `--root-path`, `FastAPI(root_path=...)`)
-    reaches the stack with `path` alone, which upstream's exact-path exclusion matches, so it makes no request span
-    either; Starlette's routing still finds the route (a path outside the root path is routed as it is). the wrapped
+    """the outermost ASGI layer: a scrape of `root_path` + `path` (uvicorn `--root-path`, `FastAPI(root_path=...)`;
+    `path` with or without its trailing slash) reaches the stack with that path alone, which upstream's exact-path
+    exclusion matches, so it makes no request span either; Starlette's routing still finds the route (a path outside
+    the root path is routed as it is). the wrapped
     stack is `.app`, as in every Starlette middleware: FastAPI walks that chain to find upstream's middleware, and
     without it adds its own request spans too"""
 
     def __init__(self, app: Any, path: str) -> None:
         self.app = app
-        self.path = path
+        self.paths = forms(path)
 
     async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
         root_path = (scope.get('root_path') or '').rstrip('/')
-        if root_path and scope.get('type') == 'http' and scope.get('path') == root_path + self.path:
-            scope = dict(scope, path=self.path)
+        if root_path and scope.get('type') == 'http':
+            for path in self.paths:
+                if scope.get('path') == root_path + path:
+                    scope = dict(scope, path=path)
+                    break
         await self.app(scope, receive, send)

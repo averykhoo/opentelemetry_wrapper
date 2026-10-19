@@ -241,9 +241,11 @@ Configuration is fixed once it's been set up: a later call with different option
 the log level can still change).
 
 **Metrics:** push them (OTLP, when an endpoint is set) or let Prometheus scrape them, from the app's own port (the
-`/metrics` route on FastAPI apps, which makes no request span, under a `root_path` too; only that exact path, so
-`/api/metrics` is traced as usual; a `/metrics` route of the app's own, even one declared after `otel.instrument(app)`,
-is kept instead) or from a separate port (`OTEL_EXPORTER_PROMETHEUS_PORT`, which serves metrics on every path). With several
+`/metrics` route on FastAPI apps, which makes no request span, under a `root_path` too; it answers at both `/metrics`
+and `/metrics/`, whichever form the path is given in, with no redirect (DEC-92); only those two paths, so `/api/metrics`
+and `/metrics/foo` are traced as usual; a route of the app's own at either path, even one declared after
+`otel.instrument(app)`, is kept instead) or from a separate port (`OTEL_EXPORTER_PROMETHEUS_PORT`, which serves metrics on
+every path; `OTEL_METRICS_EXPORTER=prometheus` alone serves it on the spec's default port, 9464, DEC-92). With several
 workers per container (`uvicorn --workers N`, gunicorn), each worker has its own metrics: only one can listen on the
 Prometheus port (the others warn once and carry on), and the `/metrics` route answers from whichever worker took the
 request. In multi-worker deployments use push, or one worker per container.
@@ -257,7 +259,7 @@ request. In multi-worker deployments use push, or one worker per container.
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | where to push traces, logs and metrics (OTLP over HTTP, usually port 4318). Logs are OTel log records carrying the current span's trace and span ids. Per-signal variants `OTEL_EXPORTER_OTLP_{TRACES,LOGS,METRICS}_ENDPOINT` override it | nothing is exported |
 | `OTEL_EXPORTER_OTLP_HEADERS` | headers sent to the endpoint: `key=value,key2=value2` | none |
 | `OTEL_TRACES_SAMPLER` / `OTEL_TRACES_SAMPLER_ARG` | which traces to keep, decided at the root span and followed by its children. To keep 10%: `OTEL_TRACES_SAMPLER=parentbased_traceidratio` and `OTEL_TRACES_SAMPLER_ARG=0.1` | keep everything |
-| `OTEL_TRACES_EXPORTER` / `OTEL_LOGS_EXPORTER` / `OTEL_METRICS_EXPORTER` | `otlp`, `console` (print to the terminal, for local debugging) or `none`; for metrics also `prometheus`, which serves them on `OTEL_EXPORTER_PROMETHEUS_PORT` (default 9464) | `otlp` when an endpoint is set |
+| `OTEL_TRACES_EXPORTER` / `OTEL_LOGS_EXPORTER` / `OTEL_METRICS_EXPORTER` | `otlp`, `console` (print to the terminal, for local debugging) or `none`; for metrics also `prometheus`, which serves them on `OTEL_EXPORTER_PROMETHEUS_PORT` (default 9464, DEC-92) | `otlp` when an endpoint is set |
 | `OTEL_EXPORTER_PROMETHEUS_PORT` / `_HOST` | serve metrics for Prometheus on this port and interface. In Kubernetes, set `_HOST=0.0.0.0` | not served unless `OTEL_METRICS_EXPORTER` names `prometheus` (port 9464); host `localhost` |
 | `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_*` | record raw request/response headers as span attributes | none |
 
@@ -272,7 +274,7 @@ request. In multi-worker deployments use push, or one worker per container.
 | `OTEL_WRAPPER_HEADER_ATTRIBUTES_EXCLUDE` | comma-separated glob patterns of decoded claims to leave out, matched against the flattened name (e.g. `realm_access.roles`, `email`); they are added to the default patterns, which only `otel.configure(header_attributes_exclude=[...])` replaces | `*token*,at_hash,c_hash,nonce,session_state,sid` (always applied unless replaced in code) |
 | `OTEL_WRAPPER_RESPONSE_HEADER_ATTRIBUTES` | comma-separated response headers from `requests` calls to record on the client span | Kong and Envoy headers, e.g. `X-Envoy-Upstream-Service-Time` |
 | `OTEL_WRAPPER_SQLALCHEMY_COMMENTER` | add a sqlcommenter comment to every SQLAlchemy query traced from then on: `true` (driver, framework and traceparent), or a comma-separated choice of `db_driver`, `db_framework` and `opentelemetry_values` (the traceparent), plus `attribute` to also record the commented statement on the span | `false` (queries run unchanged) |
-| `OTEL_WRAPPER_PROMETHEUS_PATH` | path for the `/metrics` route added to FastAPI apps; empty to disable | `/metrics` |
+| `OTEL_WRAPPER_PROMETHEUS_PATH` | path for the `/metrics` route added to FastAPI apps, served with and without its trailing slash (DEC-92); empty to disable | `/metrics` |
 | `OTEL_WRAPPER_CAPTURE_COMMAND_ARGS` | record the process's full command line (secrets redacted); `false` to leave it out | `true` |
 | `OTEL_WRAPPER_PODINFO_DIR` | where the pod's labels and annotations are mounted (Downward API volume, see below) | `/etc/podinfo` |
 

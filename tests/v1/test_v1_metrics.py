@@ -266,6 +266,36 @@ emit('server', visit(under(otel.instrument(make_app())), ['/svc/metrics', '/svc/
 emit('app', visit(otel.instrument(FastAPI(root_path='/svc/')), ['/svc/metrics', '/metrics']))
 ''')
 
+_SLASH_SCRIPT = _ROUTE_PRELUDE + under_root_path('/svc') + r'''
+def scrape(app, paths):  # visit, plus the redirect a response would carry
+    out = {}
+    for path in paths:
+        exporter.clear()
+        response = asgi_request(app, path)
+        out[path] = [response.status, response.headers.get('location'), '# HELP' in response.text, server_spans()]
+    return out
+
+
+app = otel.instrument(make_app())
+emit('visits', scrape(app, ['/metrics', '/metrics/', '/metrics/foo', '/api/metrics', '/metricsfoo']))
+emit('routes', [r.path for r in app.routes if r.path.startswith('/metrics')])
+emit('root_path', scrape(under(otel.instrument(make_app())), ['/svc/metrics', '/svc/metrics/', '/svc/metrics/foo']))
+emit('app_root_path', scrape(otel.instrument(FastAPI(root_path='/svc')), ['/svc/metrics', '/svc/metrics/']))
+own = otel.instrument(FastAPI())
+
+
+@own.get('/metrics/')  # the app's own, at one of the two forms: that form is the app's, the other still scrapes
+def own_metrics():
+    return 'mine'
+
+
+emit('own', scrape(own, ['/metrics', '/metrics/']))
+'''
+
+ROUTE_SLASH = scenario(__name__, 'v1_metrics_route_trailing_slash', _SLASH_SCRIPT,
+                       env={'OTEL_WRAPPER_PROMETHEUS_PATH': '/metrics/'})
+ROUTE_NO_SLASH = scenario(__name__, 'v1_metrics_route_no_trailing_slash', _SLASH_SCRIPT)
+
 ROUTE_OFF = scenario(__name__, 'v1_metrics_route_off', _ROUTE_PRELUDE + r'''
 app = otel.instrument(make_app())
 emit('visits', visit(app, ['/metrics', '/api/metrics']))
@@ -275,7 +305,8 @@ emit('visits', visit(app, ['/metrics', '/api/metrics']))
 @pytest.mark.criterion('AC-19')
 def test_the_metrics_route_serves_prometheus_without_a_request_span_and_api_metrics_gets_one():
     result = ROUTE.result()
-    assert result['routes'] == [['/metrics', False], ['/api/metrics', False], ['/metricsfoo', False]]  # no Mount
+    assert result['routes'] == [['/metrics', False], ['/metrics/', False], ['/api/metrics', False],
+                                ['/metricsfoo', False]]  # no Mount
     visits = result['visits']
     assert visits['/metrics'] == [200, True, []]
     assert visits['/api/metrics'] == [200, False, ['/api/metrics']]
@@ -316,3 +347,22 @@ def test_under_a_root_path_the_scrape_still_makes_no_request_span():  # review o
     assert result['server']['/svc/api/metrics'] == [200, False, ['/svc/api/metrics']]
     assert result['server']['/svc/hello'] == [200, False, ['/svc/hello']]
     assert result['app'] == {'/svc/metrics': [200, True, []], '/metrics': [200, True, []]}
+
+
+@pytest.mark.criterion('AC-19')
+@pytest.mark.parametrize('scenario_', [ROUTE_SLASH, ROUTE_NO_SLASH], ids=['given /metrics/', 'given /metrics'])
+def test_the_scrape_is_served_with_and_without_the_trailing_slash_without_a_redirect(scenario_):  # DEC-92
+    result = scenario_.result()
+    scrape = [200, None, True, []]  # no redirect, the exposition, no request span
+    visits = result['visits']
+    assert visits['/metrics'] == scrape and visits['/metrics/'] == scrape
+    assert visits['/metrics/foo'] == [404, None, False, ['/metrics/foo']]  # only the two forms are untraced
+    assert visits['/api/metrics'] == [200, None, False, ['/api/metrics']]
+    assert visits['/metricsfoo'] == [200, None, False, ['/metricsfoo']]
+    assert result['routes'] == ['/metrics', '/metrics/', '/metricsfoo']
+    root_path = result['root_path']
+    assert root_path['/svc/metrics'] == scrape and root_path['/svc/metrics/'] == scrape
+    assert root_path['/svc/metrics/foo'] == [404, None, False, ['/svc/metrics/foo']]
+    assert result['app_root_path'] == {'/svc/metrics': scrape, '/svc/metrics/': scrape}
+    assert result['own']['/metrics'] == scrape
+    assert result['own']['/metrics/'] == [200, None, False, []]  # the app's route, untraced like the scrape
