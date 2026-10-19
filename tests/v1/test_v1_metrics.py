@@ -275,7 +275,7 @@ emit('visits', visit(app, ['/metrics', '/api/metrics']))
 @pytest.mark.criterion('AC-19')
 def test_the_metrics_route_serves_prometheus_without_a_request_span_and_api_metrics_gets_one():
     result = ROUTE.result()
-    assert result['routes'] == [['/metrics', False], ['/api/metrics', False], ['/metricsfoo', False]]  # no Mount, first
+    assert result['routes'] == [['/metrics', False], ['/api/metrics', False], ['/metricsfoo', False]]  # no Mount
     visits = result['visits']
     assert visits['/metrics'] == [200, True, []]
     assert visits['/api/metrics'] == [200, False, ['/api/metrics']]

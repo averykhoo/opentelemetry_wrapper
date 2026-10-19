@@ -86,7 +86,7 @@ def has_route(app: Any, path: str) -> bool:
 
 def place_route(app: Any, path: str) -> None:
     """the scrape route, unless the app has its own at exactly that path; first among the routes, so a catch-all
-    such as a single-page app's `/{full_path:path}` can't answer the scrape instead (Starlette takes the first match)"""
+    such as a single-page app's `/{full_path:path}` can't answer the scrape instead (Starlette takes the first)"""
     from starlette.routing import Route
     if not has_route(app, path):
         app.router.routes.insert(0, Route(path, endpoint=endpoint, include_in_schema=False))
