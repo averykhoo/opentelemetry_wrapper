@@ -4,9 +4,28 @@ Append-only, newest first, one entry per session (FRAMEWORK §7.1).
 
 ---
 
-## 2026-10-19a · kind: open
+## 2026-10-19a · kind: close
 
-- **opened:** 2026-10-19T10:26:27+08:00 by claude-code/2.1.287
+- **rows:** OTW-10, OTW-6, OTW-7, OTW-4, OTW-11, OTW-12, OTW-22, OTW-16, OTW-23, OTW-19
+- **receipts:**
+  - guards: gate PASSED in 148.5s (1151 passed, 5 skipped, 23 xfailed in 146.14s (0:02:26)) on
+    g1/code:ee6a2b3e7f0c285c
+  - read: orient, BATON-1, OTW-10/6/16/19 bodies, DEC-37, DEC-53, DEC-79, each workflow's journal,
+    CI runs via the REST API
+  - asked: DEC-22 parenting, push permission, DEC-89 inherited methods, DEC-90 denylist, DEC-91
+    commenter and aiosqlite, DEC-92 prometheus switch and trailing slash, DEC-93 ASGI spans, DEC-94
+    debug message; ASK-25 left open
+- **summary** (the owner digest):
+  - BATON-1 done; closed OTW-10, 6, 7, 4, 11, 12 (the whole v1 chain), OTW-22 (AC-8: tests/v0 passes
+    under v1) and OTW-16 (README.md is v1's), OTW-23 (scrubbing-failure reports)
+  - Owner decisions DEC-87 to DEC-94; DEC-22 and DEC-59 amended; DEC-94 amended twice (final: A +
+    shape)
+  - Criteria tested now include AC-8, 9, 11, 12, 17, 18, 19, 28, 29, 30, 31, 33
+  - Every merge pushed and CI green on 6 jobs (last checked e96536f); no release (DEC-85)
+  - Waiting on the owner: ASK-25, OTW-21; OTW-15 waits on upstream; OTW-19 (records errata) is NOW
+  - The GitHub token in .scratch/gh_token is rejected (Bad credentials): CI logs need a new one
+- **Still owed:**
+  - ASK-25 and OTW-21 need the owner; a new GitHub token for CI logs
 
 ---
 

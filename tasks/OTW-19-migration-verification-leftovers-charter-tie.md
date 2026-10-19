@@ -3,13 +3,13 @@ type: Task
 id: OTW-19
 title: 'Migration verification leftovers: charter tie-break, two uncovered v0 bugs, adoption-map errata'
 brief: What the 2026-10-18c verification confirmed but left for the owner or a correction
-pri: LATER
+pri: NOW
 state: open
 deps: []
 source: session 2026-10-18c
 created: 2026-10-18
-moved: 2026-10-18c
-updated: 2026-10-18h
+moved: 2026-10-19a
+updated: 2026-10-19a
 ---
 
 The 2026-10-18c verification (five independent checkers plus a skeptic each) found no lost content and no blocker; these confirmed findings remain.
