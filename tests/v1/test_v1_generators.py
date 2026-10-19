@@ -10,13 +10,12 @@ from tests.v0._harness import scenario
 from tests.v1._prelude import PRELUDE as BASE_PRELUDE
 
 
-
 def by_name(spans, suffix):
     return [s for s in spans if s['name'].endswith(suffix)]
 
 
 PRELUDE = ASGI_HELPER_SOURCE + BASE_PRELUDE + r'''
-import asyncio, contextlib, inspect, time, gc
+import asyncio, contextlib, gc, inspect, os, time, weakref
 
 
 @otel
@@ -174,6 +173,49 @@ never_started.close()
 del never_started
 emit('never_started_spans', take(exporter))
 emit('is_gen', [inspect.isgeneratorfunction(otel(source)), inspect.isgeneratorfunction(breaks)])
+
+
+class Big:
+    pass
+
+
+class Thrown(KeyError):  # a builtin exception can't be weakly referenced
+    pass
+
+
+def holder():
+    while True:
+        try:
+            yield Big()
+        except KeyError:
+            pass
+
+
+def held(factory):  # what is still alive while the generator is suspended, beside what the target holds itself
+    gc.disable()
+    try:
+        it = factory()
+        value = next(it)
+        value_ref = weakref.ref(value)
+        del value
+        value_alive = value_ref() is not None  # suspended after handing it out
+        error = Thrown()
+        error_ref = weakref.ref(error)
+        value = it.throw(error)
+        del error, value
+        return [value_alive, error_ref() is not None]
+    finally:
+        gc.enable()
+
+
+emit('held', [held(holder), held(otel(holder))])
+exporter.clear()
+
+wrapped = otel(source)  # decorated while enabled; disabled afterwards, at call time (DEC-24)
+os.environ['OTEL_WRAPPER_DISABLED'] = 'true'
+emit('disabled_same', drive(wrapped) == plain)
+emit('disabled_spans', take(exporter))
+del os.environ['OTEL_WRAPPER_DISABLED']
 ''')
 
 
@@ -211,6 +253,17 @@ def test_a_generator_that_raises_ends_its_span_once_with_error_and_the_exception
 @pytest.mark.criterion('AC-17')
 def test_a_generator_never_started_makes_no_span():
     assert PROTOCOL.result()['never_started_spans'] == []
+
+
+@pytest.mark.criterion('AC-17')
+def test_a_suspended_generator_wrapper_holds_neither_the_value_it_handed_out_nor_a_thrown_exception():
+    assert PROTOCOL.result()['held'] == [[False, False], [False, False]]
+
+
+@pytest.mark.criterion('AC-17')
+def test_a_generator_disabled_at_call_time_behaves_exactly_as_unwrapped_and_makes_no_span():
+    result = PROTOCOL.result()
+    assert result['disabled_same'] is True and result['disabled_spans'] == []
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -315,6 +368,42 @@ async def main():
         break  # left suspended: the loop's finalizer hook schedules `aclose()`
     await asyncio.sleep(0)
     emit('is_asyncgen', inspect.isasyncgenfunction(otel(source)))
+    emit('held', [await held(holder), await held(otel(holder))])
+
+
+class Big:
+    pass
+
+
+class Thrown(KeyError):  # a builtin exception can't be weakly referenced
+    pass
+
+
+async def holder():
+    while True:
+        try:
+            yield Big()
+        except KeyError:
+            pass
+
+
+async def held(factory):
+    gc.disable()
+    try:
+        it = factory()
+        value = await it.asend(None)
+        value_ref = weakref.ref(value)
+        del value
+        value_alive = value_ref() is not None  # suspended after handing it out
+        error = Thrown()
+        error_ref = weakref.ref(error)
+        value = await it.athrow(error)
+        del error, value
+        alive = [value_alive, error_ref() is not None]
+        await it.aclose()
+        return alive
+    finally:
+        gc.enable()
 
 
 asyncio.run(main())
@@ -343,6 +432,11 @@ def test_an_async_generator_span_is_current_only_while_its_body_runs_and_counts_
     assert gen['parent'] == '__main__.outer' and gen['status'] == 'OK'
     assert gen['attributes']['opentelemetry_wrapper.yields'] == 2
     assert gen['attributes']['opentelemetry_wrapper.active_seconds'] >= 0.02
+
+
+@pytest.mark.criterion('AC-17')
+def test_a_suspended_async_generator_wrapper_holds_neither_the_value_it_handed_out_nor_a_thrown_exception():
+    assert ASYNC.result()['held'] == [[False, False], [False, False]]
 
 
 @pytest.mark.criterion('AC-17')

@@ -7,6 +7,9 @@
 * disabled (DEC-24): decorating returns the target unchanged, and existing wrappers check at call time
 * no arguments or return values on spans (DEC-26); exceptions re-raise with a bare `raise`, and the wrapper frames
   set `__tracebackhide__` (pytest) and `__traceback_hide__` (Sentry and others)
+* generators and async generators (DEC-22): one span per generator, current only while its body runs, the wrapper
+  itself a (async) generator function; over `@contextmanager` / `@asynccontextmanager`, one span from enter to exit,
+  current across the yield so the `with` body is its child (put `@otel` on top: underneath, it sees a generator)
 """
 import contextlib
 import functools
@@ -15,6 +18,8 @@ import time
 import types
 import weakref
 from typing import Any
+from typing import AsyncIterator
+from typing import Iterator
 from typing import List
 from typing import Mapping
 from typing import Optional
@@ -26,9 +31,20 @@ from opentelemetry_wrapper.v1 import _spans
 from opentelemetry_wrapper.v1._warnings import runtime
 from opentelemetry_wrapper.v1._warnings import warn
 
+
 # every `@contextmanager` function shares one `__code__` object, and exposes the generator function as `__wrapped__`
-_SYNC_CM_CODE = contextlib.contextmanager(lambda: (yield)).__code__
-_ASYNC_CM_CODE = contextlib.asynccontextmanager(lambda: (yield)).__code__
+@contextlib.contextmanager
+def _sync_cm_probe() -> Iterator[None]:
+    yield
+
+
+@contextlib.asynccontextmanager
+async def _async_cm_probe() -> AsyncIterator[None]:
+    yield
+
+
+_SYNC_CM_CODE = _sync_cm_probe.__code__
+_ASYNC_CM_CODE = _async_cm_probe.__code__
 MARK = '__opentelemetry_wrapper__'  # set on every wrapper we make
 _CACHE = '__opentelemetry_wrapper_cache__'  # set on the underlying function: its wrapper
 _fallback_cache: 'weakref.WeakKeyDictionary[Any, weakref.ref]' = weakref.WeakKeyDictionary()
@@ -145,7 +161,10 @@ def _context_manager_kind(target: Any) -> Optional[str]:
 def _sync_generator(target: Any, span_name: str, span_attributes: dict, hold: bool) -> Any:
     """a generator function over a generator function (DEC-22): one span from the first `next()` to exhaustion,
     close or garbage collection, current only while the body runs (`hold`, for a context manager: across the yield).
-    `send`, `throw` and `close` are forwarded, so the target sees exactly what it would without us"""
+    `send`, `throw` and `close` are forwarded, so the target sees exactly what it would without us
+
+    the wrapper is itself a generator function, so FastAPI and pytest still see a `yield`; the price is that nothing
+    runs when it is called: the target's arguments are bound, and the span parented, at the first `next()`"""
     disabled = _env.disabled
     start, finish, clock = _spans.start, _spans.finish, time.perf_counter
 
@@ -158,32 +177,32 @@ def _sync_generator(target: Any, span_name: str, span_attributes: dict, hold: bo
         scope = start(span_name, span_attributes, attach=hold)
         yields, active = 0, 0.0
 
-        def run(call, *argument):  # one step of the body, with the span current
+        def run(call, argument=None):  # one step of the body, with the span current
             nonlocal active
             token = None if hold else _spans.attach(scope)
             began = clock()
             try:
-                return call(*argument)
+                return call() if argument is None else call(argument)
             finally:
                 active += clock() - began
                 _spans.detach(token)
 
-        to_send, to_throw = None, None
+        step, argument = gen.__next__, None
         try:
             while True:
-                if to_throw is not None:
-                    thrown, to_throw = to_throw, None
-                    value = run(gen.throw, thrown)
-                else:
-                    value = run(gen.send, to_send)
+                box = [run(step, argument)]  # StopIteration at the end
                 yields += 1
+                step = argument = None  # nothing of ours holds a sent value or a thrown exception while suspended
                 try:
-                    to_send = yield value
+                    sent = yield box.pop()  # ... nor the value handed out
                 except GeneratorExit:
                     run(gen.close)
                     raise
                 except BaseException as e:
-                    to_throw = e
+                    step, argument = gen.throw, e
+                else:
+                    step, argument = (gen.__next__, None) if sent is None else (gen.send, sent)
+                    del sent
         except StopIteration as stop:
             finish(scope, None, _tally(yields, active))
             return stop.value
@@ -209,32 +228,32 @@ def _async_generator(target: Any, span_name: str, span_attributes: dict, hold: b
             scope = start(span_name, span_attributes, attach=hold)
         yields, active = 0, 0.0
 
-        async def run(call, *argument):
+        async def run(call, argument=None):
             nonlocal active
             token = None if hold else _spans.attach(scope)
             began = clock()
             try:
-                return await call(*argument)
+                return await (call() if argument is None else call(argument))
             finally:
                 active += clock() - began
                 _spans.detach(token)
 
-        to_send, to_throw = None, None
+        step, argument = agen.__anext__, None
         try:
             while True:
-                if to_throw is not None:
-                    thrown, to_throw = to_throw, None
-                    value = await run(agen.athrow, thrown)
-                else:
-                    value = await run(agen.asend, to_send)
+                box = [await run(step, argument)]  # StopAsyncIteration at the end
                 yields += 1
+                step = argument = None
                 try:
-                    to_send = yield value
+                    sent = yield box.pop()
                 except GeneratorExit:
                     await run(agen.aclose)
                     raise
                 except BaseException as e:
-                    to_throw = e
+                    step, argument = agen.athrow, e
+                else:
+                    step, argument = (agen.__anext__, None) if sent is None else (agen.asend, sent)
+                    del sent
         except StopAsyncIteration:
             finish(scope, None, _tally(yields, active))
         except BaseException as e:
@@ -261,7 +280,7 @@ def _make_wrapper(target: Any, name: Optional[str], attributes: Optional[dict]) 
         inner = builder(target.__wrapped__, span_name, span_attributes, True)
         functools.update_wrapper(inner, target.__wrapped__, updated=('__dict__',))
         rewrapped = (contextlib.asynccontextmanager if cm_kind == 'async' else contextlib.contextmanager)(inner)
-        rewrapped.__wrapped__ = target  # type: ignore[attr-defined]  # as every other wrapper: the cache key
+        rewrapped.__wrapped__ = target  # type: ignore[union-attr]  # as every other wrapper: the cache key
         setattr(rewrapped, MARK, True)
         return rewrapped
 
