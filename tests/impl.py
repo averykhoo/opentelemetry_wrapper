@@ -32,7 +32,8 @@ the interface:
     __all__                 v0's `__all__`, translated to the neutral names
 
     neutral name            v1 (`otel` is `opentelemetry_wrapper.v1.otel`)
-    decorate                `otel(f)`, or `otel(name=func_name)(f)`
+    decorate                `otel(f)`, or `otel(f, name=func_name)`; `properties=True` (v1 only): a class's
+                            properties too
     instrument_app          `otel.instrument(app)`
     instrument_engine       `otel.instrument(engine)`
     setup                   `otel.instrument()`, plus `otel.instrument(sqlalchemy)` for `sqlalchemy=True`
@@ -86,9 +87,11 @@ def import_v1() -> types.ModuleType:
     return v1
 
 
-def _v1_decorate(func: Any, /, *, func_name: Optional[str] = None) -> Any:
+def _v1_decorate(func: Any, /, *, func_name: Optional[str] = None, properties: Optional[bool] = None) -> Any:
+    """`properties` is v1-only (a class's properties are opt-in, DEC-53): v0 has no such option, so a test passes it
+    only under v1"""
     otel = import_v1().otel
-    return otel(name=func_name)(func) if func_name is not None else otel(func)
+    return otel(func, name=func_name, properties=properties)
 
 
 def _v1_module(name: str):

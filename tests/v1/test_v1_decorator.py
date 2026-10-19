@@ -186,16 +186,13 @@ class Callable:
     def __call__(self, x):
         return x
 
-class Klass:
-    pass
-
 with warnings.catch_warnings(record=True) as caught:
     warnings.simplefilter('always')
     emit('int_unchanged', otel(42) == 42)
     emit('int_warnings', otel_warnings(caught))
     caught.clear()
-    emit('class_unchanged', otel(Klass) is Klass)
-    emit('class_warnings', len(otel_warnings(caught)))
+    emit('class_unchanged', otel(dict) is dict)  # a built-in type can't be changed (OTW-6)
+    emit('class_warnings', otel_warnings(caught))
     caught.clear()
     emit('partial', otel(functools.partial(plain, 3))(5))
     emit('callable', otel(Callable())(5))
@@ -210,7 +207,8 @@ def test_an_unsupported_target_is_returned_unchanged_with_one_warning():  # AC-7
     result = UNSUPPORTED.result()
     assert result['int_unchanged'] is True
     assert len(result['int_warnings']) == 1 and 'not callable' in result['int_warnings'][0]
-    assert result['class_unchanged'] is True and result['class_warnings'] == 1
+    assert result['class_unchanged'] is True
+    assert len(result['class_warnings']) == 1 and 'built-in or extension type' in result['class_warnings'][0]
 
 
 def test_partials_and_callable_instances_are_wrapped_without_warnings():  # AC-7, AC-10 (partly)

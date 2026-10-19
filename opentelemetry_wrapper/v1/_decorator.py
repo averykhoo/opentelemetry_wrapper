@@ -7,6 +7,7 @@
 * disabled (DEC-24): decorating returns the target unchanged, and existing wrappers check at call time
 * no arguments or return values on spans (DEC-26); exceptions re-raise with a bare `raise`, and the wrapper frames
   set `__tracebackhide__` (pytest) and `__traceback_hide__` (Sentry and others)
+* classes: `_classes` (OTW-6, DEC-53)
 * generators and async generators (DEC-22): one span per generator, current only while its body runs, the wrapper
   itself a (async) generator function; over `@contextmanager` / `@asynccontextmanager`, one span from enter to exit,
   current across the yield so the `with` body is its child (put `@otel` on top: underneath, it sees a generator)
@@ -97,13 +98,20 @@ def _remember(func: Any, wrapper: Any) -> None:
         pass
 
 
-def decorate(target: Any, name: Optional[str] = None, attributes: Optional[Mapping[str, Any]] = None) -> Any:
-    """the public `@otel` for routines; warnings are emitted at the end, outside our own `try`"""
+def decorate(target: Any, name: Optional[str] = None, attributes: Optional[Mapping[str, Any]] = None,
+             properties: bool = False) -> Any:
+    """the public `@otel` for routines and classes (`properties`: a class's properties too, DEC-53); warnings are
+    emitted at the end, outside our own `try`"""
     if _env.disabled():
         return target
     notes: List[str] = []
     try:
-        result = _decorate(target, name, dict(attributes) if attributes else None, notes)
+        attributes = dict(attributes) if attributes else None
+        if isinstance(target, type):  # before `is_instrumented`: a subclass inherits nothing of ours that counts
+            from opentelemetry_wrapper.v1._classes import instrument_class
+            result = instrument_class(target, name, attributes, properties, notes)
+        else:
+            result = _decorate(target, name, attributes, notes)
     except Exception as e:
         notes.append(f'@otel could not instrument {_short(target)} and returned it unchanged: {type(e).__name__}: {e}')
         result = target
@@ -121,10 +129,7 @@ def _short(target: Any) -> str:
 
 
 def _decorate(target: Any, name: Optional[str], attributes: Optional[dict], notes: List[str]) -> Any:
-    if is_instrumented(target):
-        return target
-    if isinstance(target, type):
-        notes.append(f'@otel on a class ({_short(target)}) is not supported yet; returned unchanged')
+    if is_instrumented(target) or isinstance(target, type):  # a class is `decorate`'s, never wrapped as a callable
         return target
     if isinstance(target, staticmethod):
         return staticmethod(_decorate(target.__func__, name, attributes, notes))

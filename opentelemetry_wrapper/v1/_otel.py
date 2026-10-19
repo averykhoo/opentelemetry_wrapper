@@ -9,6 +9,7 @@ import sys
 from contextvars import ContextVar
 from types import MappingProxyType
 from typing import Any
+from typing import List
 from typing import Mapping
 from typing import Optional
 from typing import Sequence
@@ -27,6 +28,7 @@ from opentelemetry_wrapper.v1._decorator import ensure_configured
 from opentelemetry_wrapper.v1._instrument import MISSING
 from opentelemetry_wrapper.v1._instrument import instrument as _instrument
 from opentelemetry_wrapper.v1._warnings import report
+from opentelemetry_wrapper.v1._warnings import warn
 
 # one entry per open `with otel` block in this context: (scope or None, the token of the `set` that pushed it)
 _open_blocks: ContextVar[Tuple[Tuple[Any, Any], ...]] = ContextVar('opentelemetry_wrapper_open_blocks', default=())
@@ -38,19 +40,23 @@ _ZERO_SPAN_ID = '0' * 16
 
 
 class Otel:
-    __slots__ = ('_name', '_attributes')
+    __slots__ = ('_name', '_attributes', '_properties')
     _name: Optional[str]
     _attributes: Optional[Mapping[str, Any]]
+    _properties: Optional[bool]
 
-    def __init__(self, name: Optional[str] = None, attributes: Optional[Mapping[str, Any]] = None):
+    def __init__(self, name: Optional[str] = None, attributes: Optional[Mapping[str, Any]] = None,
+                 properties: Optional[bool] = None):
         object.__setattr__(self, '_name', name)
         object.__setattr__(self, '_attributes', MappingProxyType(dict(attributes)) if attributes else None)
+        object.__setattr__(self, '_properties', properties)
 
     def __setattr__(self, key: str, value: Any) -> None:
         raise AttributeError(f'{type(self).__name__} objects are immutable')
 
     def __repr__(self) -> str:
-        options = ', '.join(f'{k}={v!r}' for k, v in (('name', self._name), ('attributes', self._attributes)) if v)
+        pairs = (('name', self._name), ('attributes', self._attributes), ('properties', self._properties))
+        options = ', '.join(f'{k}={v!r}' for k, v in pairs if v)
         return f'otel({options})'
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -58,27 +64,47 @@ class Otel:
     # ------------------------------------------------------------------------------------------------------------------
 
     @overload  # `otel('name')`: a configured object
-    def __call__(self, name: str, /, *, attributes: Optional[Mapping[str, Any]] = None) -> 'Otel': ...
+    def __call__(self, name: str, /, *, attributes: Optional[Mapping[str, Any]] = None,
+                 properties: Optional[bool] = None) -> 'Otel': ...
 
     @overload  # `@otel` over anything: the decorated object keeps its exact type (AC-21)
-    def __call__(self, target: _T, /, *, name: Optional[str] = None,
-                 attributes: Optional[Mapping[str, Any]] = None) -> _T: ...
+    def __call__(self, target: _T, /, *, name: Optional[str] = None, attributes: Optional[Mapping[str, Any]] = None,
+                 properties: Optional[bool] = None) -> _T: ...
 
-    @overload  # `@otel(name=...)`, `otel()`: a configured object
-    def __call__(self, /, *, name: Optional[str] = None, attributes: Optional[Mapping[str, Any]] = None) -> 'Otel': ...
+    @overload  # `@otel(name=...)`, `@otel(properties=True)`, `otel()`: a configured object
+    def __call__(self, /, *, name: Optional[str] = None, attributes: Optional[Mapping[str, Any]] = None,
+                 properties: Optional[bool] = None) -> 'Otel': ...
 
     def __call__(self, target: Any = MISSING, /, *, name: Optional[str] = None,
-                 attributes: Optional[Mapping[str, Any]] = None) -> Any:
+                 attributes: Optional[Mapping[str, Any]] = None, properties: Optional[bool] = None) -> Any:
+        """`properties=True`: on a class, its properties get spans too (they are left out by default, DEC-53); it
+        means nothing elsewhere"""
         if isinstance(target, str):  # otel('name') / with otel('name', attributes=...)
             target, name = MISSING, target
         if target is MISSING:
-            if name is None and attributes is None:
+            if name is None and attributes is None and properties is None:
                 return self
             return Otel(name if name is not None else self._name,
-                        attributes if attributes is not None else self._attributes)
+                        attributes if attributes is not None else self._attributes,
+                        properties if properties is not None else self._properties)
         return decorate(target,
                         name=name if name is not None else self._name,
-                        attributes=attributes if attributes is not None else self._attributes)
+                        attributes=attributes if attributes is not None else self._attributes,
+                        properties=bool(properties if properties is not None else self._properties))
+
+    def ignore(self, target: _T, /) -> _T:
+        """`@otel.ignore`: leave this method (or static / class method, or property) out when its class is
+        instrumented, e.g. a hot method; returns it unchanged (DEC-53)"""
+        notes: List[str] = []
+        try:
+            from opentelemetry_wrapper.v1._classes import ignore
+            result = ignore(target, notes)
+        except Exception as e:
+            notes.append(f'@otel.ignore failed and returned its target unchanged: {type(e).__name__}: {e}')
+            result = target
+        for note in notes:
+            warn(note)
+        return result
 
     # ------------------------------------------------------------------------------------------------------------------
     # `with otel:` / `async with otel:`
