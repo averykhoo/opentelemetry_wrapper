@@ -19,6 +19,7 @@ from typing import Optional
 
 from opentelemetry_wrapper.v1 import _config
 from opentelemetry_wrapper.v1 import _env
+from opentelemetry_wrapper.v1 import _introspect
 from opentelemetry_wrapper.v1 import _spans
 from opentelemetry_wrapper.v1._warnings import runtime
 from opentelemetry_wrapper.v1._warnings import warn
@@ -125,7 +126,7 @@ def _decorate(target: Any, name: Optional[str], attributes: Optional[dict], note
 
 
 def _make_wrapper(target: Any, name: Optional[str], attributes: Optional[dict]) -> Any:
-    described_name, described = _spans.describe(target)
+    described_name, described = _introspect.describe(target)
     span_name = name or described_name
     span_attributes = {**described, **(attributes or {})}
     disabled = _env.disabled

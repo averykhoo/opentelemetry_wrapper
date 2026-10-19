@@ -20,6 +20,7 @@ from opentelemetry import trace
 
 from opentelemetry_wrapper.v1 import _config
 from opentelemetry_wrapper.v1 import _env
+from opentelemetry_wrapper.v1 import _introspect
 from opentelemetry_wrapper.v1 import _spans
 from opentelemetry_wrapper.v1._decorator import decorate
 from opentelemetry_wrapper.v1._decorator import ensure_configured
@@ -88,10 +89,10 @@ class Otel:
             scope = None
         else:
             ensure_configured()  # runtime: its warnings go to stderr once, never `warnings.warn` (DEC-81)
-            if self._name is not None:
-                name, attributes = self._name, None
+            if self._name is not None:  # the name is the user's; the code attributes are the caller's (DEC-21)
+                name, attributes = self._name, _introspect.call_site(frame)[1]
             else:
-                name, attributes = _spans.describe_call_site(frame)
+                name, attributes = _introspect.unnamed_call_site(frame)
             if self._attributes:
                 attributes = {**(attributes or {}), **self._attributes}
             scope = _spans.start(name, attributes)
