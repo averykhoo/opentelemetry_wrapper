@@ -24,7 +24,7 @@ from opentelemetry_wrapper.v1 import _headers
 from opentelemetry_wrapper.v1._warnings import warn
 
 MISSING: Any = object()
-FASTAPI_EXCLUDE_SPANS = ['send', 'receive']  # verified: only the server span remains
+FASTAPI_EXCLUDE_SPANS = ['send', 'receive']  # verified: only the server span remains (DEC-93: unless asked for)
 
 _apps: 'weakref.WeakSet[Any]' = weakref.WeakSet()
 _engines: 'weakref.WeakSet[Any]' = weakref.WeakSet()
@@ -312,7 +312,7 @@ def instrument_app(app: Any, notes: List[str]) -> Any:
         return app
     settings = _config.settings()
     FastAPIInstrumentor.instrument_app(  # the caller's x-userinfo claims on the server span, never the raw value
-        app, exclude_spans=FASTAPI_EXCLUDE_SPANS,
+        app, exclude_spans=None if settings.fastapi_asgi_spans else FASTAPI_EXCLUDE_SPANS,
         excluded_urls=_excluded_urls(settings.prometheus_path, os.environ),
         server_request_hook=_headers.server_request_hook(settings.header_attributes,
                                                          settings.header_attributes_exclude),

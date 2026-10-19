@@ -274,6 +274,7 @@ request. In multi-worker deployments use push, or one worker per container.
 | `OTEL_WRAPPER_HEADER_ATTRIBUTES_EXCLUDE` | comma-separated glob patterns of decoded claims to leave out, matched against the flattened name (e.g. `realm_access.roles`, `email`); they are added to the default patterns, which only `otel.configure(header_attributes_exclude=[...])` replaces | `*token*,at_hash,c_hash,nonce,session_state,sid` (always applied unless replaced in code) |
 | `OTEL_WRAPPER_RESPONSE_HEADER_ATTRIBUTES` | comma-separated response headers from `requests` calls to record on the client span | Kong and Envoy headers, e.g. `X-Envoy-Upstream-Service-Time` |
 | `OTEL_WRAPPER_SQLALCHEMY_COMMENTER` | add a sqlcommenter comment to every SQLAlchemy query traced from then on: `true` (driver, framework and traceparent), or a comma-separated choice of `db_driver`, `db_framework` and `opentelemetry_values` (the traceparent), plus `attribute` to also record the commented statement on the span | `false` (queries run unchanged) |
+| `OTEL_WRAPPER_FASTAPI_ASGI_SPANS` | `true` adds FastAPI's ASGI `http send` / `http receive` spans under each request's server span, for debugging (or `otel.configure(fastapi_asgi_spans=True)`); a value other than `true` or `false` warns once and is ignored (DEC-93) | `false` (one server span per request) |
 | `OTEL_WRAPPER_PROMETHEUS_PATH` | path for the `/metrics` route added to FastAPI apps, served with and without its trailing slash (DEC-92); empty to disable | `/metrics` |
 | `OTEL_WRAPPER_CAPTURE_COMMAND_ARGS` | record the process's full command line (secrets redacted); `false` to leave it out | `true` |
 | `OTEL_WRAPPER_PODINFO_DIR` | where the pod's labels and annotations are mounted (Downward API volume, see below) | `/etc/podinfo` |
@@ -330,6 +331,9 @@ What else changed:
 - `instrument_sqlalchemy_engine(engine)` added a sqlcommenter comment to every query by default; v1 leaves it off,
   so `otel.instrument(engine)` runs queries unchanged. To turn v0's comment back on, set
   `OTEL_WRAPPER_SQLALCHEMY_COMMENTER=true` (v0's `commenter_options` are its comma-separated choices).
+- `instrument_fastapi_app(app)` also emitted ASGI `http send` / `http receive` spans under each request's server
+  span; `otel.instrument(app)` leaves them out (DEC-93). To get them back, for debugging, set
+  `OTEL_WRAPPER_FASTAPI_ASGI_SPANS=true`.
 - `instrument_logging(...)` took options per call; `otel.instrument(logging)` takes none. The level is
   `OTEL_WRAPPER_LOG_LEVEL`, the JSON lines go to stderr (`OTEL_WRAPPER_LOG_FORMAT=off` turns them off), and there is
   no text format and no `clobber_other_log_handlers`. The JSON lines keep v0's fields; `tz_utc_offset_seconds` is now

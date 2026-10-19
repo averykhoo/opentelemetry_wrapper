@@ -75,15 +75,31 @@ def test_request_spans(otw, spans):
     assert all(r['parent'] == 'GET /hello' for r in records if r is not server)
 
 
-# v1 excludes the ASGI send / receive spans, leaving only the server span: OTW-3's design and docs/archive/PLAN.md
-# workstream 1 (`exclude_spans=['send', 'receive']`), which no decision records yet (a decision or owner question is
-# owed, OTW-22)
-@pytest.mark.v0_specific
-def test_request_spans_include_the_asgi_send_spans(otw, spans):
-    app = otw.instrument_app(make_app())
-    spans.clear()
-    assert asgi_request(app, '/hello').status == 200
-    assert sorted(spans.names()) == ['GET /hello', 'GET /hello http send', 'GET /hello http send']
+# v1 leaves the ASGI send / receive spans out by default, keeping only the server span, and
+# OTEL_WRAPPER_FASTAPI_ASGI_SPANS=true brings them back (DEC-93); v0 always emits them and ignores the variable. a
+# scenario, since v1 reads the variable when it configures
+ASGI_SEND_SPANS = scenario(__name__, 'fastapi_asgi_send_spans', r'''
+from fastapi import FastAPI
+from tests.impl import instrument_app
+from tests.v0._harness import asgi_request
+exp = setup_spans()
+app = FastAPI()
+
+@app.get('/hello')
+def hello():
+    return 'hi'
+
+instrument_app(app)
+take(exp)
+emit('status', asgi_request(app, '/hello').status)
+emit('names', sorted(names(exp)))
+''', env={'OTEL_WRAPPER_FASTAPI_ASGI_SPANS': 'true'})
+
+
+def test_request_spans_include_the_asgi_send_spans():
+    result = ASGI_SEND_SPANS.result()
+    assert result['status'] == 200
+    assert result['names'] == ['GET /hello', 'GET /hello http send', 'GET /hello http send']
 
 
 def test_span_name_uses_the_route_template(otw, spans):
