@@ -335,7 +335,15 @@ def _excluded_urls(prometheus_path: str, environ: Mapping[str, str]) -> Optional
 
 
 def _add_prometheus_route(app: Any, path: str) -> None:
-    """the scrape route (workstream 9), unless the app already has one at that path"""
+    """the scrape route (workstream 9), placed when the app builds its middleware stack (at its first request), not
+    now: `app = otel.instrument(FastAPI())` has no routes yet, and the app's own route at that path, declared later,
+    must win. the stack it builds (upstream's, request spans included) is wrapped so the scrape makes no request span
+    under a `root_path` either (`_prometheus.untraced_under_root_path`)"""
     from opentelemetry_wrapper.v1 import _prometheus
-    if not _prometheus.has_route(app, path):
-        app.add_route(path, _prometheus.endpoint, include_in_schema=False)
+    build = app.build_middleware_stack
+
+    def build_middleware_stack() -> Any:
+        _prometheus.place_route(app, path)
+        return _prometheus.untraced_under_root_path(build(), path)
+
+    app.build_middleware_stack = build_middleware_stack

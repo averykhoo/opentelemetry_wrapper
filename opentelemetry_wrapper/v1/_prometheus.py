@@ -64,7 +64,7 @@ def start_server(host: str, port: int) -> Any:
 def excluded_url(path: str) -> str:
     """a regex for upstream's `excluded_urls` that matches the request url of exactly this path: upstream searches
     `scheme://host` + the scope's path, so `/api/metrics` and `/metricsfoo` still get request spans. (an app served
-    under a `root_path` has it in the scope's path too, so there the route is traced)"""
+    under a `root_path` has it in the scope's path too: `untraced_under_root_path` handles that)"""
     return f'^[^:/]+://[^/]*{re.escape(path)}$'
 
 
@@ -82,3 +82,29 @@ def endpoint(request: Any) -> Any:
 
 def has_route(app: Any, path: str) -> bool:
     return any(getattr(route, 'path', None) == path for route in getattr(app, 'routes', ()))
+
+
+def place_route(app: Any, path: str) -> None:
+    """the scrape route, unless the app has its own at exactly that path; first among the routes, so a catch-all
+    such as a single-page app's `/{full_path:path}` can't answer the scrape instead (Starlette takes the first match)"""
+    from starlette.routing import Route
+    if not has_route(app, path):
+        app.router.routes.insert(0, Route(path, endpoint=endpoint, include_in_schema=False))
+
+
+class untraced_under_root_path:  # noqa: N801 - a middleware, named for what it does
+    """the outermost ASGI layer: a scrape of `root_path` + `path` (uvicorn `--root-path`, `FastAPI(root_path=...)`)
+    reaches the stack with `path` alone, which upstream's exact-path exclusion matches, so it makes no request span
+    either; Starlette's routing still finds the route (a path outside the root path is routed as it is). the wrapped
+    stack is `.app`, as in every Starlette middleware: FastAPI walks that chain to find upstream's middleware, and
+    without it adds its own request spans too"""
+
+    def __init__(self, app: Any, path: str) -> None:
+        self.app = app
+        self.path = path
+
+    async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
+        root_path = (scope.get('root_path') or '').rstrip('/')
+        if root_path and scope.get('type') == 'http' and scope.get('path') == root_path + self.path:
+            scope = dict(scope, path=self.path)
+        await self.app(scope, receive, send)

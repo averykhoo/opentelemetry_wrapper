@@ -228,6 +228,44 @@ app = otel.instrument(make_app())
 emit('visits', visit(app, ['/prom/scrape', '/metrics', '/hello', '/api/metrics']))
 ''', env={'OTEL_WRAPPER_PROMETHEUS_PATH': 'prom//scrape', 'OTEL_PYTHON_FASTAPI_EXCLUDED_URLS': '/hello'})
 
+ROUTE_PLACED = scenario(__name__, 'v1_metrics_route_placed', _ROUTE_PRELUDE + r'''
+app = otel.instrument(FastAPI())  # the README's pattern: no routes yet
+
+
+@app.get('/metrics')  # the app's own, declared after instrument: it wins
+def own_metrics():
+    return 'mine'
+
+
+emit('own', visit(app, ['/metrics'])['/metrics'] + [[r.path for r in app.routes].count('/metrics')])
+
+spa = FastAPI()
+
+
+@spa.get('/{full_path:path}')  # a single-page app's catch-all, declared before instrument
+def fallback(full_path: str):
+    return 'spa'
+
+
+otel.instrument(spa)
+emit('catch_all', visit(spa, ['/metrics', '/elsewhere']))
+''')
+
+
+def under_root_path(root_path):
+    return r'''
+def under(app):  # the ASGI server's --root-path, without a proxy that strips it
+    async def wrapped(scope, receive, send):
+        await app(dict(scope, root_path=%r), receive, send)
+    return wrapped
+''' % root_path
+
+
+ROUTE_ROOT_PATH = scenario(__name__, 'v1_metrics_route_root_path', _ROUTE_PRELUDE + under_root_path('/svc') + r'''
+emit('server', visit(under(otel.instrument(make_app())), ['/svc/metrics', '/svc/api/metrics', '/svc/hello']))
+emit('app', visit(otel.instrument(FastAPI(root_path='/svc/')), ['/svc/metrics', '/metrics']))
+''')
+
 ROUTE_OFF = scenario(__name__, 'v1_metrics_route_off', _ROUTE_PRELUDE + r'''
 app = otel.instrument(make_app())
 emit('visits', visit(app, ['/metrics', '/api/metrics']))
@@ -237,7 +275,7 @@ emit('visits', visit(app, ['/metrics', '/api/metrics']))
 @pytest.mark.criterion('AC-19')
 def test_the_metrics_route_serves_prometheus_without_a_request_span_and_api_metrics_gets_one():
     result = ROUTE.result()
-    assert result['routes'] == [['/api/metrics', False], ['/metricsfoo', False], ['/metrics', False]]  # no Mount
+    assert result['routes'] == [['/metrics', False], ['/api/metrics', False], ['/metricsfoo', False]]  # no Mount, first
     visits = result['visits']
     assert visits['/metrics'] == [200, True, []]
     assert visits['/api/metrics'] == [200, False, ['/api/metrics']]
@@ -261,3 +299,20 @@ def test_an_empty_path_adds_no_route():
     visits = ROUTE_OFF.result()['visits']
     assert visits['/metrics'] == [404, False, ['/metrics']]
     assert visits['/api/metrics'] == [200, False, ['/api/metrics']]
+
+
+@pytest.mark.criterion('AC-19')
+def test_the_apps_own_route_wins_even_declared_after_instrument_and_ours_beats_a_catch_all():  # review of OTW-12
+    result = ROUTE_PLACED.result()
+    assert result['own'] == [200, False, [], 1]  # the app's route answers, exactly once, still untraced
+    assert result['catch_all']['/metrics'] == [200, True, []]
+    assert result['catch_all']['/elsewhere'] == [200, False, ['/elsewhere']]
+
+
+@pytest.mark.criterion('AC-19')
+def test_under_a_root_path_the_scrape_still_makes_no_request_span():  # review of OTW-12
+    result = ROUTE_ROOT_PATH.result()
+    assert result['server']['/svc/metrics'] == [200, True, []]
+    assert result['server']['/svc/api/metrics'] == [200, False, ['/svc/api/metrics']]
+    assert result['server']['/svc/hello'] == [200, False, ['/svc/hello']]
+    assert result['app'] == {'/svc/metrics': [200, True, []], '/metrics': [200, True, []]}

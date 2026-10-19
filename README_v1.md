@@ -241,8 +241,9 @@ Configuration is fixed once it's been set up: a later call with different option
 the log level can still change).
 
 **Metrics:** push them (OTLP, when an endpoint is set) or let Prometheus scrape them, from the app's own port (the
-`/metrics` route on FastAPI apps, which makes no request span; only that exact path, so `/api/metrics` is traced as
-usual) or from a separate port (`OTEL_EXPORTER_PROMETHEUS_PORT`, which serves metrics on every path). With several
+`/metrics` route on FastAPI apps, which makes no request span, under a `root_path` too; only that exact path, so
+`/api/metrics` is traced as usual; a `/metrics` route of the app's own, even one declared after `otel.instrument(app)`,
+is kept instead) or from a separate port (`OTEL_EXPORTER_PROMETHEUS_PORT`, which serves metrics on every path). With several
 workers per container (`uvicorn --workers N`, gunicorn), each worker has its own metrics: only one can listen on the
 Prometheus port (the others warn once and carry on), and the `/metrics` route answers from whichever worker took the
 request. In multi-worker deployments use push, or one worker per container.
@@ -256,8 +257,8 @@ request. In multi-worker deployments use push, or one worker per container.
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | where to push traces, logs and metrics (OTLP over HTTP, usually port 4318). Logs are OTel log records carrying the current span's trace and span ids. Per-signal variants `OTEL_EXPORTER_OTLP_{TRACES,LOGS,METRICS}_ENDPOINT` override it | nothing is exported |
 | `OTEL_EXPORTER_OTLP_HEADERS` | headers sent to the endpoint: `key=value,key2=value2` | none |
 | `OTEL_TRACES_SAMPLER` / `OTEL_TRACES_SAMPLER_ARG` | which traces to keep, decided at the root span and followed by its children. To keep 10%: `OTEL_TRACES_SAMPLER=parentbased_traceidratio` and `OTEL_TRACES_SAMPLER_ARG=0.1` | keep everything |
-| `OTEL_TRACES_EXPORTER` / `OTEL_LOGS_EXPORTER` / `OTEL_METRICS_EXPORTER` | `otlp`, `console` (print to the terminal, for local debugging) or `none` | `otlp` when an endpoint is set |
-| `OTEL_EXPORTER_PROMETHEUS_PORT` / `_HOST` | serve metrics for Prometheus on this port and interface. In Kubernetes, set `_HOST=0.0.0.0` | not served (host defaults to `localhost`) |
+| `OTEL_TRACES_EXPORTER` / `OTEL_LOGS_EXPORTER` / `OTEL_METRICS_EXPORTER` | `otlp`, `console` (print to the terminal, for local debugging) or `none`; for metrics also `prometheus`, which serves them on `OTEL_EXPORTER_PROMETHEUS_PORT` (default 9464) | `otlp` when an endpoint is set |
+| `OTEL_EXPORTER_PROMETHEUS_PORT` / `_HOST` | serve metrics for Prometheus on this port and interface. In Kubernetes, set `_HOST=0.0.0.0` | not served unless `OTEL_METRICS_EXPORTER` names `prometheus` (port 9464); host `localhost` |
 | `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_*` | record raw request/response headers as span attributes | none |
 
 **Our own variables**

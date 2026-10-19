@@ -153,6 +153,20 @@ def test_prometheus_host_and_port():  # AC-19 (DEC-59): the host is read, so k8s
     assert (settings.prometheus_host, settings.prometheus_port) == ('::', 9000)
 
 
+@pytest.mark.criterion('AC-19')
+def test_the_standard_prometheus_exporter_switch_serves_on_the_default_port():  # review of OTW-12
+    settings, notes = resolve(OTEL_METRICS_EXPORTER='prometheus')
+    assert (settings.metrics_exporter, settings.prometheus_port, notes) == ((), 9464, [])  # the spec's default
+    settings, notes = resolve(OTEL_METRICS_EXPORTER='prometheus', OTEL_EXPORTER_PROMETHEUS_PORT='9000')
+    assert (settings.metrics_exporter, settings.prometheus_port, notes) == ((), 9000, [])  # no "ignored" warning
+    settings, notes = resolve(OTEL_METRICS_EXPORTER='otlp, prometheus')
+    assert (settings.metrics_exporter, settings.prometheus_port, notes) == (('otlp',), 9464, [])
+    settings, notes = resolve({'metrics_exporter': ['prometheus'], 'prometheus_port': 9100})
+    assert (settings.metrics_exporter, settings.prometheus_port, notes) == ((), 9100, [])
+    settings, notes = resolve(OTEL_TRACES_EXPORTER='prometheus')  # a metrics exporter only
+    assert settings.prometheus_port is None and len(notes) == 1 and 'traces_exporter' in notes[0]
+
+
 @pytest.mark.parametrize('port', ['http', '0', '65536', '-1', '9464.0', '²', '123456'])
 def test_a_port_that_is_not_a_port_warns_and_starts_no_server(port):  # AC-7 (DEC-49)
     settings, notes = resolve(OTEL_EXPORTER_PROMETHEUS_PORT=port)

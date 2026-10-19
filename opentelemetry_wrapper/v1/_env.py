@@ -26,6 +26,7 @@ DEFAULT_RESPONSE_HEADER_ATTRIBUTES = ('x-kong-proxy-latency', 'x-kong-upstream-l
                                       'x-envoy-upstream-service-time',  # upstream latency
                                       'x-authz-response-time-seconds', 'x-process-time-seconds')
 EXPORTER_CHOICES = ('otlp', 'console', 'none')
+PROMETHEUS_DEFAULT_PORT = 9464  # the spec's default for OTEL_EXPORTER_PROMETHEUS_PORT
 
 
 def _env(name: str, environ: Mapping[str, str]) -> Optional[str]:
@@ -211,6 +212,7 @@ def resolve(explicit: Mapping[str, Any], environ: Optional[Mapping[str, str]] = 
             attributes['service.namespace'] = v0_namespace
     values['resource_attributes'] = tuple(sorted(attributes.items()))
     values['otlp_endpoint'] = otlp_endpoint
+    prometheus_chosen = False  # `prometheus` among the metrics exporters: serve on the standard port, 9464, unless set
     for signal in SIGNALS:
         option = f'{signal}_exporter'
         chosen = explicit.get(option)
@@ -219,9 +221,13 @@ def resolve(explicit: Mapping[str, Any], environ: Optional[Mapping[str, str]] = 
         if chosen is None:
             chosen = 'otlp' if _endpoint_set(signal, values['otlp_endpoint'], environ) else 'none'
         names = _split(chosen) if isinstance(chosen, str) else tuple(chosen)
+        if signal == 'metrics' and 'prometheus' in names:  # the standard switch for the standalone scrape server
+            prometheus_chosen = True
+            names = tuple(n for n in names if n != 'prometheus')
         unknown = [n for n in names if n not in EXPORTER_CHOICES]
         if unknown:
-            notes.append(f'{option} {unknown!r} not supported (choose from {", ".join(EXPORTER_CHOICES)}); ignored')
+            choices = EXPORTER_CHOICES + (('prometheus',) if signal == 'metrics' else ())
+            notes.append(f'{option} {unknown!r} not supported (choose from {", ".join(choices)}); ignored')
         names = tuple(n for n in names if n in EXPORTER_CHOICES and n != 'none')
         values[option] = tuple(sorted(set(names)))
     headers = explicit.get('otlp_headers')
@@ -262,6 +268,8 @@ def resolve(explicit: Mapping[str, Any], environ: Optional[Mapping[str, str]] = 
                 notes.append(f'OTEL_EXPORTER_PROMETHEUS_PORT {raw_port!r} is not a port number (1 to 65535); it is '
                              f'ignored, so no Prometheus server is started')
                 port = None
+        elif prometheus_chosen:
+            port = PROMETHEUS_DEFAULT_PORT
     values['prometheus_port'] = port
     header_attributes = explicit.get('header_attributes')
     if header_attributes is None:
