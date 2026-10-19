@@ -4,6 +4,7 @@ helpers imported by the scenario scripts that `_harness.py` runs in a fresh inte
 keep this free of pytest imports: it runs in the child process, which only has the repo root on `sys.path`
 """
 import json
+import sys
 
 RESULT_MARKER = '@@RESULT@@ '
 
@@ -14,7 +15,10 @@ LIBRARY_SPAN_PREFIX = '<opentelemetry_wrapper.'
 
 def emit(key, value):
     """report a value back to the test (printed to stdout with a marker, so other stdout noise is ignored)"""
-    print(RESULT_MARKER + json.dumps({'key': key, 'value': value}, default=repr), flush=True)
+    # one write, newline included: `print` writes the text and the newline separately, and a span exporter's thread
+    # writing to stdout between the two put its span on the same line as the result
+    sys.stdout.write(RESULT_MARKER + json.dumps({'key': key, 'value': value}, default=repr) + '\n')
+    sys.stdout.flush()
 
 
 def setup_spans():
@@ -36,6 +40,25 @@ def setup_spans():
     init_tracer_provider()
     exporter = InMemorySpanExporter()
     trace.get_tracer_provider().add_span_processor(SimpleSpanProcessor(exporter))
+    return exporter
+
+
+def setup_global_spans():
+    """
+    capture finished spans in memory from the global SDK tracer provider, whatever installed it: for code that calls
+    an implementation's api directly rather than through `tests.impl` (the repo's v0 examples, which import v0 names
+    and so run v0 under either OTW_IMPL)
+    """
+    from opentelemetry import trace
+    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+    from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+
+    provider = trace.get_tracer_provider()
+    if not isinstance(provider, TracerProvider):
+        raise RuntimeError(f'no SDK tracer provider is installed yet (got {type(provider).__name__})')
+    exporter = InMemorySpanExporter()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
     return exporter
 
 

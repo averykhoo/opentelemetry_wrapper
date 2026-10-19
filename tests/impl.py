@@ -153,9 +153,15 @@ _NAMES = tuple(_V0) + ('__all__',)
 
 
 def load() -> None:
-    """import the package under test, for its import-time side effects (v0 installs the tracer provider)"""
+    """
+    import the package under test, for its import-time side effects: v0 installs the tracer provider. v1 installs
+    nothing at import and configures implicitly, from env vars, at the first span or `otel.instrument` (DEC-27), so
+    under v1 this does that implicit configuration (a no-op when something configured already, or when disabled)
+    """
     if IMPL == 'v1':
         import_v1()
+        from opentelemetry_wrapper.v1 import _config
+        _config.ensure_configured()
         return
     import opentelemetry_wrapper
     opentelemetry_wrapper.instrument_decorate  # noqa: B018 - the root loads v0 lazily, on the first v0 name

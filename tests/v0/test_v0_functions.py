@@ -329,7 +329,7 @@ def generator_target(child):
     yield child()
 
 
-@pytest.mark.v0_specific
+@pytest.mark.v0_specific  # v1: one span per generator, over its whole iteration (DEC-22, AC-17)
 def test_generator_span_only_covers_creating_the_generator(otw, spans):
     child = otw.decorate(generator_child)
     gen = otw.decorate(generator_target)
@@ -356,7 +356,7 @@ class CallableInstance:
         return x
 
 
-@pytest.mark.v0_specific
+@pytest.mark.v0_specific  # v1 returns an unsupported target unchanged, with one warning (DEC-49, AC-7)
 def test_currently_raises_for_unsupported_objects(otw):
     if not PARTIAL_IS_ROUTINE:
         with pytest.raises(TypeError):

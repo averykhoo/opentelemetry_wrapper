@@ -66,12 +66,40 @@ def test_request_spans(otw, spans):
     assert response.text == '"hi"'
 
     records = spans.records()
-    assert sorted(r['name'] for r in records) == ['GET /hello', 'GET /hello http send', 'GET /hello http send']
+    assert {r['name'] for r in records} <= {'GET /hello', 'GET /hello http send'}
     (server,) = server_spans(records)
+    assert server['name'] == 'GET /hello'
     assert server['parent'] is None
     assert server['attributes']['http.route'] == '/hello'
     assert server['attributes']['http.status_code'] == 200
     assert all(r['parent'] == 'GET /hello' for r in records if r is not server)
+
+
+# v1 leaves the ASGI send / receive spans out by default, keeping only the server span, and
+# OTEL_WRAPPER_FASTAPI_ASGI_SPANS=true brings them back (DEC-93); v0 always emits them and ignores the variable. a
+# scenario, since v1 reads the variable when it configures
+ASGI_SEND_SPANS = scenario(__name__, 'fastapi_asgi_send_spans', r'''
+from fastapi import FastAPI
+from tests.impl import instrument_app
+from tests.v0._harness import asgi_request
+exp = setup_spans()
+app = FastAPI()
+
+@app.get('/hello')
+def hello():
+    return 'hi'
+
+instrument_app(app)
+take(exp)
+emit('status', asgi_request(app, '/hello').status)
+emit('names', sorted(names(exp)))
+''', env={'OTEL_WRAPPER_FASTAPI_ASGI_SPANS': 'true'})
+
+
+def test_request_spans_include_the_asgi_send_spans():
+    result = ASGI_SEND_SPANS.result()
+    assert result['status'] == 200
+    assert result['names'] == ['GET /hello', 'GET /hello http send', 'GET /hello http send']
 
 
 def test_span_name_uses_the_route_template(otw, spans):
@@ -84,12 +112,18 @@ def test_span_name_uses_the_route_template(otw, spans):
 
 
 def test_instrumenting_twice_does_not_duplicate_spans_or_raise(otw, spans):
+    once = otw.instrument_app(make_app())
+    spans.clear()
+    assert asgi_request(once, '/hello').status == 200
+    names_once = sorted(spans.names())
+    assert names_once.count('GET /hello') == 1
+
     app = make_app()
     assert otw.instrument_app(app) is app
     assert otw.instrument_app(app) is app
     spans.clear()
     assert asgi_request(app, '/hello').status == 200
-    assert sorted(spans.names()) == ['GET /hello', 'GET /hello http send', 'GET /hello http send']
+    assert sorted(spans.names()) == names_once
 
 
 def test_handler_exception_marks_server_span_as_error(otw, spans):
@@ -109,7 +143,7 @@ def test_non_fastapi_objects_are_returned_unchanged(otw):
     assert otw.instrument_app(None) is None
 
 
-@pytest.mark.v0_specific
+@pytest.mark.v0_specific  # v1's own entry points emit no spans (AC-22, DEC-49)
 def test_instrumenting_emits_a_span_for_the_instrument_call_itself(otw, spans):
     otw.instrument_app(make_app())
     assert spans.names(include_library_spans=True) == [
@@ -240,6 +274,7 @@ def test_metrics_route_is_added_once_even_when_instrumented_twice(otw):
     app = make_app()
     otw.instrument_app(app)
     otw.instrument_app(app)
+    assert asgi_request(app, '/metrics').status == 200  # v1 places the route at the app's first request (OTW-12)
     assert [route.path for route in app.router.routes].count('/metrics') == 1
 
 
@@ -280,11 +315,11 @@ def hello():
     return 'hi'
 
 instrument_app(app)
-emit('routes', [route.path for route in app.router.routes])
 for path in ('/metrics', '/metrics/', '/hello'):
     response = asgi_request(app, path)
     emit(path, {'status': response.status, 'location': response.headers.get('location'),
                 'is_prometheus': '# HELP' in response.text})
+emit('routes', [route.path for route in app.router.routes])  # after a request: v1 places its route then (OTW-12)
 take(exp)
 '''
 
@@ -299,7 +334,7 @@ ENDPOINT_DISABLED = scenario(__name__, 'fastapi_metrics_disabled', _ENDPOINT_SCR
 FASTAPI_MAIN = scenario(__name__, 'fastapi_main_example', r'''
 import fastapi_main  # the example app; importing it does not start uvicorn
 from tests.v0._harness import asgi_request
-exp = setup_spans()
+exp = setup_global_spans()  # the example calls v0's api itself, whatever OTW_IMPL is
 for path in ('/hello', '/hello/world', '/metrics'):
     response = asgi_request(fastapi_main.app, path)
     emit(path, {'status': response.status, 'text': response.text[:200],

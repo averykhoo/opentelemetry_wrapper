@@ -153,6 +153,59 @@ def test_an_app_instrumented_once_gives_one_server_span():  # AC-6 (positive con
     assert r['server_spans'] == 1
 
 
+# DEC-93: FastAPI's ASGI `http send` / `http receive` child spans are off by default; OTEL_WRAPPER_FASTAPI_ASGI_SPANS
+# (or `otel.configure(fastapi_asgi_spans=True)`) turns them back on, for debugging
+_ASGI_SPANS_BODY = PRELUDE + r'''
+app = make_app()
+with Warned() as w:
+    otel.instrument(app)
+emit('warnings', w.messages)
+emit('status', asgi_request(app, '/hello').status)
+(server,) = server_spans()
+by_id = {s.context.span_id: s.name for s in exporter.get_finished_spans()}
+emit('server', server.name)
+emit('children', sorted((s.name, by_id.get(s.parent.span_id) if s.parent else None)
+                        for s in exporter.get_finished_spans() if s is not server and s.kind.name != 'SERVER'))
+'''
+ASGI_SPANS_DEFAULT = scenario(__name__, 'v1_instrument_asgi_spans_default', _ASGI_SPANS_BODY)
+ASGI_SPANS_ON = scenario(__name__, 'v1_instrument_asgi_spans_on', _ASGI_SPANS_BODY,
+                         env={'OTEL_WRAPPER_FASTAPI_ASGI_SPANS': 'True'})
+ASGI_SPANS_EXPLICIT = scenario(__name__, 'v1_instrument_asgi_spans_explicit', _ASGI_SPANS_BODY.replace(
+    'app = make_app()', 'otel.configure(fastapi_asgi_spans=True)\napp = make_app()'),
+    env={'OTEL_WRAPPER_FASTAPI_ASGI_SPANS': 'false'})
+ASGI_SPANS_BAD = scenario(__name__, 'v1_instrument_asgi_spans_bad_value', _ASGI_SPANS_BODY,
+                          env={'OTEL_WRAPPER_FASTAPI_ASGI_SPANS': 'yes'})
+
+
+@pytest.mark.criterion('AC-6')
+def test_a_request_gives_only_the_server_span_by_default():  # DEC-93
+    r = ASGI_SPANS_DEFAULT.result()
+    assert r['status'] == 200
+    assert r['server'] == 'GET /hello'
+    assert r['children'] == []
+    assert r['warnings'] == []
+
+
+@pytest.mark.criterion('AC-6')
+@pytest.mark.parametrize('which', ['env', 'explicit'])
+def test_the_asgi_spans_variable_or_option_brings_the_send_spans_back_under_the_server_span(which):  # DEC-93
+    r = (ASGI_SPANS_ON if which == 'env' else ASGI_SPANS_EXPLICIT).result()  # explicit beats the env's `false`
+    assert r['status'] == 200
+    assert r['warnings'] == []
+    # a GET has no body to receive: upstream's two sends (the response start and the body), each a child of the server
+    assert r['children'] == [['GET /hello http send', 'GET /hello'], ['GET /hello http send', 'GET /hello']]
+
+
+@pytest.mark.criterion('AC-6')
+def test_a_bad_asgi_spans_value_warns_once_and_leaves_the_spans_off():  # DEC-93
+    r = ASGI_SPANS_BAD.result()
+    assert r['status'] == 200
+    assert r['children'] == []
+    assert [m for m in r['warnings'] if 'OTEL_WRAPPER_FASTAPI_ASGI_SPANS' in m] == [
+        "OTEL_WRAPPER_FASTAPI_ASGI_SPANS 'yes' is not true or false; it is ignored, so FastAPI's ASGI send and "
+        "receive spans stay off"]
+
+
 def test_an_engine_instrumented_once_gives_a_select_span():  # AC-6 (positive control)
     r = ENGINE_ONCE.result()
     assert r['returned_engine'] is True

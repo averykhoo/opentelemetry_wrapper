@@ -62,6 +62,7 @@ class Settings:
     header_attributes: Tuple[str, ...] = ('x-userinfo',)  # request headers to decode onto the server span (OTW-7)
     header_attributes_exclude: Tuple[str, ...] = DEFAULT_HEADER_ATTRIBUTES_EXCLUDE  # claim denylist (DEC-2)
     response_header_attributes: Tuple[str, ...] = DEFAULT_RESPONSE_HEADER_ATTRIBUTES  # `requests` client spans
+    fastapi_asgi_spans: bool = False  # FastAPI's per-request ASGI `http send` / `http receive` spans (DEC-93)
 
     def without_log_level(self) -> 'Settings':
         return Settings(**{**asdict_shallow(self), 'log_level': ''})
@@ -113,6 +114,10 @@ def _is_port(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool) and 0 < value < 65536
 
 
+def _is_bool(value: Any) -> bool:
+    return isinstance(value, bool)
+
+
 def _is_strings(value: Any) -> bool:
     return isinstance(value, str) or (isinstance(value, (list, tuple, set, frozenset))
                                       and all(isinstance(item, str) for item in value))
@@ -134,6 +139,7 @@ _EXPECTED = {  # what `otel.configure(...)` takes, by option: (description, chec
     'header_attributes': ('a string or a list of strings', _is_strings),
     'header_attributes_exclude': ('a string or a list of strings', _is_strings),
     'response_header_attributes': ('a string or a list of strings', _is_strings),
+    'fastapi_asgi_spans': ('True or False', _is_bool),
 }
 
 
@@ -289,7 +295,27 @@ def resolve(explicit: Mapping[str, Any], environ: Optional[Mapping[str, str]] = 
     values['response_header_attributes'] = _strings(explicit.get('response_header_attributes'),
                                                     _env('OTEL_WRAPPER_RESPONSE_HEADER_ATTRIBUTES', environ),
                                                     DEFAULT_RESPONSE_HEADER_ATTRIBUTES, lower=True)
+    values['fastapi_asgi_spans'] = _fastapi_asgi_spans(explicit.get('fastapi_asgi_spans'), environ, notes)
     return Settings(**values), notes
+
+
+FASTAPI_ASGI_SPANS_ENV = 'OTEL_WRAPPER_FASTAPI_ASGI_SPANS'
+
+
+def _fastapi_asgi_spans(explicit: Optional[bool], environ: Mapping[str, str], notes: List[str]) -> bool:
+    """DEC-93: FastAPI's ASGI `http send` / `http receive` child spans are off (noise in most traces) unless asked
+    for, for debugging: explicit > `OTEL_WRAPPER_FASTAPI_ASGI_SPANS` (`true` / `false`, any case) > off. upstream
+    reads no variable for its `exclude_spans`"""
+    if explicit is not None:
+        return explicit
+    raw = _env(FASTAPI_ASGI_SPANS_ENV, environ)
+    if raw is None or raw.casefold() == 'false':
+        return False
+    if raw.casefold() == 'true':
+        return True
+    notes.append(f"{FASTAPI_ASGI_SPANS_ENV} {raw!r} is not true or false; it is ignored, so FastAPI's ASGI send and "
+                 f"receive spans stay off")
+    return False
 
 
 _PROMETHEUS_PATH = re.compile(r'(/[A-Za-z0-9_-]+)+/?')
