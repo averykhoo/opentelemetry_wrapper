@@ -8,3 +8,4 @@ kept current.
 |---|---|---|---|
 | PLAN.md | [PLAN.md](PLAN.md) | 2026-10-18 (session 2026-10-18a) | migrated into records at adoption: decisions DEC-1 to DEC-61, workstream tasks OTW-2 to OTW-14, criteria AC-1 to AC-24, evidence docs (docs/evidence/adoption-map-2026-10-18.md) |
 | TODO.md | [TODO.md](TODO.md) | 2026-10-18 (session 2026-10-18a) | migrated into records at adoption: ideas to tasks OTW-16 and OTW-17, won't-do items to decisions DEC-65 to DEC-69 and the `varname` idea to DEC-64, testing and publishing notes to CLAUDE.md (docs/evidence/adoption-map-2026-10-18.md) |
+| README.md | [README_v0.md](README_v0.md) | 2026-10-20 (session 2026-10-19a) | the v0 README, replaced by the v1 README at the switch (DEC-37, OTW-16); v0's names still import from the package root until 1.0.0 (DEC-80) |

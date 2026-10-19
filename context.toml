@@ -124,15 +124,15 @@ NEXT = 5                     # provenance: JUDGEMENT, engine default; wrong if N
 # A doc guard whose list is empty checks nothing; a listed path that does not exist fails.
 [guards]
 off = []                     # guard ids lint does not report (`context-engine lint` names them); say why in a comment
-links = ["CLAUDE.md", "HANDOFF.md", "docs/runbooks", "docs/charter.md", "docs/criteria.md", "tasks", "context-engine-feedback.md", "README_v1.md"]   # G-D3: relative links, their #anchors and `file::symbol` spans resolve, case-exact
+links = ["CLAUDE.md", "HANDOFF.md", "docs/runbooks", "docs/charter.md", "docs/criteria.md", "tasks", "context-engine-feedback.md", "README.md"]   # G-D3: relative links, their #anchors and `file::symbol` spans resolve, case-exact
 existence = ["docs/criteria.md"]   # G-T3: files and `file::symbol` named in normative text exist; add the residual-risk register and any NFR doc once they exist
 signals = ["CLAUDE.md", "HANDOFF.md", "docs/runbooks", "docs/charter.md", "docs/criteria.md", "context-engine-feedback.md"]   # G-D7: the signal budgets below
 warn_max = 3                 # ⚠ per file (G-D7); provenance: JUDGEMENT, engine default; wrong if a real trap goes unmarked to stay under it
 bold_caps_max = 5            # bold all-caps spans per file (G-D7); provenance: JUDGEMENT, engine default; wrong as above
 retired_glyphs = []          # glyphs no file may use any more (G-D7)
-liveness = ["CLAUDE.md", "HANDOFF.md", "docs/charter.md", "docs/criteria.md", "docs/framework/contract.md", "docs/ledger/session-log.md", "docs/runbooks", "context-engine-feedback.md", "README.md", "README_v1.md"]   # G-D4: each doc declares near its top whether it is kept current (its liveness, FRAMEWORK P2): a line led by LIVING, ACTIVE-PLAN or FROZEN, or a frontmatter `liveness:` key; add every doc the repo keeps
+liveness = ["CLAUDE.md", "HANDOFF.md", "docs/charter.md", "docs/criteria.md", "docs/framework/contract.md", "docs/ledger/session-log.md", "docs/runbooks", "context-engine-feedback.md", "README.md"]   # G-D4: each doc declares near its top whether it is kept current (its liveness, FRAMEWORK P2): a line led by LIVING, ACTIVE-PLAN or FROZEN, or a frontmatter `liveness:` key; add every doc the repo keeps
 history = ["docs/evidence"]  # G-D4: directories of provenance; each doc there is FROZEN, or ACTIVE-PLAN while the board item it names is open
-liveness_given = { "CLAUDE.md" = "LIVING", "docs/framework/contract.md" = "LIVING", "docs/ledger/session-log.md" = "LIVING", "README.md" = "LIVING", "README_v1.md" = "LIVING" }   # G-D4: repo-relative glob -> liveness, for docs whose opening lines the repo may not edit (the kit block, the framework contract, the engine-written ledger; frozen provenance; README.md is the PyPI page and README_v1.md its v1 draft, so neither carries a status line)
+liveness_given = { "CLAUDE.md" = "LIVING", "docs/framework/contract.md" = "LIVING", "docs/ledger/session-log.md" = "LIVING", "README.md" = "LIVING" }   # G-D4: repo-relative glob -> liveness, for docs whose opening lines the repo may not edit (the kit block, the framework contract, the engine-written ledger; frozen provenance; README.md is the PyPI page, so it carries no status line)
 liveness_lines = 10          # G-D4: how many lines from the top the declaration may sit; provenance: JUDGEMENT, engine default (a title, a blank line and a status line fit, and so does a runbook frontmatter); wrong if a doc needs its declaration further down
 numbers = []                 # G-D5: off until the repo measures things (FRAMEWORK §11.2); then list its LIVING docs, and no count of things in the tree (`23 components`) may be typed there except in one of P5's forms
 count_nouns = ["tests", "checks", "guards", "criteria", "stories", "decisions", "tasks", "items", "rows", "questions", "records", "components", "rituals", "procedures", "goals", "runbooks", "kinds", "principles", "steps", "files", "entries", "ids", "scenarios"]   # G-D5: the plural nouns that make a number placed directly before them a count (the engine default); add the ones the repo measures (`runs`, `seeds`)
@@ -327,9 +327,9 @@ component = "Archive"
 path = "docs/archive"
 optional = true
 mode = "FROZEN docs moved by `context-engine doc archive`; README.md is the redirect table"
-note = "holds the pre-adoption PLAN.md and TODO.md, migrated into records (docs/evidence/adoption-map-2026-10-18.md)"
+note = "holds the pre-adoption PLAN.md and TODO.md, migrated into records (docs/evidence/adoption-map-2026-10-18.md), and the v0 README as README_v0.md (OTW-16)"
 
 [[routes]]
-component = "v1 user docs (draft)"
-path = "README_v1.md"
-mode = "LIVING draft of the v1 README; kept consistent with the decisions"
+component = "User docs"
+path = "README.md"
+mode = "LIVING: the README and PyPI page, for v1; states every decided behaviour and contradicts none (OTW-16); its Python examples run in tests/v1/test_v1_readme.py"
