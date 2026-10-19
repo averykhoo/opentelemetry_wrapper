@@ -18,6 +18,7 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor, SimpleSpanProcess
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 from opentelemetry.trace import Link
 
+from opentelemetry_wrapper.v1 import _warnings
 from opentelemetry_wrapper.v1 import scrubbing
 from opentelemetry_wrapper.v1.scrubbing import (FAILED, NOTES_ATTRIBUTE, REDACTED, Scrubber, ScrubbingLogExporter,
                                                 ScrubbingSpanExporter, scrub_argv, scrub_mapping, scrub_text)
@@ -29,8 +30,8 @@ SECRETS = ('hunter2', JWT, 's3cret')
 
 @pytest.fixture(autouse=True)
 def _fresh_reporting(monkeypatch):
-    monkeypatch.setattr(scrubbing, '_reported', set())
-    monkeypatch.delenv(scrubbing.DEBUG_ENV, raising=False)
+    monkeypatch.setattr(_warnings, '_reported', set())
+    monkeypatch.delenv(_warnings.DEBUG_ENV_VAR, raising=False)
 
 
 def _tracer(exporter, processor=SimpleSpanProcessor, **provider_kw):
@@ -46,7 +47,7 @@ def _failing_scrubber(trigger='boom'):
 
     def sub(text):
         if trigger in text:
-            raise ZeroDivisionError('never shown')
+            raise ZeroDivisionError(f'never shown: {text}')  # the value in the message: a reporter must withhold it
         return real(text)
 
     s._m.sub = sub
@@ -191,17 +192,57 @@ def test_a_value_that_fails_to_scrub_is_dropped_with_its_own_placeholder_and_the
     lines = err.splitlines()
     assert len(lines) == 1, 'once per failure site'
     report = json.loads(lines[0])
-    assert report['error'] == 'ZeroDivisionError' and 'traceback' not in report
+    assert report['error.type'] == 'builtins.ZeroDivisionError' and 'traceback' not in report
     assert 'hunter2' not in err and 'boom' not in err and 'never shown' not in err
 
 
-def test_debug_variable_reports_every_failure_with_its_traceback(capsys, monkeypatch):
-    monkeypatch.setenv(scrubbing.DEBUG_ENV, '1')
+def _scrub_twice_and_read_reports(capsys):
     s = _failing_scrubber()
-    s.scrub_attributes({'a': 'boom'})
-    s.scrub_attributes({'a': 'boom'})
-    lines = capsys.readouterr().err.splitlines()
-    assert len(lines) == 2 and all('ZeroDivisionError' in json.loads(x)['traceback'] for x in lines)
+    s.scrub_attributes({'a': 'boom hunter2'})
+    s.scrub_attributes({'a': 'boom hunter2'})
+    err = capsys.readouterr().err
+    return err, [json.loads(line) for line in err.splitlines()]
+
+
+@pytest.mark.criterion('AC-13')
+@pytest.mark.criterion('AC-22')
+def test_a_scrubbing_failure_is_reported_by_the_wrappers_one_reporter_with_the_same_record(capsys):  # OTW-23
+    _err, [record] = _scrub_twice_and_read_reports(capsys)
+    _warnings.report('elsewhere', ZeroDivisionError('x'))
+    [other] = [json.loads(line) for line in capsys.readouterr().err.splitlines()]
+    assert record.keys() == other.keys()  # one record shape for every swallowed failure (DEC-75)
+    assert record['opentelemetry_wrapper'] == other['opentelemetry_wrapper'] == 'internal error, swallowed'
+    assert record['site'] == 'scrubbing.scrub_mapping' and record['error.type'] == 'builtins.ZeroDivisionError'
+    assert record['message'] == _warnings.WITHHELD  # it may hold the value that failed to scrub (DEC-74)
+
+
+@pytest.mark.criterion('AC-22')
+@pytest.mark.parametrize('value', ['false', '0', 'FALSE', 'no', 'off', ' ', ''])
+def test_debug_variable_off_values_give_once_per_site_and_no_traceback(capsys, monkeypatch, value):  # OTW-23
+    monkeypatch.setenv(_warnings.DEBUG_ENV_VAR, value)
+    err, records = _scrub_twice_and_read_reports(capsys)
+    assert len(records) == 1, err
+    assert 'traceback' not in records[0] and 'hint' in records[0]
+
+
+@pytest.mark.criterion('AC-13')
+@pytest.mark.criterion('AC-22')
+@pytest.mark.parametrize('value', ['true', '1', 'TRUE', ' True '])
+def test_debug_variable_reports_every_failure_with_its_traceback_and_no_message(capsys, monkeypatch, value):
+    monkeypatch.setenv(_warnings.DEBUG_ENV_VAR, value)
+    err, records = _scrub_twice_and_read_reports(capsys)
+    assert len(records) == 2, err
+    assert all('ZeroDivisionError' in r['traceback'] and 'in sub' in r['traceback'] for r in records), err
+    assert 'hunter2' not in err and 'boom' not in err  # the value, not even in the traceback (only its source line)
+
+
+@pytest.mark.criterion('AC-22')
+@pytest.mark.parametrize('value, on', [('true', True), ('1', True), ('TRUE', True), (' 1 ', True), ('false', False),
+                                       ('0', False), ('', False), ('yes', False), ('2', False)])
+def test_the_debug_variable_has_one_truthiness_rule(monkeypatch, value, on):  # OTW-23
+    monkeypatch.setenv(_warnings.DEBUG_ENV_VAR, value)
+    assert _warnings._debug() is on
+    assert not hasattr(scrubbing, 'DEBUG_ENV') and not hasattr(scrubbing, 'report_failure')  # no second reader
 
 
 @pytest.mark.criterion('AC-13')
@@ -249,7 +290,7 @@ def test_a_span_that_cannot_be_rebuilt_is_dropped_not_exported_unscrubbed(monkey
     exporter.export([secret, clean])
     assert memory.get_finished_spans() == (clean,)
     sites = [json.loads(x)['site'] for x in capsys.readouterr().err.splitlines()]
-    assert sites == ['ScrubbingSpanExporter.export', 'ScrubbingSpanExporter.export.fallback']
+    assert sites == ['scrubbing.ScrubbingSpanExporter.export', 'scrubbing.ScrubbingSpanExporter.export.fallback']
 
 
 # ----------------------------------------------------------------------------------------------- helpers

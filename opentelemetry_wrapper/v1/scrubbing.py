@@ -26,12 +26,8 @@ import base64
 import copy
 import dataclasses
 import fnmatch
-import json
-import os
 import re
-import sys
 import threading
-import traceback
 from dataclasses import dataclass
 from typing import Any, Callable, Iterable, Mapping, Protocol, Sequence
 
@@ -41,45 +37,27 @@ from opentelemetry.sdk.trace.export import SpanExporter, SpanExportResult
 from opentelemetry.sdk.util import BoundedList
 from opentelemetry.trace import Link
 
+from opentelemetry_wrapper.v1._warnings import report
+
 __all__ = [
     'REDACTED', 'FAILED', 'NOTES_ATTRIBUTE', 'Rule', 'KEY_RULES', 'VALUE_RULES', 'DEFAULT_RULES',
     'DEFAULT_ALLOW_GLOBS', 'Engine', 'Matcher', 'RegexEngine', 'HyperscanEngine', 'Scrubber', 'default_scrubber',
     'set_default_scrubber', 'scrub_argv', 'scrub_mapping', 'scrub_text', 'ScrubbingSpanExporter',
-    'ScrubbingLogExporter', 'report_failure',
+    'ScrubbingLogExporter',
 ]
 
 REDACTED = '[REDACTED]'
 FAILED = '[REDACTED: scrubbing failed]'  # DEC-74: distinct from REDACTED
 NOTES_ATTRIBUTE = 'opentelemetry_wrapper.scrubbed'
-DEBUG_ENV = 'OTEL_WRAPPER_DEBUG'  # placeholder name: OTW-3 settles it (DEC-75, DEC-59)
 Note = str  # "<path>:<kind>.<rule>", e.g. "http.url:value.url_query", "argv[3]:key.password", "a:error.ValueError"
 _SEP = r'[._-]'
 
 
 # ----------------------------------------------------------------------------------------------- failure reporting
-_reported: set = set()
-_report_lock = threading.Lock()
-
-
-def report_failure(exc: BaseException, site: str) -> None:
-    """
-    one json line on stderr per (site, exception type), written directly, never through `warnings` or `logging`
-    (DEC-75); with ``OTEL_WRAPPER_DEBUG`` set, every occurrence, with its traceback. the value is never written.
-    OTW-3 may replace this function with its own reporter
-    """
-    try:
-        debug = bool(os.environ.get(DEBUG_ENV))
-        key = (site, type(exc).__name__)
-        with _report_lock:
-            if key in _reported and not debug:
-                return
-            _reported.add(key)
-        line = {'opentelemetry_wrapper': 'internal error swallowed', 'site': site, 'error': type(exc).__name__}
-        if debug:
-            line['traceback'] = ''.join(traceback.format_exception(type(exc), exc, exc.__traceback__))
-        sys.stderr.write(json.dumps(line) + '\n')
-    except Exception:  # noqa: BLE001 - reporting must never raise either
-        pass
+def _report(exc: BaseException, site: str) -> None:
+    """a scrubbing failure goes through the wrapper's one reporter (DEC-75): one stderr JSON line per (site, exception
+    type), every occurrence with ``OTEL_WRAPPER_DEBUG=true``; the message is withheld, since it may hold the value"""
+    report(f'scrubbing.{site}', exc, withhold_message=True)
 
 
 # ----------------------------------------------------------------------------------------------- rules
@@ -426,7 +404,7 @@ _ARGV_FLAG = re.compile(r'^--?([A-Za-z_][\w.-]+)$')  # --token, --api-key (2+ ch
 
 def _failed(exc: BaseException, path: str, notes: list[Note], site: str) -> str:
     notes.append(f'{path}:error.{type(exc).__name__}')
-    report_failure(exc, site)
+    _report(exc, site)
     return FAILED
 
 
@@ -632,7 +610,7 @@ class ScrubbingSpanExporter(_Wrapper, SpanExporter):
             try:
                 out.append(self._scrub(span))
             except Exception as exc:  # noqa: BLE001 - fail closed: never export the span unscrubbed
-                report_failure(exc, 'ScrubbingSpanExporter.export')
+                _report(exc, 'ScrubbingSpanExporter.export')
                 try:  # what is left: the span without its attributes, events and links, and a note
                     out.append(ReadableSpan(
                         name=span.name, context=span.context, parent=span.parent, resource=span.resource,
@@ -640,7 +618,7 @@ class ScrubbingSpanExporter(_Wrapper, SpanExporter):
                         status=span.status, start_time=span.start_time, end_time=span.end_time,
                         instrumentation_scope=span.instrumentation_scope))
                 except Exception as exc2:  # noqa: BLE001 - not even that: drop the span
-                    report_failure(exc2, 'ScrubbingSpanExporter.export.fallback')
+                    _report(exc2, 'ScrubbingSpanExporter.export.fallback')
         return self.inner.export(out)
 
     def _scrub(self, span: ReadableSpan) -> ReadableSpan:
@@ -685,14 +663,14 @@ class ScrubbingLogExporter(_Wrapper):
             try:
                 out.append(self._scrub(rec))
             except Exception as exc:  # noqa: BLE001 - fail closed: never export the record unscrubbed
-                report_failure(exc, 'ScrubbingLogExporter.export')
+                _report(exc, 'ScrubbingLogExporter.export')
                 try:  # what is left: the record with its body and attributes dropped, and a note
                     new = copy.copy(rec.log_record)
                     new.body = FAILED
                     new.attributes = {NOTES_ATTRIBUTE: (f'*:error.{type(exc).__name__}',)}
                     out.append(dataclasses.replace(rec, log_record=new))
                 except Exception as exc2:  # noqa: BLE001 - not even that: drop the record
-                    report_failure(exc2, 'ScrubbingLogExporter.export.fallback')
+                    _report(exc2, 'ScrubbingLogExporter.export.fallback')
         return self.inner.export(out)
 
     def _scrub(self, rec: Any) -> Any:

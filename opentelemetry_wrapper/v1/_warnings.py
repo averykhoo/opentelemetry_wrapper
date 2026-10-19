@@ -9,7 +9,9 @@ the wrapper's two output channels about itself
   so no warnings filter can turn it into an exception inside the app. `warn` does this by itself inside `runtime()`
 * a failure swallowed at runtime writes one JSON line to stderr, once per failure site, directly and inside its own
   `try`/`except`, never through `warnings` or `logging`; `OTEL_WRAPPER_DEBUG=true` reports every occurrence, with the
-  traceback (DEC-75)
+  traceback (DEC-75). `_debug` is the one reading of that variable: `true` or `1` (any case) is on, anything else off
+* a scrubbing failure is reported the same way, with the exception's message withheld (in the traceback too): it may
+  hold the very value that failed to scrub (DEC-74)
 """
 import json
 import os
@@ -115,12 +117,24 @@ _reported_lock = threading.Lock()
 
 
 def _debug() -> bool:
+    """the only reading of `OTEL_WRAPPER_DEBUG`: on for `true` or `1` (any case, blanks around ignored), else off"""
     return os.environ.get(DEBUG_ENV_VAR, '').strip().casefold() in ('true', '1')
 
 
-def report(site: str, exc: BaseException) -> None:
+WITHHELD = '(withheld: it may contain the value being scrubbed)'
+
+
+def _format_traceback(exc: BaseException, error_type: str, withhold_message: bool) -> str:
+    if not withhold_message:
+        return ''.join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+    # the stack only, never `str(exc)`: and no chained exceptions, whose messages could hold the value as well
+    return ('Traceback (most recent call last):\n' + ''.join(traceback.format_tb(exc.__traceback__))
+            + f'{error_type}: {WITHHELD}\n')
+
+
+def report(site: str, exc: BaseException, withhold_message: bool = False) -> None:
     """report a failure the wrapper swallowed at runtime: one stderr JSON line per (site, exception type); never
-    raises"""
+    raises. `withhold_message` (scrubbing failures, DEC-74) writes `WITHHELD` for the message, and in the traceback"""
     try:
         debug = _debug()
         key = (site, f'{type(exc).__module__}.{type(exc).__qualname__}')
@@ -130,14 +144,11 @@ def report(site: str, exc: BaseException) -> None:
                     return
                 _reported.add(key)
         record = {'opentelemetry_wrapper': 'internal error, swallowed', 'site': site, 'error.type': key[1],
-                  'message': str(exc)}
+                  'message': WITHHELD if withhold_message else str(exc)}
         if debug:
-            record['traceback'] = ''.join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+            record['traceback'] = _format_traceback(exc, key[1], withhold_message)
         else:
             record['hint'] = f'set {DEBUG_ENV_VAR}=true for every occurrence, with tracebacks'
-        stream = sys.__stderr__ if sys.stderr is None else sys.stderr
-        if stream is not None:
-            stream.write(json.dumps(record, default=repr) + '\n')
-            stream.flush()
+        _write(record)
     except Exception:  # the reporter itself must never raise into the app
         pass

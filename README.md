@@ -449,7 +449,7 @@ never holds up a process's exit.
 | `OTEL_WRAPPER_PROMETHEUS_PATH` | path for the `/metrics` route added to FastAPI apps, served with and without its trailing slash ([DEC-92]); empty to disable | `/metrics` |
 | `OTEL_WRAPPER_CAPTURE_COMMAND_ARGS` | record the process's full command line (secrets redacted); `false` to leave it out | `true` |
 | `OTEL_WRAPPER_PODINFO_DIR` | where the pod's labels and annotations are mounted (Downward API volume, [below](#detected-automatically)) | `/etc/podinfo` |
-| `OTEL_WRAPPER_DEBUG` | `true` reports every internal failure the wrapper swallows, with its traceback, instead of once per site ([below](#warnings-and-the-wrappers-own-errors)) | `false` |
+| `OTEL_WRAPPER_DEBUG` | `true` (or `1`) reports every internal failure the wrapper swallows, with its traceback, instead of once per site; any other value is off ([below](#warnings-and-the-wrappers-own-errors)) | `false` |
 
 **`otel.configure(...)` options** (each beats its variable)
 
@@ -562,8 +562,9 @@ exceptions, which is accepted: it's what was asked for, and it happens before th
 At runtime the wrapper never uses `warnings` ([DEC-81]): a warning that comes up while the app runs (a second unnamed
 `with otel:` block, or one from configuration done implicitly by the first span) is one JSON line on stderr, once.
 A failure inside the wrapper itself is swallowed and reported the same way, one JSON line on stderr per failure site;
-`OTEL_WRAPPER_DEBUG=true` reports every occurrence, with its traceback ([DEC-75]). The wrapper emits no spans or logs
-of its own.
+`OTEL_WRAPPER_DEBUG=true` reports every occurrence, with its traceback ([DEC-75]). A value that fails to scrub is
+reported the same way, but without the exception's message, which could contain the value itself, even in the
+traceback. The wrapper emits no spans or logs of its own.
 
 ## Testing with pytest
 
