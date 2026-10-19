@@ -668,3 +668,206 @@ def test_an_exit_in_another_context_never_crashes_and_still_ends_the_span():  # 
     assert result['errors'] == []
     assert result['ended'] == ['__main__.Resource.__enter__']
     assert result['left_open'] == 0
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# review fixes: a context manager is wrapped as a pair or not at all; inherited copies keep the MRO and the signature
+# ----------------------------------------------------------------------------------------------------------------------
+
+PAIRS_AND_MRO = scenario(__name__, 'v1_classes_pairs_and_mro', PRELUDE + r'''
+import inspect, io
+from opentelemetry import trace
+
+
+def left_current():
+    return getattr(trace.get_current_span(), 'name', None)
+
+
+def short_names(found):
+    return [n.replace('__main__.', '') for n in found]
+
+
+@otel
+def later():
+    return 1
+
+
+@otel
+class FromCBase(io.StringIO):  # `__exit__` is the C base's: no wrapper of ours could close the span
+    def __enter__(self):
+        return super().__enter__()
+
+@otel
+class IgnoredExit:
+    def __enter__(self):
+        return self
+
+    @otel.ignore
+    def __exit__(self, *exc_info):
+        return None
+
+@otel
+class PlainSpanExit:  # `__exit__` is already an ordinary method span
+    def __enter__(self):
+        return self
+
+    @otel
+    def __exit__(self, *exc_info):
+        return None
+
+@otel
+class Pair:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc_info):
+        return None
+
+class OverridesExit(Pair):  # not decorated: its `__exit__` is not ours, so `Pair.__enter__` must not open a span
+    def __exit__(self, *exc_info):
+        return None
+
+class OverridesBoth(Pair):  # and the reverse: an `__exit__` of ours with no `__enter__` of ours closes nothing
+    def __enter__(self):
+        return self
+
+@otel
+class DecoratedOverride(Pair):  # decorated: its own `__exit__` is wrapped, so the pair is ours again
+    def __exit__(self, *exc_info):
+        return super().__exit__(*exc_info)
+
+half = {}
+for cls in (FromCBase, IgnoredExit, PlainSpanExit, OverridesExit, OverridesBoth):
+    for _ in range(3):
+        with cls():
+            pass
+    later()
+    half[cls.__name__] = [left_current(), [(s['name'], s['parent']) for s in take(exporter)],
+                          len(_classes._stacks)]
+emit('half', half)
+with DecoratedOverride():
+    later()
+emit('decorated_override', [sorted(([s['name'], s['parent']] for s in take(exporter)), key=str), left_current()])
+
+# a diamond through a decorated class: the other branch's overrides still win, as without us
+class X:
+    def __init__(self):
+        self.who = 'X'
+
+    def f(self):
+        return 'X.f'
+
+    @property
+    def p(self):
+        return 'X.p'
+
+class Base(X):
+    pass
+
+class Other(X):
+    def __init__(self):
+        self.who = 'Other'
+
+    def f(self):
+        return 'Other.f'
+
+    @property
+    def p(self):
+        return 'Other.p'
+
+class Sub(Base):
+    pass
+
+class Early(Sub, Other):  # defined before the decoration
+    pass
+
+def diamond(cls):
+    d = cls()
+    return [d.who, d.f(), d.p, cls.f(d), super(cls, d).f()]
+
+before = diamond(Early)
+otel(Sub, properties=True)
+
+class Late(Sub, Other):
+    pass
+
+emit('diamond', [before, diamond(Early), diamond(Late)])
+emit('diamond_spans', short_names(names()))
+emit('sub', [Sub().f(), Sub().p, sorted(short_names(names()))])
+
+class Holder:  # an inherited property with a setter stays a data descriptor
+    def __init__(self):
+        self._v = 0
+
+    @property
+    def v(self):
+        return self._v
+
+    @v.setter
+    def v(self, value):
+        self._v = value
+
+@otel(properties=True)
+class SubHolder(Holder):
+    pass
+
+holder = SubHolder()
+holder.v = 5
+emit('setter', [holder.v, '_v' in vars(holder), 'v' in vars(holder)])
+
+# the signature of a class whose `__new__` is inherited and whose `__init__` is its own
+class NewBase:
+    def __new__(cls, *args, **kwargs):
+        return super().__new__(cls)
+
+class WithInit(NewBase):
+    def __init__(self, x: int, y: str = 'a'):
+        self.x = x
+
+class NoInit(NewBase):
+    pass
+
+signatures = [str(inspect.signature(WithInit)), str(inspect.signature(NoInit))]
+otel(WithInit)
+otel(NoInit)
+take(exporter)
+WithInit(1); NoInit()
+emit('signature', [signatures, [str(inspect.signature(WithInit)), str(inspect.signature(NoInit))],
+                   short_names(names())])
+''')
+
+
+def test_a_context_manager_is_wrapped_as_a_pair_or_not_at_all():  # DEC-22: never a span nothing ends
+    half = PAIRS_AND_MRO.result()['half']
+    # no span left current, no stack left open, and `later` is a root: nothing it could be parented under
+    assert half['FromCBase'] == [None, [['__main__.later', None]], 0]
+    assert half['IgnoredExit'] == [None, [['__main__.later', None]], 0]
+    assert half['PlainSpanExit'] == [None, [['__main__.PlainSpanExit.__exit__', None]] * 3
+                                     + [['__main__.later', None]], 0]
+    assert half['OverridesExit'] == [None, [['__main__.later', None]], 0]
+    assert half['OverridesBoth'] == [None, [['__main__.later', None]], 0]
+
+
+def test_a_decorated_subclass_overriding_one_side_gets_one_span_per_with():
+    assert PAIRS_AND_MRO.result()['decorated_override'] == [
+        [['__main__.Pair.__enter__', None], ['__main__.later', '__main__.Pair.__enter__']], None]
+
+
+def test_inherited_copies_keep_the_mro_of_subclasses_with_a_diamond():
+    result = PAIRS_AND_MRO.result()
+    before, early, late = result['diamond']
+    assert before == ['Other', 'Other.f', 'Other.p', 'Other.f', 'Other.f']
+    assert early == before and late == before  # subclasses defined before and after the decoration
+    assert result['diamond_spans'] == []  # the other branch's members are not ours: no span
+    assert result['sub'] == ['X.f', 'X.p', ['X.__init__', 'X.__init__', 'X.f', 'X.p']]  # the class itself: spans
+
+
+def test_an_inherited_property_keeps_its_setter():
+    assert PAIRS_AND_MRO.result()['setter'] == [5, True, False]
+
+
+def test_an_inherited_new_does_not_change_the_class_signature():
+    before, after, spans = PAIRS_AND_MRO.result()['signature']
+    assert before == ['(x: int, y: str = \'a\')', '(*args, **kwargs)']
+    assert after == before
+    assert spans == ['WithInit.__init__', 'NewBase.__new__']  # copied only where it is what `inspect` reports
