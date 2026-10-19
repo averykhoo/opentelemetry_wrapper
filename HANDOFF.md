@@ -4,23 +4,22 @@ LIVING. Orientation note (FRAMEWORK §5.1): what is true now, the next session's
 derivable from the code. The board is `context-engine task list`; this note keeps no copy of it. The banner is
 written at each clean close by `context-engine banner set`.
 
-## Banner (2026-10-18l)
+## Banner (2026-10-19a)
 
 - **Engine mode since 2026-10-18a** (engine `7fd3997`, framework 0.5): the v1 design is records now (DEC-n, the
   board, AC-n); `docs/evidence/adoption-map-2026-10-18.md` maps the archived `PLAN.md` / `TODO.md` onto them.
 - **The charter is the owner's since 2026-10-18e** (DEC-72, DEC-73, trimmed by DEC-77): the higher goal wins, never
   crash first; scrub failures get their own placeholder (DEC-74); swallowed runtime failures go to stderr (DEC-75).
-- **v1 is being built (2026-10-18l, DEC-79: one task agent per item in its own worktree, tokens kept down).** Done:
-  OTW-2, 3, 5, 8, 9, 13, 14; `from opentelemetry_wrapper import otel` is v1, v0's names load lazily and v0's
-  dependencies stay core until 1.0.0 (DEC-80); `main` is the v1 line, v0 patches go from a tag (DEC-84).
-- **Next: BATON-1** (resume OTW-10 from its WIP branch `worktree-agent-a322b3ebbf1274cd5`), then the chain
-  OTW-6 -> 7 -> 4 -> 11 -> 12, one at a time. OTW-21 (auto-release) waits for the owner: the owner said "don't release"
-  (DEC-85). ASK-25 is open.
-- **v0 is not touched** (DEC-71). **v1 is the epic OTW-1.** OTW-19 holds the rest of the migration leftovers.
-- **On `main`, pushed through 38f04fe; CI green there on all 6 jobs** (python 3.12-3.14 x extras all/none). No
-  release. A 7-day GitHub token for reading CI logs is in `.scratch/gh_token` (DEC-86); listing runs needs none.
-- **Commits are automatic here, pushes are not** (DEC-70, `CLAUDE.md` § Overrides). Every clean close appends to
-  `context-engine-feedback.md`. The local gate takes 45 s when the machine is idle and up to 9 min while builders run.
+- **v1 is built (2026-10-19a, DEC-87: one build/review/fix workflow per task, the session merging and gating).**
+  Every v1 workstream is closed; `tests/v0` passes under `OTW_IMPL=v1` and the gate checks it (AC-8, OTW-22);
+  `README.md` is v1's, v0's is `docs/archive/README_v0.md` (OTW-16). Owner decisions this session: DEC-88 to DEC-94.
+- **Left on OTW-1:** OTW-21 (auto-release) waits for the owner, who said "don't release" (DEC-85); ASK-25 is open;
+  OTW-15 waits on upstream; OTW-19 (records errata) is NOW. No release has been cut: v1 is on `main` only.
+- **v0 is not touched** (DEC-71). `main` is the v1 line, v0 patches go from a tag (DEC-84).
+- **On `main`, every merge pushed; CI green on all 6 jobs** (python 3.12-3.14 x extras all/none). The GitHub token in
+  `.scratch/gh_token` is rejected now; listing runs and jobs needs none, reading a job's log does.
+- **Commits are automatic here, pushes need the owner's yes** (DEC-70; this session had it, DEC-88). Every clean close
+  appends to `context-engine-feedback.md`. The local gate takes about 150 s (1151 passed, 5 skipped, 23 xfailed).
 
 ## Next session: start here
 
