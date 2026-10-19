@@ -909,3 +909,93 @@ def test_an_inherited_new_is_not_copied_in_and_the_class_signature_is_unchanged(
     assert before == ["(x: int, y: str = 'a')", '(*args, **kwargs)']
     assert after == before
     assert spans == ['WithInit.__init__']  # `NewBase.__new__` is undecorated `NewBase`'s
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# DEC-89: what the class machinery puts in `__dict__` is not the body's, so it is never wrapped (nor changed)
+# ----------------------------------------------------------------------------------------------------------------------
+
+MACHINERY = scenario(__name__, 'v1_classes_machinery', PRELUDE + r'''
+import enum, pickle, textwrap, typing
+
+
+def short_names(found):
+    return [n.replace('__main__.', '') for n in found]
+
+
+machinery = [typing._no_init_or_replace_init, enum.Enum.__new__, textwrap.dedent]
+attributes_before = [sorted(vars(f)) for f in machinery]
+
+class Base:
+    def __init__(self):
+        self.x = 1
+
+@otel
+class Proto(typing.Protocol):  # `typing` sets `Proto.__init__` to `_no_init_or_replace_init`
+    def meth(self) -> int: ...
+
+class Impl(Proto, Base):  # its `__init__` comes from `Base`, found by `_no_init_or_replace_init` by identity
+    pass
+
+emit('protocol', [getattr(Impl(), 'x', 'MISSING'), short_names(names())])
+
+@otel
+class Color(enum.Enum):  # `enum` copies `Enum.__new__` into `Color.__dict__`
+    RED = 1
+
+    def label(self):
+        return self.name.lower()
+
+emit('enum', [Color(1) is Color.RED, pickle.loads(pickle.dumps(Color.RED)) is Color.RED, Color.RED.label(),
+              short_names(names())])
+
+def make_point():
+    @otel
+    class Point(typing.NamedTuple):  # generated for it: its `__new__` and `_make` count as the body's
+        x: int
+        y: int = 0
+
+        def norm(self):
+            return self.x + self.y
+
+    return Point
+
+Point = make_point()
+emit('namedtuple', [Point(1, 2).norm(), Point._make([3, 4]).norm(), short_names(names())])
+
+class Parent:
+    def shared(self):
+        return 'shared'
+
+@otel
+class Borrows(Parent):
+    alias = Parent.shared  # the very function `Parent` holds
+    dedent = staticmethod(textwrap.dedent)  # a function from another module
+
+    def own(self):
+        return 'own'
+
+emit('borrowed', [Borrows().alias(), Borrows.dedent('  a'), Borrows().own(), Parent().shared(),
+                  short_names(names())])
+emit('unchanged', [sorted(vars(f)) for f in machinery] == attributes_before)
+''')
+
+
+def test_a_decorated_protocol_leaves_its_machinery_init_alone_so_a_subclass_runs_a_later_base_init():  # DEC-89
+    assert MACHINERY.result()['protocol'] == [1, []]
+
+
+def test_a_decorated_enum_does_not_span_enum_new():  # DEC-89
+    assert MACHINERY.result()['enum'] == [True, True, 'red', ['Color.label']]
+
+
+def test_a_decorated_named_tuple_in_a_function_spans_what_is_generated_for_it():  # DEC-89
+    spans = MACHINERY.result()['namedtuple']
+    norm = 'make_point.<locals>.Point.norm'
+    assert spans == [3, 7, ['namedtuple_Point.Point.__new__', norm, 'collections.Point._make', norm]]
+
+
+def test_functions_a_body_takes_from_a_base_or_another_module_get_no_span_and_none_is_changed():  # DEC-89
+    result = MACHINERY.result()
+    assert result['borrowed'] == ['shared', 'a', 'own', 'shared', ['Borrows.own']]
+    assert result['unchanged'] is True

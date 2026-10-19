@@ -10,7 +10,11 @@
   Properties and `cached_property` only with `properties=True`. `@otel.ignore` leaves a method out
 * only the members defined in the class's own body (DEC-89): inherited ones are never copied in, so lookup, the MRO
   and `inspect.signature` are exactly as without us and nothing runs per access. To span a base's methods, decorate
-  the base. A member that is already ours (decorated in the body) is left as it is
+  the base. A member that is already ours (decorated in the body) is left as it is. A function counts as the body's
+  when it was written in the class's module or its `__qualname__` names the class (so `dataclass` and `NamedTuple`
+  members count), and it is not the very function a base holds: what the class machinery puts in `__dict__`
+  (`typing.Protocol`'s `_no_init_or_replace_init`, `enum.Enum.__new__`) is never wrapped nor changed, and neither is a
+  function the body takes from another module (`handler = other.handler`), like a class it merely refers to
 * class-based context managers (DEC-22): one span from `__enter__` to `__exit__` (and `__aenter__` / `__aexit__`)
   instead of two method spans, current in between. A side in the body is wrapped only when the other side is wrapped
   too, or already is ours (from an instrumented base); otherwise (one side from a C base or an undecorated base,
@@ -115,6 +119,8 @@ def instrument_class(cls: type, name: Optional[str], attributes: Optional[dict],
                 if _nested(cls, value, attribute):
                     instrument_class(value, span_name, attributes, properties, notes)
                 continue
+            if not _from_body(cls, value):
+                continue
             new = _wrap_member(attribute, value, span_name, attributes, properties, notes)
             if new is not None:
                 setattr(cls, attribute, new)
@@ -123,7 +129,8 @@ def instrument_class(cls: type, name: Optional[str], attributes: Optional[dict],
 
     for enter_name, exit_name, is_async in CONTEXT_MANAGERS:
         kind = 'async' if is_async else 'sync'
-        wrappable = [a for a in (enter_name, exit_name) if a in own and _wrappable_side(own[a], is_async)]
+        wrappable = [a for a in (enter_name, exit_name)
+                     if a in own and _from_body(cls, own[a]) and _wrappable_side(own[a], is_async)]
         # both sides or neither: each side is wrapped here or is already ours (from an instrumented base). An
         # `__enter__` span with no `__exit__` of ours would never end, and stay current
         resolved = {a: inspect.getattr_static(cls, a, None) for a in (enter_name, exit_name)}  # runs no code
@@ -144,6 +151,29 @@ def _nested(cls: type, value: type, attribute: str) -> bool:
     """a class defined in the body of `cls` (not one it merely refers to, like `error = ValueError`)"""
     return (_introspect._get(value, '__qualname__') == f'{cls.__qualname__}.{attribute}'
             and _introspect._get(value, '__module__') == _introspect._get(cls, '__module__'))
+
+
+def _from_body(cls: type, value: Any) -> bool:
+    """the function behind `value` was defined for `cls` (in its body, or generated for it, like a `dataclass`
+    `__init__`), not put in its `__dict__` by the class machinery (`typing.Protocol` sets `__init__` to
+    `typing._no_init_or_replace_init`, which finds a subclass's real `__init__` by identity; `enum` copies
+    `Enum.__new__` into every enum) nor taken from another module; True for what is not a function, which
+    `_wrap_member` judges"""
+    function = value
+    for attribute in ('__func__', 'fget', 'func'):  # a static / class method, a property, a `cached_property`
+        part = _introspect._get(value, attribute)
+        if part is not None:
+            function = part
+            break
+    if not inspect.isfunction(function):
+        return True
+    for base in cls.__mro__[1:]:
+        base_member = vars(base).get(function.__name__)
+        if base_member is function or _introspect._get(base_member, '__func__') is function:
+            return False  # shared with a base: not the body's, and changing it would change the base
+    qualname = _introspect._get(function, '__qualname__') or ''
+    return (_introspect._get(function, '__module__') == _introspect._get(cls, '__module__')
+            or qualname.startswith(f'{cls.__qualname__}.') or qualname.startswith(f'{cls.__name__}.'))
 
 
 def _wrap_member(attribute: str, value: Any, span_name: Optional[str], attributes: Optional[dict], properties: bool,
