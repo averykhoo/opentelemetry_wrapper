@@ -39,6 +39,25 @@ def setup_spans():
     return exporter
 
 
+def setup_global_spans():
+    """
+    capture finished spans in memory from the global SDK tracer provider, whatever installed it: for code that calls
+    an implementation's api directly rather than through `tests.impl` (the repo's v0 examples, which import v0 names
+    and so run v0 under either OTW_IMPL)
+    """
+    from opentelemetry import trace
+    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+    from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+
+    provider = trace.get_tracer_provider()
+    if not isinstance(provider, TracerProvider):
+        raise RuntimeError(f'no SDK tracer provider is installed yet (got {type(provider).__name__})')
+    exporter = InMemorySpanExporter()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+    return exporter
+
+
 def span_record(span, names_by_id):
     return {
         'name':       span.name,

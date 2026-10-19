@@ -44,7 +44,7 @@ def test_public_api():
 # ----------------------------------------------------------------------------------------------------------------------
 
 INSTRUMENT_ALL = scenario(__name__, 'instrument_all_twice', r'''
-import dataclasses, logging
+import dataclasses, logging, warnings
 original_dataclass = dataclasses.dataclass
 from tests.impl import setup
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
@@ -53,8 +53,13 @@ from opentelemetry.instrumentation.system_metrics import SystemMetricsInstrument
 
 root = logging.getLogger()
 before = len(root.handlers)
-emit('first_call_returns', setup())
-emit('second_call_returns', setup())
+# warnings are recorded, not printed: stderr is the logs' channel, and v1's startup warnings (here, that
+# OTEL_EXPORTER_OTLP_HEADER is v0's name, AC-27) go through `warnings` as plain text, never logging (DEC-49)
+with warnings.catch_warnings(record=True) as caught:
+    warnings.simplefilter('always')
+    emit('first_call_returns', setup())
+    emit('second_call_returns', setup())
+emit('warnings', [f'{w.category.__name__}: {w.message}' for w in caught])
 emit('handlers_added', len(root.handlers) - before)
 emit('dataclasses_patched', dataclasses.dataclass is not original_dataclass)
 emit('requests_instrumented', RequestsInstrumentor().is_instrumented_by_opentelemetry)
@@ -84,12 +89,14 @@ def test_instrument_all_twice_does_not_raise_or_duplicate_handlers(instrument_al
 
 
 def test_instrument_all_defaults(instrument_all_result):
-    assert instrument_all_result['dataclasses_patched'] is True
+    # v1 drops global dataclass instrumentation (DEC-42): `@otel` on each dataclass instead
+    assert instrument_all_result['dataclasses_patched'] is (impl.IMPL == 'v0')
     assert instrument_all_result['requests_instrumented'] is True
     assert instrument_all_result['system_metrics_instrumented'] is True
     assert instrument_all_result['sqlalchemy_instrumented'] is False  # "too noisy for a default"
 
 
+@pytest.mark.v0_specific  # v1 logs no config: `otel.config` is a read-only view of it, secrets redacted (DEC-27)
 def test_instrument_all_logs_its_config_once_as_json(instrument_all_result):
     logs = _stderr_json(instrument_all_result)  # also asserts every stderr line is json
     config_logs = [log for log in logs if isinstance(log['msg'], dict)
@@ -99,17 +106,19 @@ def test_instrument_all_logs_its_config_once_as_json(instrument_all_result):
     assert config_logs[0]['msg']['OTEL_EXPORTER_PROMETHEUS_ENDPOINT'] == '/metrics'
 
 
-@pytest.mark.v0_specific
+@pytest.mark.v0_specific  # v1: instrumenting twice behaves as once, nothing to warn about (DEC-19, AC-6)
 def test_second_instrument_all_warns_that_system_metrics_are_already_instrumented(instrument_all_result):
     # instrument_system_metrics() has no "already instrumented" guard, unlike the other instrumentors
     logs = _stderr_json(instrument_all_result)
     assert [log['message'] for log in logs].count('Attempting to instrument while already instrumented') == 1
 
 
-@pytest.mark.xfail(strict=True, reason='v0 bug list "Secrets in logs" (from reading the code, reproduced here): '
-                                       'instrument_all() logs OTEL_EXPORTER_OTLP_HEADER verbatim (__init__.py:71)')
+@pytest.mark.xfail(impl.IMPL == 'v0', strict=True,
+                   reason='v0 bug list "Secrets in logs" (from reading the code, reproduced here): instrument_all() '
+                          'logs OTEL_EXPORTER_OTLP_HEADER verbatim (__init__.py:71); v1 logs no config (DEC-27)')
 def test_instrument_all_does_not_log_otlp_header_values(instrument_all_result):
     assert 's3cr3t-t0ken' not in instrument_all_result.stderr
+    assert 's3cr3t-t0ken' not in json.dumps(instrument_all_result['warnings'])
 
 
 # ----------------------------------------------------------------------------------------------------------------------
