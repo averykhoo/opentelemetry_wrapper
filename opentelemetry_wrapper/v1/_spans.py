@@ -20,6 +20,8 @@ from opentelemetry_wrapper.v1._warnings import report
 
 PROCESS_EXIT_CODE = 'process.exit.code'  # semconv, incubating
 CLOSED_EARLY = 'opentelemetry_wrapper.closed_early'
+YIELDS = 'opentelemetry_wrapper.yields'  # generator spans: values yielded to the consumer
+ACTIVE_SECONDS = 'opentelemetry_wrapper.active_seconds'  # ... and the time the body ran, as against suspended
 CANCELLED = 'opentelemetry_wrapper.cancelled'
 INTERRUPTED = 'opentelemetry_wrapper.interrupted'
 _RECORDED = '__opentelemetry_wrapper_recorded__'  # marker on an exception whose stack trace is already on a span
@@ -44,13 +46,23 @@ def start(name: str, attributes: Optional[Attributes], attach: bool = True) -> O
         return None
 
 
-def attach(scope: Optional[Scope]) -> object:
+def attach(scope: Optional[Scope], saved: Optional[context.Context] = None) -> object:
+    """make the span current on top of the current context, or, given one, restore `saved` (a generator body's own
+    context at its last yield: the span and whatever the body entered below it)"""
     if scope is None:
         return None
     try:
-        return context.attach(trace.set_span_in_context(scope[0]))
+        return context.attach(saved if saved is not None else trace.set_span_in_context(scope[0]))
     except Exception as e:
         report('span.attach', e)
+        return None
+
+
+def current() -> Optional[context.Context]:
+    try:
+        return context.get_current()
+    except Exception as e:
+        report('span.context', e)
         return None
 
 
@@ -63,12 +75,14 @@ def detach(token: object) -> None:
         report('span.detach', e)
 
 
-def finish(scope: Optional[Scope], exc: Optional[BaseException]) -> None:
+def finish(scope: Optional[Scope], exc: Optional[BaseException], attributes: Optional[Attributes] = None) -> None:
     """set the status (OK, or per DEC-3), end the span, and detach its context; never raises"""
     if scope is None:
         return
     span, token = scope
     try:
+        if attributes:
+            span.set_attributes(attributes)
         if exc is None:
             span.set_status(Status(StatusCode.OK))
         else:
