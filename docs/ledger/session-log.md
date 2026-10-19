@@ -4,10 +4,30 @@ Append-only, newest first, one entry per session (FRAMEWORK §7.1).
 
 ---
 
-## 2026-10-18l · kind: open
+## 2026-10-18l · kind: close
 
-- **opened:** 2026-10-18T21:47:14+08:00 by claude-code/2.1.287
-- **asked:** ASK-21, ASK-22, ASK-23, ASK-24, ASK-25
+- **rows:** OTW-2, OTW-3, OTW-5, OTW-8, OTW-9, OTW-13, OTW-14, OTW-10, OTW-6, OTW-11, OTW-16,
+  ASK-21, ASK-22, ASK-23, ASK-24, ASK-25
+- **receipts:**
+  - guards: gate PASSED in 538.3s (889 passed, 5 skipped, 23 xfailed in 516.71s (0:08:36)) on
+    g1/code:539c576c1d826387; lint: clean
+  - read: docs/runbooks/procedures.md (Housekeeping, Intake, Push and CI, Clean close),
+    docs/runbooks/fan-out.md, DEC-31, DEC-46, tasks OTW-3/8/13/5/14/21/19
+  - asked: ASK-21, ASK-22, ASK-23, ASK-24, ASK-25
+- **summary** (the owner digest):
+  - Pushed 55bac69, e9ff619, 6a44bd6, 38f04fe (no release, DEC-85); CI green on 38f04fe, all 6 jobs
+    (python 3.12-3.14 x extras all/none).
+  - Closed OTW-2 (3.14 partial fix in the v0 tests), OTW-3, OTW-5, OTW-8, OTW-9, OTW-13, OTW-14; 19
+    criteria tested.
+  - Owner decisions: DEC-79 (one ultracode agent per task, minimal tokens), DEC-80 to DEC-83
+    (ASK-21..24), DEC-84 (main is v1; v0 patches from a tag), DEC-85, DEC-86; DEC-36 amended.
+  - OTW-10 stopped mid-build at the owner's request: WIP on branch worktree-agent-a322b3ebbf1274cd5
+    (BATON-1).
+  - Open: ASK-25 (DEC-31's code.* extras); OTW-21 waits for the owner (auto-release vs 'don't
+    release').
+- **Still owed:**
+  - BATON-1: resume OTW-10 from its WIP branch; ASK-25; OTW-21 needs the owner's call on
+    auto-release before it is built
 
 ---
 

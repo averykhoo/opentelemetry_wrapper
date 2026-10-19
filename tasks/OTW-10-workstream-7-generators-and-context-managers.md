@@ -51,3 +51,7 @@ decorated with `@otel`.
 
 - The decisions: [DEC-22](../docs/decisions/DEC-22-generators-and-context-managers-one-span-each.md), [DEC-3](../docs/decisions/DEC-3-exception-status-error-on-the-innermost-span.md); [the criteria](../docs/criteria.md)
 - [v1 design evidence](../docs/evidence/v1-design-evidence-2026-10-18.md): Generators and context managers
+
+## Log
+
+- 2026-10-18l (claude-code/2.1.287): Stopped mid-build at the owner's request (DEC-86); WIP on branch worktree-agent-a322b3ebbf1274cd5 (c76140d), unverified: see BATON-1.
