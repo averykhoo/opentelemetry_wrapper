@@ -4,7 +4,7 @@ id: OTW-4
 title: 'Workstream 2: SQLAlchemy'
 brief: engines that already exist need a per-engine EngineTracer; the global patch only reaches later ones
 pri: NOW
-state: open
+state: closed
 deps: [OTW-7]
 source: session 2026-10-18a
 created: 2026-10-18
@@ -12,6 +12,8 @@ moved: 2026-10-19a
 updated: 2026-10-19a
 aliases: [WS2]
 labels: [v1]
+status: deprecated
+closed: 2026-10-19a
 ---
 
 Criteria: AC-9. Decisions: DEC-1, DEC-11, DEC-62.
@@ -51,3 +53,7 @@ warning, no crash.
 
 - The decisions: [DEC-1](../docs/decisions/DEC-1-sqlalchemy-otel-instrument-sqlalchemy-is-global.md), [DEC-11](../docs/decisions/DEC-11-otel-instrument-with-no-arguments-logging.md), [DEC-62](../docs/decisions/DEC-62-v0-pins-sqlalchemy-asyncio-2-1-until-the.md); [the criteria](../docs/criteria.md)
 - [v1 design evidence](../docs/evidence/v1-design-evidence-2026-10-18.md): SQLAlchemy
+
+## Log
+
+- 2026-10-19a (claude-code/2.1.287): closed: done in f6c79d6: SQLAlchemy (engines, AsyncEngine on aiosqlite, no double tracers, missing-extra warning, commenter off by default DEC-91); AC-9 tested
