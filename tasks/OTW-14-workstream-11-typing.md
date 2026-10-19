@@ -3,12 +3,12 @@ type: Task
 id: OTW-14
 title: 'Workstream 11: typing'
 brief: decorated objects keep their exact type under mypy
-pri: LATER
+pri: NEXT
 state: open
 deps: [OTW-2]
 source: session 2026-10-18a
 created: 2026-10-18
-moved: 2026-10-18a
+moved: 2026-10-18l
 updated: 2026-10-18l
 aliases: [WS11]
 labels: [v1]

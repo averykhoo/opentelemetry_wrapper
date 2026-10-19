@@ -3,13 +3,13 @@ type: Task
 id: OTW-10
 title: 'Workstream 7: generators and context managers'
 brief: a generator function's wrapper must itself be a generator function
-pri: LATER
+pri: NOW
 state: open
 deps: [OTW-5]
 source: session 2026-10-18a
 created: 2026-10-18
-moved: 2026-10-18a
-updated: 2026-10-18a
+moved: 2026-10-18l
+updated: 2026-10-18l
 aliases: [WS7]
 labels: [v1]
 ---
