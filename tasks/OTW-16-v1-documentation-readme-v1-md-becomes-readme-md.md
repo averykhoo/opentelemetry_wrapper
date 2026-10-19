@@ -9,7 +9,7 @@ deps: []
 source: session 2026-10-18a
 created: 2026-10-18
 moved: 2026-10-18a
-updated: 2026-10-18a
+updated: 2026-10-18l
 labels: [v1, docs]
 ---
 
@@ -22,3 +22,7 @@ labels: [v1, docs]
 ## Read first
 
 - [history](../docs/evidence/history-to-2026-10-18.md)
+
+## Log
+
+- 2026-10-18l (claude-code/2.1.287): From OTW-8 (2026-10-19): README must say that anything not behind our exporter wrappers (a user's own processors or exporters) is unscrubbed.

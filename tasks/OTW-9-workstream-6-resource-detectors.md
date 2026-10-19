@@ -4,14 +4,16 @@ id: OTW-9
 title: 'Workstream 6: resource detectors'
 brief: never call the Kubernetes API; never put a whole pod name in service.name
 pri: NEXT
-state: open
+state: closed
 deps: [OTW-2, OTW-8]
 source: session 2026-10-18a
 created: 2026-10-18
-moved: 2026-10-18a
+moved: 2026-10-18l
 updated: 2026-10-18l
 aliases: [WS6]
 labels: [v1]
+status: deprecated
+closed: 2026-10-18l
 ---
 
 Criteria: AC-14, AC-15, AC-16. Decisions: DEC-4, DEC-12, DEC-29, DEC-30, DEC-33.
@@ -158,3 +160,4 @@ faked Downward API volume (including escaped values), and a missing volume is si
 ## Log
 
 - 2026-10-18l (claude-code/2.1.287): 7fcaacf (merged): v1/_resources.py (KubernetesResourceDetector from inside the pod, DEC-12; WrapperProcessResourceDetector with sys.orig_argv through scrub_argv; ForkAwareResource refreshes process.pid/parent_pid at read time and keeps its class through merge), _config._resource uses Resource(explicit) so a detected service.name is not overridden by unknown_service; 62 tests, sabotaged (AC-14, AC-15, AC-16). Entry points under opentelemetry_resource_detector added in pyproject (otel_wrapper_k8s, otel_wrapper_process) with a packaging test. Left: the Linux fork test's first run in CI (not sabotaged). As the item says: container.id left to the contrib detector; Downward API values arrive via OTEL_RESOURCE_ATTRIBUTES, no new env var names. Risks: host.name from HOSTNAME/COMPUTERNAME/gethostname (no getfqdn: DNS could exceed the 5 s detector timeout); an annotation-set service.instance.id is overwritten by the SDK fork hook in children.
+- 2026-10-18l (claude-code/2.1.287): closed: done in 7fcaacf + 9ba946b: detectors, scrubbed command args, fork-aware pid, entry points; AC-14/15/16 tested (38dbc82); the Linux fork test passed in CI run 39178694142 (6a44bd6).
