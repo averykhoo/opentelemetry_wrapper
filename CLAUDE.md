@@ -68,18 +68,17 @@ or renumber an id. The pre-adoption design ids (PLAN.md's Q1-Q16, proposals 1-11
 the repo root. Run it as `context-engine gate run` (`[gate]` in `context.toml`, scope `code`: everything but the
 records and the prose); before a commit touching code or tests, `context-engine gate status --require code`.
 
-- **Baseline:** `243 passed, 2 skipped, 23 xfailed` in about 24 s (2026-10-18k; `214 passed, 1 skipped` before the
-  canaries, `203 passed, 23 xfailed` before the adapter). The skips: the fork canary (Linux only) and a v1-only
-  adapter test.
+- **Baseline:** `1104 passed, 5 skipped, 23 xfailed` in about 150 s on this machine (2026-10-19a, the v1 chain
+  merged; `243 passed, 2 skipped` on 2026-10-18k). `tests/test_v0_suite_under_v1.py` runs `tests/v0` under
+  `OTW_IMPL=v1` in a child interpreter (AC-8), so the default gate and CI check v1 against v0 too.
   `tests/v0` characterizes v0 so v1 can be checked against it: plain tests pin behaviour v1 keeps; known bugs are
   `xfail(strict=True)` tests asserting the correct behaviour, so they error once fixed; `@pytest.mark.v0_specific`
   marks v0 details v1 changes. Global OTel state is isolated by running scenarios in subprocesses
   (`tests/v0/_harness.py`).
 - **`OTW_IMPL=v0|v1`** (DEC-38, default `v0`; since 2026-10-18j): the tests reach the package only through the
   adapter `tests/impl.py`, and under `v1` the `v0_specific` tests are skipped (the one v0 skip is a v1-only
-  adapter test). `OTW_IMPL=v1` runs to completion with failures until v1 exists
-  (`47 failed, 71 passed, 85 skipped, 20 xfailed, 45 errors`); its xfails say nothing about v1, since they hit the
-  adapter's `NotImplementedError`.
+  adapter test). `OTW_IMPL=v1` on the whole suite: `1014 passed, 116 skipped, 2 xfailed`, 0 failures (2026-10-19a;
+  the 2 xfails test v0 internals directly).
 - **Canaries** (`tests/upstream`, marker `upstream`, set by `tests/conftest.py`): one test per upstream behaviour or
   semi-private API v1 relies on (AC-23); `pytest -m upstream tests` runs just them. They build their own providers or
   run in scenarios, so they pass under `OTW_IMPL=v0` and `v1` alike.
