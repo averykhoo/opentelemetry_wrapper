@@ -30,3 +30,11 @@ Read as: without debug, a scrubbing failure's message stays withheld (DEC-74); w
   > Actually I want the pros and cons of each, and get fable to go e an opinion
 
   DEC-94 is on hold until the owner chooses after that comparison; until then the code stays as built (withheld always).
+
+- **2026-10-19a (claude-code/2.1.287):** 2026-10-20 (session 2026-10-19a). After a pros-and-cons table and a fable agent's opinion (recommend A with two changes), the session asked "Given the comparison above, which do you want for a scrubbing failure's exception message?" The owner chose, verbatim:
+
+  > A + shape (Recommended)
+
+  whose option read: "Never write the message, even in debug mode. Debug keeps the chained stack traces, and every report adds the value's type, length and path."
+
+  This replaces DEC-94's original choice ("Show in debug"): the message stays withheld always; under OTEL_WRAPPER_DEBUG=true the traceback keeps every chained exception's stack with each message withheld; every scrubbing-failure report carries the value's type, its length where it has one, and its path.
