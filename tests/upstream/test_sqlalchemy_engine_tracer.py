@@ -98,3 +98,82 @@ def test_connect_spans_come_from_the_instrumentor_not_the_engine_tracer():
     assert 'connect' not in result['before_instrument'], result['before_instrument']
     assert 'connect' in result['after_instrument'], result['after_instrument']
     assert len([n for n in result['after_instrument'] if _is_select(n)]) == 1, result['after_instrument']
+
+
+# what `opentelemetry_wrapper.v1._instrument` reads of upstream besides `EngineTracer` (OTW-4)
+
+GLOBAL_TRACER_LISTENS = scenario(__name__, 'upstream_engine_tracer_listener', _SETUP + r'''
+from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+from opentelemetry.instrumentation.sqlalchemy.engine import EngineTracer
+
+import sqlalchemy
+
+before = sqlalchemy.create_engine('sqlite://')
+SQLAlchemyInstrumentor().instrument(tracer_provider=provider)
+after = sqlalchemy.create_engine('sqlite://')  # not `_SETUP`'s `create_engine`, imported before the patch
+
+
+def tracers(engine):
+    return [type(fn.__self__).__name__ for fn in engine.dispatch.before_cursor_execute
+            if isinstance(getattr(fn, '__self__', None), EngineTracer)]
+
+
+emit('before', tracers(before))
+emit('after', tracers(after))
+''')
+
+NO_ASYNCIO_EXTENSION = scenario(__name__, 'upstream_instrumentor_no_asyncio_extension', r'''
+import sys
+sys.modules['sqlalchemy.ext.asyncio'] = None  # e.g. sqlalchemy 2.1 without greenlet: importing it fails
+import sqlalchemy
+from sqlalchemy.engine.base import Engine
+from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+
+instrumentor = SQLAlchemyInstrumentor()
+try:
+    instrumentor.instrument()
+    emit('raised', None)
+except ImportError as e:
+    emit('raised', type(e).__name__)
+emit('flag', [instrumentor.is_instrumented_by_opentelemetry, instrumentor._is_instrumented_by_opentelemetry])
+emit('patched', [hasattr(sqlalchemy.create_engine, '__wrapped__'), hasattr(Engine.connect, '__wrapped__')])
+instrumentor._is_instrumented_by_opentelemetry = True
+emit('flag_after_setting', instrumentor.is_instrumented_by_opentelemetry)
+''')
+
+SCHEMA_URL = scenario(__name__, 'upstream_sqlalchemy_schema_url', _SETUP + r'''
+from opentelemetry.instrumentation._semconv import _get_schema_url_for_signal_types
+from opentelemetry.instrumentation._semconv import _OpenTelemetrySemanticConventionStability
+from opentelemetry.instrumentation._semconv import _OpenTelemetryStabilitySignalType
+from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+
+_OpenTelemetrySemanticConventionStability._initialize()
+emit('ours', _get_schema_url_for_signal_types([_OpenTelemetryStabilitySignalType.DATABASE,
+                                               _OpenTelemetryStabilitySignalType.HTTP]))
+import sqlalchemy
+SQLAlchemyInstrumentor().instrument(tracer_provider=provider)
+query(sqlalchemy.create_engine('sqlite://'))
+emit('upstream', sorted({s.instrumentation_scope.schema_url for s in exporter.get_finished_spans()}))
+''')
+
+
+def test_an_engine_created_after_instrument_has_an_engine_tracer_among_its_query_listeners():
+    # v1 reads this to skip a second tracer on an engine the global patch already traces
+    result = GLOBAL_TRACER_LISTENS.result()
+    assert result['before'] == []
+    assert result['after'] == ['EngineTracer']
+
+
+def test_without_the_asyncio_extension_instrument_raises_after_patching_the_sync_entry_points():
+    # v1 then sets the flag itself, so a second call does not patch `create_engine` and `connect` twice
+    result = NO_ASYNCIO_EXTENSION.result()
+    assert result['raised'] is not None
+    assert result['flag'] == [False, False]
+    assert result['patched'] == [True, True]
+    assert result['flag_after_setting'] is True
+
+
+def test_the_schema_url_v1_computes_is_the_one_upstream_spans_carry():
+    result = SCHEMA_URL.result()
+    assert result['ours']
+    assert result['upstream'] == [result['ours']]

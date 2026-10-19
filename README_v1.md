@@ -196,9 +196,12 @@ otel.instrument()                 # everything installed that can be instrumente
 ```
 
 **SQLAlchemy:** `otel.instrument(sqlalchemy)` only reaches engines created *after* the call, so call it before
-creating engines, or also pass the existing engines in. `otel.instrument(engine)` traces that engine's queries only:
-connection spans (`connect`) come from the global instrumentation and aren't available per engine.
-`otel.instrument()` leaves SQLAlchemy out, because query spans are noisy.
+creating engines, or also pass the existing engines in. It patches `sqlalchemy.create_engine`, so a `create_engine`
+imported by name (`from sqlalchemy import create_engine`) *before* the call still makes untraced engines.
+`otel.instrument(engine)` traces that engine's queries only, whenever it was created: connection spans (`connect`)
+come from the global instrumentation and aren't available per engine. Both together are fine: an engine is never
+traced twice. An `AsyncEngine` is traced through its sync engine. `otel.instrument()` leaves SQLAlchemy out, because
+query spans are noisy. Without the `[sqlalchemy]` extra, either call warns once and changes nothing.
 
 **x-userinfo:** the header (base64 or plain JSON, as an API gateway such as Kong passes on Keycloak's userinfo) is
 decoded and every claim is recorded on the request span as `http.request.header.x-userinfo.<claim>` (custom ones such
