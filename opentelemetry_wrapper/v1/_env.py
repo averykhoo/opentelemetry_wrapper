@@ -7,6 +7,7 @@ the OTLP exporters and the SDK read most standard variables themselves (endpoint
 """
 import logging
 import os
+import re
 from dataclasses import dataclass
 from dataclasses import fields
 from typing import Any
@@ -25,6 +26,7 @@ DEFAULT_RESPONSE_HEADER_ATTRIBUTES = ('x-kong-proxy-latency', 'x-kong-upstream-l
                                       'x-envoy-upstream-service-time',  # upstream latency
                                       'x-authz-response-time-seconds', 'x-process-time-seconds')
 EXPORTER_CHOICES = ('otlp', 'console', 'none')
+PROMETHEUS_DEFAULT_PORT = 9464  # the spec's default for OTEL_EXPORTER_PROMETHEUS_PORT
 
 
 def _env(name: str, environ: Mapping[str, str]) -> Optional[str]:
@@ -54,7 +56,9 @@ class Settings:
     otlp_headers: Tuple[Tuple[str, str], ...] = ()  # explicit, or v0's OTEL_EXPORTER_OTLP_HEADER
     log_level: str = 'info'
     log_format: str = 'json'
-    prometheus_path: str = '/metrics'  # used by workstream 9
+    prometheus_path: str = '/metrics'  # the FastAPI route (workstream 9); '' adds none
+    prometheus_host: str = 'localhost'  # the standalone Prometheus server's interface (OTEL_EXPORTER_PROMETHEUS_HOST)
+    prometheus_port: Optional[int] = None  # the standalone Prometheus server's port; None: no server
     header_attributes: Tuple[str, ...] = ('x-userinfo',)  # request headers to decode onto the server span (OTW-7)
     header_attributes_exclude: Tuple[str, ...] = DEFAULT_HEADER_ATTRIBUTES_EXCLUDE  # claim denylist (DEC-2)
     response_header_attributes: Tuple[str, ...] = DEFAULT_RESPONSE_HEADER_ATTRIBUTES  # `requests` client spans
@@ -105,6 +109,10 @@ def _is_mapping(value: Any) -> bool:
     return isinstance(value, Mapping)
 
 
+def _is_port(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and 0 < value < 65536
+
+
 def _is_strings(value: Any) -> bool:
     return isinstance(value, str) or (isinstance(value, (list, tuple, set, frozenset))
                                       and all(isinstance(item, str) for item in value))
@@ -121,6 +129,8 @@ _EXPECTED = {  # what `otel.configure(...)` takes, by option: (description, chec
     'log_level': ('a string', _is_str),
     'log_format': ('a string', _is_str),
     'prometheus_path': ('a string', _is_str),
+    'prometheus_host': ('a string', _is_str),
+    'prometheus_port': ('a port number (an int from 1 to 65535)', _is_port),
     'header_attributes': ('a string or a list of strings', _is_strings),
     'header_attributes_exclude': ('a string or a list of strings', _is_strings),
     'response_header_attributes': ('a string or a list of strings', _is_strings),
@@ -170,6 +180,11 @@ def resolve(explicit: Mapping[str, Any], environ: Optional[Mapping[str, str]] = 
     v0_headers = migrated('OTEL_EXPORTER_OTLP_HEADER', 'OTEL_EXPORTER_OTLP_HEADERS',
                           ' (key=value pairs, comma-separated, values URL-encoded)')
     v0_prometheus_path = migrated('OTEL_EXPORTER_PROMETHEUS_ENDPOINT', 'OTEL_WRAPPER_PROMETHEUS_PATH')
+    if (v0_prometheus_path is None and 'OTEL_EXPORTER_PROMETHEUS_ENDPOINT' in environ
+            and 'OTEL_WRAPPER_PROMETHEUS_PATH' not in environ):
+        v0_prometheus_path = ''  # set but blank: v0's way to turn the route off
+        notes.append('OTEL_EXPORTER_PROMETHEUS_ENDPOINT is v0\'s name and is read for one release only; use '
+                     'OTEL_WRAPPER_PROMETHEUS_PATH instead (empty for no route)')
     v0_header_attributes = migrated('OTEL_HEADER_ATTRIBUTES', 'OTEL_WRAPPER_HEADER_ATTRIBUTES')
     if _env('OTEL_LOG_LEVEL', environ) is not None and _env('OTEL_WRAPPER_LOG_LEVEL', environ) is None:
         notes.append('OTEL_LOG_LEVEL is not read: it is the OpenTelemetry SDK\'s own variable; '
@@ -197,6 +212,7 @@ def resolve(explicit: Mapping[str, Any], environ: Optional[Mapping[str, str]] = 
             attributes['service.namespace'] = v0_namespace
     values['resource_attributes'] = tuple(sorted(attributes.items()))
     values['otlp_endpoint'] = otlp_endpoint
+    prometheus_chosen = False  # `prometheus` among the metrics exporters: serve on the standard port, 9464, unless set
     for signal in SIGNALS:
         option = f'{signal}_exporter'
         chosen = explicit.get(option)
@@ -205,9 +221,13 @@ def resolve(explicit: Mapping[str, Any], environ: Optional[Mapping[str, str]] = 
         if chosen is None:
             chosen = 'otlp' if _endpoint_set(signal, values['otlp_endpoint'], environ) else 'none'
         names = _split(chosen) if isinstance(chosen, str) else tuple(chosen)
+        if signal == 'metrics' and 'prometheus' in names:  # the standard switch for the standalone scrape server
+            prometheus_chosen = True
+            names = tuple(n for n in names if n != 'prometheus')
         unknown = [n for n in names if n not in EXPORTER_CHOICES]
         if unknown:
-            notes.append(f'{option} {unknown!r} not supported (choose from {", ".join(EXPORTER_CHOICES)}); ignored')
+            choices = EXPORTER_CHOICES + (('prometheus',) if signal == 'metrics' else ())
+            notes.append(f'{option} {unknown!r} not supported (choose from {", ".join(choices)}); ignored')
         names = tuple(n for n in names if n in EXPORTER_CHOICES and n != 'none')
         values[option] = tuple(sorted(set(names)))
     headers = explicit.get('otlp_headers')
@@ -236,7 +256,21 @@ def resolve(explicit: Mapping[str, Any], environ: Optional[Mapping[str, str]] = 
         path = environ.get('OTEL_WRAPPER_PROMETHEUS_PATH')
     if path is None:
         path = v0_prometheus_path if v0_prometheus_path is not None else '/metrics'
-    values['prometheus_path'] = path.strip()
+    values['prometheus_path'] = _prometheus_path(path, notes)
+    values['prometheus_host'] = ((explicit.get('prometheus_host') or '').strip()
+                                 or _env('OTEL_EXPORTER_PROMETHEUS_HOST', environ) or 'localhost')
+    port = explicit.get('prometheus_port')
+    if port is None:
+        raw_port = _env('OTEL_EXPORTER_PROMETHEUS_PORT', environ)
+        if raw_port is not None:
+            port = int(raw_port) if re.fullmatch('[0-9]{1,5}', raw_port) else None
+            if not _is_port(port):
+                notes.append(f'OTEL_EXPORTER_PROMETHEUS_PORT {raw_port!r} is not a port number (1 to 65535); it is '
+                             f'ignored, so no Prometheus server is started')
+                port = None
+        elif prometheus_chosen:
+            port = PROMETHEUS_DEFAULT_PORT
+    values['prometheus_port'] = port
     header_attributes = explicit.get('header_attributes')
     if header_attributes is None:
         raw = _env('OTEL_WRAPPER_HEADER_ATTRIBUTES', environ) or v0_header_attributes
@@ -256,6 +290,25 @@ def resolve(explicit: Mapping[str, Any], environ: Optional[Mapping[str, str]] = 
                                                     _env('OTEL_WRAPPER_RESPONSE_HEADER_ATTRIBUTES', environ),
                                                     DEFAULT_RESPONSE_HEADER_ATTRIBUTES, lower=True)
     return Settings(**values), notes
+
+
+_PROMETHEUS_PATH = re.compile(r'(/[A-Za-z0-9_-]+)+/?')
+
+
+def _prometheus_path(path: str, notes: List[str]) -> str:
+    """the FastAPI route's path, normalised like v0's (repeated slashes collapsed, a leading slash added); blank
+    means no route, and so does a path that isn't plain segments of `[A-Za-z0-9_-]`, with a warning"""
+    path = path.strip()
+    if not path:
+        return ''
+    normalised = '/' + re.sub(r'/+', '/', path).lstrip('/')
+    if not _PROMETHEUS_PATH.fullmatch(normalised):
+        notes.append(f'prometheus_path {path!r} is not a path of plain segments ([A-Za-z0-9_-], like /metrics); no '
+                     f'/metrics route is added to FastAPI apps')
+        return ''
+    if normalised != path:
+        notes.append(f'prometheus_path {path!r} is used as {normalised!r}')
+    return normalised
 
 
 def _strings(explicit: Any, env: Optional[str], default: Tuple[str, ...], lower: bool) -> Tuple[str, ...]:

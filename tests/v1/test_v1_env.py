@@ -139,3 +139,68 @@ def test_endpoint_and_service_name_are_normalised():  # AC-3 (DEC-27 rule 2)
     b, _ = resolve({'service_name': 'svc', 'otlp_endpoint': 'http://h:4318'})
     assert a == b and (a.service_name, a.otlp_endpoint) == ('svc', 'http://h:4318')
     assert resolve({'service_name': '  ', 'otlp_endpoint': ' / '})[0] == resolve()[0]
+
+
+# Prometheus (workstream 9, OTW-12)
+
+@pytest.mark.criterion('AC-19')
+def test_prometheus_host_and_port():  # AC-19 (DEC-59): the host is read, so k8s can bind 0.0.0.0
+    settings, notes = resolve()
+    assert (settings.prometheus_host, settings.prometheus_port, notes) == ('localhost', None, [])  # no server
+    settings, notes = resolve(OTEL_EXPORTER_PROMETHEUS_PORT=' 9464 ', OTEL_EXPORTER_PROMETHEUS_HOST='0.0.0.0')
+    assert (settings.prometheus_host, settings.prometheus_port, notes) == ('0.0.0.0', 9464, [])
+    settings, _ = resolve({'prometheus_host': '::', 'prometheus_port': 9000}, OTEL_EXPORTER_PROMETHEUS_PORT='9464')
+    assert (settings.prometheus_host, settings.prometheus_port) == ('::', 9000)
+
+
+@pytest.mark.criterion('AC-19')
+def test_the_standard_prometheus_exporter_switch_serves_on_the_default_port():  # review of OTW-12
+    settings, notes = resolve(OTEL_METRICS_EXPORTER='prometheus')
+    assert (settings.metrics_exporter, settings.prometheus_port, notes) == ((), 9464, [])  # the spec's default
+    settings, notes = resolve(OTEL_METRICS_EXPORTER='prometheus', OTEL_EXPORTER_PROMETHEUS_PORT='9000')
+    assert (settings.metrics_exporter, settings.prometheus_port, notes) == ((), 9000, [])  # no "ignored" warning
+    settings, notes = resolve(OTEL_METRICS_EXPORTER='otlp, prometheus')
+    assert (settings.metrics_exporter, settings.prometheus_port, notes) == (('otlp',), 9464, [])
+    settings, notes = resolve({'metrics_exporter': ['prometheus'], 'prometheus_port': 9100})
+    assert (settings.metrics_exporter, settings.prometheus_port, notes) == ((), 9100, [])
+    settings, notes = resolve(OTEL_TRACES_EXPORTER='prometheus')  # a metrics exporter only
+    assert settings.prometheus_port is None and len(notes) == 1 and 'traces_exporter' in notes[0]
+
+
+@pytest.mark.parametrize('port', ['http', '0', '65536', '-1', '9464.0', '²', '123456'])
+def test_a_port_that_is_not_a_port_warns_and_starts_no_server(port):  # AC-7 (DEC-49)
+    settings, notes = resolve(OTEL_EXPORTER_PROMETHEUS_PORT=port)
+    assert settings.prometheus_port is None
+    assert len(notes) == 1 and 'OTEL_EXPORTER_PROMETHEUS_PORT' in notes[0]
+
+
+def test_a_wrong_typed_explicit_port_warns_and_falls_back():  # AC-7 (DEC-49)
+    for port in ('9464', True, 0, 70000):
+        settings, notes = resolve({'prometheus_port': port}, OTEL_EXPORTER_PROMETHEUS_PORT='9000')
+        assert settings.prometheus_port == 9000 and len(notes) == 1 and 'prometheus_port' in notes[0]
+
+
+@pytest.mark.parametrize('path, expected, warns', [
+    ('/metrics', '/metrics', False),
+    ('/prom/scrape', '/prom/scrape', False),
+    ('/metrics/', '/metrics/', False),
+    ('prom//scrape', '/prom/scrape', True),  # normalised like v0
+    ('', '', False),  # no route
+    ('   ', '', False),
+    ('/', '', True),  # v0 ignored the root too
+    ('/met rics', '', True),
+    ('/métrics', '', True),
+])
+def test_the_prometheus_path_is_normalised_or_refused(path, expected, warns):
+    settings, notes = resolve(OTEL_WRAPPER_PROMETHEUS_PATH=path)
+    assert settings.prometheus_path == expected
+    assert len(notes) == (1 if warns else 0), notes
+
+
+@pytest.mark.criterion('AC-27')
+def test_v0s_blank_prometheus_endpoint_still_turns_the_route_off_with_a_warning():  # AC-27 (DEC-52)
+    settings, notes = resolve(OTEL_EXPORTER_PROMETHEUS_ENDPOINT='')
+    assert settings.prometheus_path == ''
+    assert len(notes) == 1 and 'OTEL_WRAPPER_PROMETHEUS_PATH' in notes[0]
+    settings, _ = resolve(OTEL_EXPORTER_PROMETHEUS_ENDPOINT='', OTEL_WRAPPER_PROMETHEUS_PATH='/new')
+    assert settings.prometheus_path == '/new'

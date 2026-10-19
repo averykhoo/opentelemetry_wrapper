@@ -8,6 +8,8 @@ configuration (DEC-27, DEC-28, DEC-9): providers for all three signals, built on
 * every exporter we build goes through `_wrap_exporter` (the scrubbing hook, workstream 5b) and a switchable sink, so
   the pytest plugin can turn real exports off and capture what would be exported (DEC-10)
 * a bounded flush at exit, also in forked `multiprocessing` children
+* Prometheus (workstream 9): the reader goes into the meter provider at configure time (readers can't be added
+  later), and the standalone server binds then too (`_prometheus`)
 """
 import atexit
 import importlib.util
@@ -43,6 +45,7 @@ class _State:
     owned: List[Any] = field(default_factory=list)  # providers we created, to flush at exit
     sinks: List[Any] = field(default_factory=list)  # our real exporters' processors, switchable by the pytest plugin
     logging_instrumented: bool = False
+    prometheus_server: Any = None  # the standalone Prometheus server, when this process bound the port
     failed: bool = False
 
 
@@ -215,7 +218,7 @@ def _switchable_metric_exporter(exporter_class: Any) -> Any:
 def _metric_readers(state: _State, notes: List[str]) -> list:
     from opentelemetry.sdk.metrics.export import ConsoleMetricExporter
     from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
-    readers = []
+    readers: List[Any] = []
     for name in state.settings.metrics_exporter:
         try:
             if name == 'otlp':
@@ -230,6 +233,13 @@ def _metric_readers(state: _State, notes: List[str]) -> list:
         exporter.enabled = _exporters_enabled
         state.sinks.append(exporter)
         readers.append(reader)
+    if state.settings.prometheus_path or state.settings.prometheus_port is not None:
+        try:  # pulled, not pushed: nothing to switch off. it registers with prometheus_client's global registry
+            from opentelemetry.exporter.prometheus import PrometheusMetricReader
+            readers.append(PrometheusMetricReader())
+        except Exception as e:
+            notes.append(f'the Prometheus metric reader could not be built, so Prometheus gets no OpenTelemetry '
+                         f'metrics: {type(e).__name__}: {e}')
     return readers
 
 
@@ -278,6 +288,7 @@ def _build(settings: _env.Settings, notes: List[str]) -> _State:
     guarded('traces', _build_traces, state, resource, notes, foreign)
     guarded('logs', _build_logs, state, resource, notes, foreign)
     guarded('metrics', _build_metrics, state, resource, notes, foreign)
+    guarded('the Prometheus server', _start_prometheus_server, state, notes)
     if foreign:
         notes.append('OpenTelemetry was configured by someone else first, so opentelemetry_wrapper follows them where '
                      'it can: ' + '; '.join(foreign))
@@ -340,6 +351,21 @@ def _build_metrics(state: _State, resource: Any, notes: List[str], foreign: List
     else:
         foreign.append(f'meter provider ({type(existing).__name__}): opentelemetry_wrapper leaves it alone and '
                        f'exports no metrics of its own')
+
+
+def _start_prometheus_server(state: _State, notes: List[str]) -> None:
+    """bound at configure time, once per process; never while a test has switched our exporters off (DEC-27 rule 3).
+    a port another worker holds is one warning, and the process carries on"""
+    host, port = state.settings.prometheus_host, state.settings.prometheus_port
+    if port is None or not _exporters_enabled:
+        return
+    from opentelemetry_wrapper.v1 import _prometheus
+    try:
+        state.prometheus_server = _prometheus.start_server(host, port)
+    except OSError as e:
+        notes.append(f'the Prometheus server could not listen on {host}:{port}, so this process serves no metrics '
+                     f'there ({type(e).__name__}: {e}). With several workers per container only one can bind the '
+                     f'port: use OTLP push, or one worker per container')
 
 
 def _attach_sink(state: _State, exporter: Any, signal: str, notes: List[str]) -> None:

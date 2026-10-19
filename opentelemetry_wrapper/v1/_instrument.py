@@ -5,7 +5,7 @@ each records what it already instrumented (weakly, where the target is an object
 warning, at instrumentation time only. an instrumentor's `DependencyConflict` is only logged upstream and produces no
 spans, so we check for it and warn ourselves. SQLAlchemy has two ways in (DEC-1): the module, globally, for engines
 created later, and each engine, through its own `EngineTracer`. later workstreams extend these: logging's JSON output
-(8, `_logging`), the Prometheus route (9); the header hooks (5) are `_headers`
+(8, `_logging`), the Prometheus route (9, `_prometheus`); the header hooks (5) are `_headers`
 """
 import importlib.util
 import os
@@ -313,8 +313,37 @@ def instrument_app(app: Any, notes: List[str]) -> Any:
     settings = _config.settings()
     FastAPIInstrumentor.instrument_app(  # the caller's x-userinfo claims on the server span, never the raw value
         app, exclude_spans=FASTAPI_EXCLUDE_SPANS,
+        excluded_urls=_excluded_urls(settings.prometheus_path, os.environ),
         server_request_hook=_headers.server_request_hook(settings.header_attributes,
                                                          settings.header_attributes_exclude),
         http_capture_headers_sanitize_fields=_headers.sanitize_fields(settings.header_attributes, os.environ))
     _apps.add(app)
+    if settings.prometheus_path:
+        _guarded('the Prometheus route', lambda _: _add_prometheus_route(app, settings.prometheus_path), notes)
     return app
+
+
+def _excluded_urls(prometheus_path: str, environ: Mapping[str, str]) -> Optional[str]:
+    """upstream's `excluded_urls`: the app's own choice (`OTEL_PYTHON_FASTAPI_EXCLUDED_URLS`, else
+    `OTEL_PYTHON_EXCLUDED_URLS`, which passing the argument would otherwise replace), plus the Prometheus path
+    exactly, with and without its trailing slash"""
+    from opentelemetry_wrapper.v1 import _prometheus
+    if not prometheus_path:
+        return None  # upstream reads the variables itself
+    own = environ.get('OTEL_PYTHON_FASTAPI_EXCLUDED_URLS', environ.get('OTEL_PYTHON_EXCLUDED_URLS', ''))
+    return ','.join(part for part in (own.strip(), _prometheus.excluded_url(prometheus_path)) if part)
+
+
+def _add_prometheus_route(app: Any, path: str) -> None:
+    """the scrape route (workstream 9), placed when the app builds its middleware stack (at its first request), not
+    now: `app = otel.instrument(FastAPI())` has no routes yet, and the app's own route at that path, declared later,
+    must win. the stack it builds (upstream's, request spans included) is wrapped so the scrape makes no request span
+    under a `root_path` either (`_prometheus.untraced_under_root_path`)"""
+    from opentelemetry_wrapper.v1 import _prometheus
+    build = app.build_middleware_stack
+
+    def build_middleware_stack() -> Any:
+        _prometheus.place_route(app, path)
+        return _prometheus.untraced_under_root_path(build(), path)
+
+    app.build_middleware_stack = build_middleware_stack
