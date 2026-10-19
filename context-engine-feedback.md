@@ -5,6 +5,49 @@ the engine repo (`averykhoo/context-engine`). Every session appends at its clean
 feedback): after-action reviews, frictions, tokens spent on ceremony, engine bugs and refusals with a bad remedy,
 and simplifications that would help. Newest first; each entry dated, with its session key.
 
+## 2026-10-18l: push, OTW-2 closed, then six workstreams through worktree task agents (DEC-79)
+
+### What worked
+
+- **One task agent per item, each in its own worktree, with the session merging and gating first-hand.** Seven
+  items moved (OTW-2, 3, 5, 8, 9, 13, 14 closed) with the top-level context holding only reports of 15-30 lines.
+  Naming each agent's file ownership and the exact interface between parallel agents up front (OTW-3's
+  `_wrap_exporter` and OTW-8's `ScrubbingSpanExporter`) made every merge clean except for trivial add/add.
+- **Owner questions in bulk through the harness's multiple-choice prompt**, then `ask answer` per question: four
+  decisions (DEC-80 to DEC-83) in one round trip. The `ask answer` -> decision -> unblock chain is smooth.
+- **`gate status --require code` and `commit` refusing an ungated code path** caught one real case: a commit tried
+  right after a red gate run.
+
+### Friction
+
+- **`commit` still omits `Co-Authored-By:` (the 2026-10-18j gap).** One commit (e9ff619) went out with `Session:` only,
+  because the message didn't carry the line, and it was pushed before anyone noticed. When the message ends with a
+  `Co-Authored-By:` line, the engine adds `Session:` to the same paragraph correctly. The engine should add the
+  co-author trailer itself, or refuse a message without it.
+- **Refusals that cost a retry each:** `record new decision` needs `decision_status`, and its error lists the values
+  only on the second try (`accepted` -> refused). `ask new` refuses when NEXT is full (it could default to LATER, or
+  say `--pri LATER` in the remedy), and refuses a brief over 120 characters. All three remedies are good, but the
+  limits are not in `--help`.
+- **`task close` while a question still `--blocks` the item is allowed silently** (OTW-5 closed with ASK-25 open). A
+  warning would help.
+- **The gate on Windows gets slow and flaky under parallel agents:** 45 s when the machine is idle, 540 s with two
+  agents also running tests, and v0 example subprocesses crash with 0xC000070A, giving no output. That happened twice,
+  and both times the tests passed when rerun on their own. CI runs the whole suite in about 24 s per job. A gate
+  "rerun failed tests once and report a flake" mode, or a note in gate.md about not gating while builders run,
+  would save reruns.
+- **The Haiku CI watcher was unreliable three times:**
+  - it reported "no CI run triggered" because the `head_sha` query filter returned nothing;
+  - the permission classifier blocked it from using the token;
+  - the first watcher read the GitLab-format token in the global CLAUDE.md as GitHub's and failed.
+  Listing runs and jobs needs no token, so the session checked the verdicts itself. procedures.md § Push and CI could
+  say "list `runs?branch=` and match `head_sha` yourself".
+
+### Ceremony cost
+
+- Each merge cost about 4 tool calls: diff stat, merge, worktree removal, gate. Each task close cost about 2 more:
+  a comment and the close. That is cheap next to the build work. The criteria-marker pass needed its own agent,
+  because builders were not told to add `@pytest.mark.criterion`. Put that in every builder's brief from the start.
+
 ## 2026-10-18k: OTW-2's canaries, interleaving tests, benchmark and CI
 
 ### What worked
