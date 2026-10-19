@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from dataclasses import field
 from types import MappingProxyType
 from typing import Any
+from typing import Dict
 from typing import List
 from typing import Mapping
 from typing import Optional
@@ -47,6 +48,7 @@ class _State:
     logging_instrumented: bool = False
     prometheus_server: Any = None  # the standalone Prometheus server, when this process bound the port
     failed: bool = False
+    sdk_env: Dict[str, Any] = field(default_factory=_env.sdk_env_settings)  # for the view: as the SDK read it at build
 
 
 _state: Optional[_State] = None
@@ -501,8 +503,9 @@ def settings() -> _env.Settings:
 def config_view() -> Mapping[str, Any]:
     """`otel.config`: the effective configuration, read-only, secrets redacted"""
     with _lock:
-        settings = _state.settings if _state is not None else _env.resolve({})[0]
-    return MappingProxyType(settings.redacted())
+        if _state is not None:
+            return MappingProxyType(_state.settings.redacted(_state.sdk_env))
+    return MappingProxyType(_env.resolve({})[0].redacted(_env.sdk_env_settings()))
 
 
 def logger_provider() -> Any:

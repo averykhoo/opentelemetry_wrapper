@@ -403,7 +403,11 @@ print(otel.config['service_name'])  # the effective configuration, read-only, se
 
 Configuration is final once it's been set up (by `otel.configure`, `otel.instrument` or the first span): a later call
 with different options is ignored, with a warning; only the log level can still change ([DEC-9]). `otel.config` is a
-read-only view of the effective configuration, with the OTLP header values redacted.
+read-only view of the effective configuration, with the OTLP header values redacted: each option as set by
+`otel.configure(...)`, or else by its variable, `OTEL_SERVICE_NAME`, `OTEL_RESOURCE_ATTRIBUTES`,
+`OTEL_EXPORTER_OTLP_ENDPOINT` and `OTEL_EXPORTER_OTLP_HEADERS` included, though OpenTelemetry reads those itself. It
+doesn't show what's detected or defaulted on the resource (a `service_name` of `None` means the default service name
+below; the spans' resource has the rest), nor the per-signal `OTEL_EXPORTER_OTLP_<SIGNAL>_ENDPOINT` and `_HEADERS`.
 
 If something else configured OpenTelemetry first (the app set its own tracer provider), you get one warning and the
 wrapper follows it where it can: it adds its span and log processors to an SDK tracer or logger provider (whose

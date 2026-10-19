@@ -64,6 +64,53 @@ def test_the_config_view_is_read_only_and_redacts_secrets():  # DEC-27 rule 4
     assert result['read_only'] is True
 
 
+# the view shows what the SDK reads from the environment itself, not only the explicit options (README, DEC-27 rule 4)
+VIEW_SDK_ENV = {'OTEL_SERVICE_NAME': 'checkout', 'OTEL_RESOURCE_ATTRIBUTES': 'service.namespace=shop,team=a%20b',
+                'OTEL_EXPORTER_OTLP_ENDPOINT': 'http://127.0.0.1:9/', 'OTEL_TRACES_EXPORTER': 'none',
+                'OTEL_METRICS_EXPORTER': 'none', 'OTEL_LOGS_EXPORTER': 'none',
+                'OTEL_EXPORTER_OTLP_HEADERS': 'Authorization=Basic%20c2VjcmV0,X-Tenant=t1'}
+VIEW_FROM_ENV = scenario(__name__, 'v1_config_view_from_env', PRELUDE + r"""
+keys = ('service_name', 'resource_attributes', 'otlp_endpoint', 'otlp_headers')
+emit('before', {k: otel.config[k] for k in keys})  # not configured yet: what the environment says now
+otel.instrument()
+
+@otel
+def f():
+    pass
+
+f()
+(span,) = exporter.get_finished_spans()
+emit('resource', [span.resource.attributes['service.name'], span.resource.attributes['team']])
+view = otel.config
+emit('after', {k: view[k] for k in keys})
+emit('secret', 'c2VjcmV0' in repr(dict(view)))
+""", env=VIEW_SDK_ENV)
+
+VIEW_EXPLICIT_BEATS_ENV = scenario(__name__, 'v1_config_view_explicit_beats_env', PRELUDE + r"""
+otel.configure(service_name='explicit', resource_attributes={'team': 'c'}, otlp_endpoint='http://127.0.0.1:8',
+               otlp_headers={'Authorization': 'Bearer x'})
+view = otel.config
+emit('view', {k: view[k] for k in ('service_name', 'resource_attributes', 'otlp_endpoint', 'otlp_headers')})
+""", env=VIEW_SDK_ENV)
+
+
+def test_the_config_view_shows_the_values_the_sdk_reads_from_the_environment():  # DEC-27 rule 4
+    result = VIEW_FROM_ENV.result()
+    expected = {'service_name': 'checkout', 'resource_attributes': [['service.namespace', 'shop'], ['team', 'a b']],
+                'otlp_endpoint': 'http://127.0.0.1:9',
+                'otlp_headers': [['authorization', '[REDACTED]'], ['x-tenant', '[REDACTED]']]}
+    assert result['before'] == expected
+    assert result['after'] == expected
+    assert result['resource'] == ['checkout', 'a b']  # the view agrees with what the SDK put on the resource
+    assert result['secret'] is False
+
+
+def test_the_config_view_shows_explicit_options_over_the_environment():  # DEC-27 rules 2 and 4
+    assert VIEW_EXPLICIT_BEATS_ENV.result()['view'] == {
+        'service_name': 'explicit', 'resource_attributes': [['service.namespace', 'shop'], ['team', 'c']],
+        'otlp_endpoint': 'http://127.0.0.1:8', 'otlp_headers': [['Authorization', '[REDACTED]']]}
+
+
 IMPLICIT = scenario(__name__, 'v1_config_implicit', PRELUDE + r'''
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
