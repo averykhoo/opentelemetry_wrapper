@@ -9,7 +9,7 @@ deps: [OTW-4]
 source: session 2026-10-18a
 created: 2026-10-18
 moved: 2026-10-18h
-updated: 2026-10-18k
+updated: 2026-10-18l
 aliases: [WS8]
 labels: [v1]
 ---
@@ -52,3 +52,4 @@ handlers, not four; `tests/v0` logging tests pass under `OTW_IMPL=v1`.
 ## Log
 
 - 2026-10-18k (claude-code/2.1.287): Found while writing the canaries (OTel SDK 1.44.0 / contrib 0.65b0): the SDK's opentelemetry.sdk._logs.LoggingHandler, which v0 uses and DEC-32's evidence describes, now warns DeprecationWarning ('Use the handler from opentelemetry-instrumentation-logging instead'). The replacement, opentelemetry.instrumentation.logging.handler.LoggingHandler(level, logger_provider, log_code_attributes=False), writes the code.* keys only with log_code_attributes=True. Both pinned by tests/upstream/test_logging_handler.py. Which handler v1 uses is this workstream's call.
+- 2026-10-18l (claude-code/2.1.287): From OTW-3 (2026-10-19): AC-6's 'two handlers' clause needs this workstream's JSON handler; v1 adds one OTel handler today.
