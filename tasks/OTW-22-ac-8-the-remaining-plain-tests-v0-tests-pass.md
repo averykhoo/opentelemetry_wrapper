@@ -3,7 +3,7 @@ type: Task
 id: OTW-22
 title: 'AC-8: the remaining plain tests/v0 tests pass under OTW_IMPL=v1'
 brief: v1 proven safe against tests/v0 (DEC-37's gate before v1 becomes the default)
-pri: LATER
+pri: NOW
 state: open
 deps: [OTW-12]
 source: session 2026-10-19a
