@@ -5,10 +5,9 @@ each records what it already instrumented (weakly, where the target is an object
 warning, at instrumentation time only. an instrumentor's `DependencyConflict` is only logged upstream and produces no
 spans, so we check for it and warn ourselves. SQLAlchemy has two ways in (DEC-1): the module, globally, for engines
 created later, and each engine, through its own `EngineTracer`. later workstreams extend these: logging's JSON output
-(8), the Prometheus route (9); the header hooks (5) are `_headers`
+(8, `_logging`), the Prometheus route (9); the header hooks (5) are `_headers`
 """
 import importlib.util
-import logging
 import os
 import sys
 import types
@@ -137,15 +136,10 @@ def _run_instrumentor(instrumentor: Any, what: str, notes: List[str], **kwargs: 
 
 
 def instrument_logging(notes: List[str]) -> None:
-    """an OTel log handler on the root logger, once (workstream 8 adds the stderr JSON handler)"""
-    from opentelemetry.instrumentation.logging.handler import LoggingHandler
-    root = logging.getLogger()
-    if not any(getattr(h, '_opentelemetry_wrapper', False) for h in root.handlers):
-        provider = _config.logger_provider()
-        handler = LoggingHandler(logger_provider=provider, log_code_attributes=True) if provider is not None \
-            else LoggingHandler(log_code_attributes=True)
-        handler._opentelemetry_wrapper = True  # type: ignore[attr-defined]
-        root.addHandler(handler)
+    """two handlers on the root logger, each once: OTLP log records and (unless `log_format` is off) one-line JSON on
+    stderr (`_logging`, workstream 8); the level is the configured one"""
+    from opentelemetry_wrapper.v1 import _logging
+    _logging.instrument(_config.logger_provider(), _config.settings().log_format, notes)
     _config.mark_logging_instrumented()
 
 

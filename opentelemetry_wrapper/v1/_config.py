@@ -75,6 +75,12 @@ def _use_auto_scrubbing_engine(scrubbing: Any) -> None:
         report('scrubber.engine', e)
 
 
+def use_auto_scrubbing_engine() -> None:
+    """the stderr JSON logs share the exporters' scrubber, so they pick its engine the same way (DEC-83)"""
+    if importlib.util.find_spec(SCRUBBING_MODULE) is not None:
+        _use_auto_scrubbing_engine(importlib.import_module(SCRUBBING_MODULE))
+
+
 def _wrap_exporter(exporter: Any, signal: str) -> Any:
     """
     the one place every span / log exporter we build passes through: wraps it in the scrubbing exporter of workstream

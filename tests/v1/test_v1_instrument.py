@@ -172,10 +172,10 @@ def test_an_engine_instrumented_twice_listens_once():  # AC-6
 
 
 @pytest.mark.criterion('AC-6')
-def test_logging_instrumented_twice_adds_one_handler_in_total():  # AC-6
+def test_logging_instrumented_twice_adds_two_handlers_in_total():  # AC-6: the OTLP one and the stderr JSON one
     r = LOGGING_TWICE.result()
-    assert r['added'] == 1
-    assert r['wrapper_handlers'] == 1
+    assert r['added'] == 2
+    assert r['wrapper_handlers'] == 2
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -326,8 +326,8 @@ def test_instrument_with_no_argument_returns_none_and_does_not_warn():  # AC-3
 
 def test_instrument_with_no_argument_does_logging_and_requests_but_not_sqlalchemy():  # AC-3, DEC-11
     r = NO_ARGUMENT.result()
-    assert r['handlers_added'] == 1
-    assert r['wrapper_handlers'] == 1
+    assert r['handlers_added'] == 2  # logging's two: OTLP and the stderr JSON one
+    assert r['wrapper_handlers'] == 2
     assert r['requests'] is True
     assert r['sqlalchemy'] is False
 
