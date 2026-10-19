@@ -39,3 +39,7 @@ Old names are read for one release with a deprecation warning at startup (except
 `OTEL_SDK_DISABLED=true` (standard) also means `OTEL_WRAPPER_DISABLED` (Q5).
 
 *Imported at adoption (2026-10-18) from `PLAN.md` § Environment variables, `PLAN.md` § `TODO.md` triage against the rebuild, as committed at `24a0430`; now at `docs/archive/PLAN.md`.*
+
+## Amendments
+
+- **2026-10-19a (claude-code/2.1.287):** 2026-10-19 (session 2026-10-19a): amended by DEC-92. The owner chose "Yes, keep it (Recommended)": `prometheus` in OTEL_METRICS_EXPORTER is also accepted, for metrics only, and starts the scrape server on 9464 unless a port is given.
