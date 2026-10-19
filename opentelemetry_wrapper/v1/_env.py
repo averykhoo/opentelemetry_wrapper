@@ -16,6 +16,7 @@ from typing import List
 from typing import Mapping
 from typing import Optional
 from typing import Tuple
+from urllib.parse import unquote
 from urllib.parse import urlsplit
 
 SIGNALS = ('traces', 'metrics', 'logs')
@@ -67,10 +68,19 @@ class Settings:
     def without_log_level(self) -> 'Settings':
         return Settings(**{**asdict_shallow(self), 'log_level': ''})
 
-    def redacted(self) -> Dict[str, Any]:
-        """a read-only view's content: header values are secrets (v0 logged its auth header)"""
+    def redacted(self, sdk_env: Optional[Mapping[str, Any]] = None) -> Dict[str, Any]:
+        """a read-only view's content: header values are secrets (v0 logged its auth header). `sdk_env` (from
+        `sdk_env_settings`) fills in what the SDK reads from the environment itself, so the view shows the service
+        name, resource attributes, endpoint and headers in use, not only the explicit ones"""
         out = asdict_shallow(self)
-        out['otlp_headers'] = tuple((k, '[REDACTED]') for k, _ in self.otlp_headers)
+        headers = self.otlp_headers
+        if sdk_env is not None:  # explicit (and v0's names, already in these fields) beat the environment
+            out['service_name'] = self.service_name or sdk_env['service_name']
+            attributes = {**dict(sdk_env['resource_attributes']), **dict(self.resource_attributes)}
+            out['resource_attributes'] = tuple(sorted(attributes.items()))
+            out['otlp_endpoint'] = self.otlp_endpoint or sdk_env['otlp_endpoint']
+            headers = headers or sdk_env['otlp_headers']
+        out['otlp_headers'] = tuple((k, '[REDACTED]') for k, _ in headers)
         return out
 
 
@@ -94,6 +104,32 @@ def _parse_v0_headers(value: str, separator: str) -> Tuple[Tuple[str, str], ...]
         key, _, val = item.partition(sep)
         out.append((key.strip(), val.strip()))
     return tuple(out)
+
+
+def _pairs(value: Optional[str], lower_keys: bool = False) -> Dict[str, str]:
+    """`key=value` pairs, comma-separated, values URL-encoded: how the SDK reads OTEL_RESOURCE_ATTRIBUTES and
+    OTEL_EXPORTER_OTLP_HEADERS (header names lowercased, as the exporters do); a pair without `=` is skipped"""
+    out: Dict[str, str] = {}
+    for item in (value or '').split(','):
+        key, sep, val = item.partition('=')
+        key = unquote(key).strip()
+        if sep and key:
+            out[key.lower() if lower_keys else key] = unquote(val.strip())
+    return out
+
+
+def sdk_env_settings(environ: Optional[Mapping[str, str]] = None) -> Dict[str, Any]:
+    """what the SDK reads from the environment itself (the resource, the OTLP exporters), for `otel.config`: the
+    wrapper leaves these to the SDK, so `resolve` only holds the explicit values (DEC-28). per-signal endpoints and
+    headers (OTEL_EXPORTER_OTLP_<SIGNAL>_*) are not in the view"""
+    environ = os.environ if environ is None else environ
+    attributes = _pairs(_env('OTEL_RESOURCE_ATTRIBUTES', environ))
+    service_name = _env('OTEL_SERVICE_NAME', environ) or (attributes.get('service.name') or '').strip() or None
+    headers = _pairs(_env('OTEL_EXPORTER_OTLP_HEADERS', environ), lower_keys=True)
+    return {'service_name': service_name,
+            'resource_attributes': tuple(sorted(attributes.items())),
+            'otlp_endpoint': (_env('OTEL_EXPORTER_OTLP_ENDPOINT', environ) or '').rstrip('/') or None,
+            'otlp_headers': tuple(sorted(headers.items()))}
 
 
 def _endpoint_set(signal: str, explicit_endpoint: Optional[str], environ: Mapping[str, str]) -> bool:
