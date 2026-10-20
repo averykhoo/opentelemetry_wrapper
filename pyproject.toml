@@ -15,64 +15,46 @@ classifiers = [
     "Typing :: Typed",
 ]
 dynamic = ["version", "description"]
-# DEC-44: v1 needs 3.12. This floor ships with the first release that contains v1 (a v0-only release would keep ">3.8.0")
+# DEC-44: v1 needs 3.12; this floor ships with 1.0.0, the first release with v1 (older Pythons get the last 0.x)
 requires-python = ">=3.12"
 
 # DEC-57: strict OTel pins. The SDK family (1.x) is capped at the next minor and the contrib packages (0.XbY, released
 # in lockstep with it) at the matching window; a cap moves only when the canaries and CI say so. Keep the two windows,
-# and requirements.txt, in step. (A "<0.66" bound excludes the 0.66 pre-releases, so 0.66b0 is out.)
-# DEC-36: OTLP over HTTP only, so opentelemetry-exporter-otlp (the meta package that pulls in grpcio) is not a dependency
-# (v1 never imports gRPC; the one transitional exception is in the v0 block below).
+# and requirements.txt, in step. (A "<0.67" bound excludes the 0.67 pre-releases, so 0.67b0 is out.)
+# DEC-36: OTLP over HTTP only, so opentelemetry-exporter-otlp (the meta package that pulls in grpcio) is not a dependency.
+# DEC-96: from 1.0.0 the plain install is lean (v0 and its FastAPI, SQLAlchemy, requests, pydantic and gRPC dependencies
+# are gone); every integration comes through its extra (AC-20).
 # NOTE: also update requirements.txt
 dependencies = [
-    "opentelemetry-api>=1.44,<1.45",
-    "opentelemetry-sdk>=1.44,<1.45",
-    "opentelemetry-exporter-otlp-proto-http>=1.44,<1.45",
-    "opentelemetry-semantic-conventions>=0.65b0,<0.66",
-    "opentelemetry-instrumentation-logging>=0.65b0,<0.66",
-    "opentelemetry-exporter-prometheus>=0.65b0,<0.66",
-
-    # --- v0's dependencies: core until v0 is deleted at 1.0.0 (DEC-80) ------------------------------------------
-    # the root no longer imports v0, but its names still resolve from the root (lazily), and v0 imports these at
-    # module level; keeping them core keeps a plain `pip install opentelemetry_wrapper` working for v0 users.
-    # At 1.0.0, when v0 is deleted, this whole block goes.
-    # that includes the gRPC exporters (v0's otel_providers.py imports opentelemetry.exporter.otlp.proto.grpc), so
-    # DEC-36's "no gRPC" cannot hold yet either: without this line `import opentelemetry_wrapper` raises
-    # ModuleNotFoundError, and since the pytest11 entry point imports the package, so would every pytest run
-    "opentelemetry-exporter-otlp-proto-grpc>=1.44,<1.45",
-    "opentelemetry-instrumentation-fastapi>=0.65b0,<0.66",
-    "opentelemetry-instrumentation-requests>=0.65b0,<0.66",
-    "opentelemetry-instrumentation-sqlalchemy>=0.65b0,<0.66",
-    "opentelemetry-instrumentation-system-metrics>=0.65b0,<0.66",
-    "fastapi",
-    "pydantic",
-    "requests",
-    # TODO: temporary pin, since opentelemetry-instrumentation-sqlalchemy (<=0.66b0) silently skips sqlalchemy>=2.1
-    #  check https://github.com/open-telemetry/opentelemetry-python-contrib/issues/5118 (and PR #5120)
-    #  once a release supports 2.1, remove `<2.1` here (twice), AND in requirements.txt, and set that release as the
-    #  minimum for opentelemetry-instrumentation-sqlalchemy; then check that `sqlalchemy_example.py` prints a `SELECT`
-    #  span (OTW-15)
-    "sqlalchemy[asyncio]<2.1",
-    "typing-extensions",
+    "opentelemetry-api>=1.45,<1.46",
+    "opentelemetry-sdk>=1.45,<1.46",
+    "opentelemetry-exporter-otlp-proto-http>=1.45,<1.46",
+    "opentelemetry-semantic-conventions>=0.66b0,<0.67",
+    "opentelemetry-instrumentation-logging>=0.66b0,<0.67",
+    "opentelemetry-exporter-prometheus>=0.66b0,<0.67",
 ]
 
 [project.optional-dependencies]
 # DEC-11 / DEC-35: each integration is optional at call time; the extra pulls its contrib instrumentor and the library
 fastapi = [
-    "opentelemetry-instrumentation-fastapi>=0.65b0,<0.66",
+    "opentelemetry-instrumentation-fastapi>=0.66b0,<0.67",
     "fastapi",
 ]
 sqlalchemy = [
-    "opentelemetry-instrumentation-sqlalchemy>=0.65b0,<0.66",
-    # TODO: see the sqlalchemy note under dependencies (OTW-15); lift the cap here too
+    "opentelemetry-instrumentation-sqlalchemy>=0.66b0,<0.67",
+    # TODO: temporary pin, since opentelemetry-instrumentation-sqlalchemy (<=0.66b1) silently skips sqlalchemy>=2.1
+    #  check https://github.com/open-telemetry/opentelemetry-python-contrib/issues/5118 (and PR #5120)
+    #  once a release supports 2.1, remove `<2.1` here AND in requirements.txt, and set that release as the minimum
+    #  for opentelemetry-instrumentation-sqlalchemy; then check that `sqlalchemy_example.py` prints a `SELECT` span
+    #  (OTW-15)
     "sqlalchemy<2.1",
 ]
 requests = [
-    "opentelemetry-instrumentation-requests>=0.65b0,<0.66",
+    "opentelemetry-instrumentation-requests>=0.66b0,<0.67",
     "requests",
 ]
 system-metrics = [
-    "opentelemetry-instrumentation-system-metrics>=0.65b0,<0.66",  # brings psutil
+    "opentelemetry-instrumentation-system-metrics>=0.66b0,<0.67",  # brings psutil
 ]
 # DEC-16: the optional fast scrubbing engine (stdlib `re` is the default and the fallback)
 hyperscan = [
@@ -99,5 +81,5 @@ otel_wrapper_process = "opentelemetry_wrapper.v1._resources:WrapperProcessResour
 Home = "https://github.com/averykhoo/opentelemetry_wrapper"
 
 [tool.mypy]
-# OTW-14 / AC-21: `mypy` alone checks v1 and the typing samples; the v0 package is checked by naming its path
-files = ["opentelemetry_wrapper/v1", "tests/typing"]
+# OTW-14 / AC-21: `mypy` alone checks the package and the typing samples
+files = ["opentelemetry_wrapper", "tests/typing"]

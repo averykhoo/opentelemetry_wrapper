@@ -21,7 +21,8 @@ case "$mode" in
     # in a subprocess from an empty directory with no PYTHONPATH, so only the installed package can be imported
     python -m pip install .
     python -m pip install pytest
-    python -m pip list | grep -iE '^(opentelemetry|sqlalchemy|fastapi|starlette|pydantic|pytest|hyperscan|grpcio)' || true
+    # since 1.0.0 none of sqlalchemy, fastapi, starlette, grpcio or psutil is core: the listing shows any that slipped in
+    python -m pip list | grep -iE '^(opentelemetry|sqlalchemy|fastapi|starlette|pydantic|pytest|hyperscan|grpcio|psutil)' || true
     target=tests/test_install_core.py
     ;;
   *)
