@@ -71,12 +71,12 @@ or renumber an id. The pre-adoption design ids (PLAN.md's Q1-Q16, proposals 1-11
 the repo root. Run it as `context-engine gate run` (`[gate]` in `context.toml`, scope `code`: everything but the
 records and the prose); before a commit touching code or tests, `context-engine gate status --require code`.
 
-- **Baseline:** `1047 passed, 4 skipped` in about 110 s on this machine (2026-10-20a, the 1.0.0 cutover, OTW-25,
-  merged; about `1151 passed, 5 skipped, 23 xfailed` before it, with v0 still in). v0 is deleted (DEC-96) and the
-  suite runs v1 only: there is no `OTW_IMPL` any more. `tests/v0` stays, as the characterization of what v1 keeps from v0 (AC-8): its tests
-  reach the package through the adapter `tests/impl.py`, which maps v0's neutral names onto v1; the tests that pinned v0
-  details v1 changes (`v0_specific`) and those of v0's internals went with v0. The root's warn-once aliases of v0's
-  names are `tests/v1/test_v1_aliases.py`. Global OTel state is isolated by running scenarios in subprocesses
+- **Baseline:** `1047 passed, 4 skipped` in about 110 s on this machine (2026-10-20a, the 1.0.0 cutover, OTW-25, merged;
+  about `1151 passed, 5 skipped, 23 xfailed` before it, with v0 still in). v0 is deleted (DEC-96) and the suite runs v1
+  only: there is no `OTW_IMPL` any more. `tests/v0` stays, as the characterization of what v1 keeps from v0 (AC-8): its
+  tests reach the package through the adapter `tests/impl.py`, which maps v0's neutral names onto v1; the tests that
+  pinned v0 details v1 changes (`v0_specific`) and those of v0's internals went with v0. The root's warn-once aliases of
+  v0's names are `tests/v1/test_v1_aliases.py`. Global OTel state is isolated by running scenarios in subprocesses
   (`tests/v0/_harness.py`).
 - **Canaries** (`tests/upstream`, marker `upstream`, set by `tests/conftest.py`): one test per upstream behaviour or
   semi-private API v1 relies on (AC-23); `pytest -m upstream tests` runs just them. They build their own providers or
