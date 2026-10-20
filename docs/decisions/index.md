@@ -115,6 +115,7 @@ Generated from each decision's frontmatter by `context-engine decision index`; n
 - [DEC-85](DEC-85-push-this-session-s-work-once-the-root-v1-agent.md): Push this session's work once the root-v1 agent lands; no release *(owner, 2026-10-19)*
 - [DEC-96](DEC-96-the-first-v1-release-is-1-0-0-a-hard-cutover-v0.md): The first v1 release is 1.0.0, a hard cutover: v0 deleted, its root names warn-once aliases onto v1 *(owner, 2026-10-20)*
 - [DEC-97](DEC-97-otw-21-waits-until-after-v1-and-ships-push-only.md): OTW-21 waits until after v1 and ships push-only first; publishing is turned on after a couple of correct pushes *(owner, 2026-10-20)*
+- [DEC-98](DEC-98-releases-move-to-pypi-trusted-publishing-the.md): Releases move to PyPI trusted publishing; the owner stops using flit publish; push now *(owner, 2026-10-20)*
 
 ### resources
 
