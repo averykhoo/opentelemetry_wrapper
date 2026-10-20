@@ -1,7 +1,7 @@
 """
 v1's `@otel` on functions (OTW-3): spans, kinds, idempotency, never-crash, exceptions (DEC-3)
 
-each scenario runs in a fresh interpreter (global OTel state can't be reset), so these pass under OTW_IMPL=v0 and v1
+each scenario runs in a fresh interpreter (global OTel state can't be reset)
 """
 import pytest
 from tests.v0._harness import scenario

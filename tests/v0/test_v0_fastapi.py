@@ -1,22 +1,20 @@
 """
-`instrument_fastapi_app`: request spans, `x-userinfo` flattening (request hook + extract_json_header), `/metrics`
+`instrument_fastapi_app` (v1: `otel.instrument(app)`): request spans, `x-userinfo` flattening, `/metrics`
 
 httpx (and so FastAPI's TestClient) is not installed, so apps are driven with a hand-built ASGI scope
 (`_harness.asgi_request`). apps are instrumented per object, so this is safe in-process; env-dependent behaviour
-(the prometheus path is read at import time) runs in fresh interpreters
+(the prometheus path is read when the wrapper configures) runs in fresh interpreters
 """
 import base64
 import json
 
 import pytest
 
-from tests import impl
 from tests.v0._harness import REPO_ROOT
 from tests.v0._harness import asgi_request
 from tests.v0._harness import scenario
 
 fastapi = pytest.importorskip('fastapi')
-IMPL_IS_V0 = impl.IMPL == 'v0'
 
 
 def make_app():
@@ -46,7 +44,8 @@ def make_app():
 
 
 def server_spans(records):
-    return [r for r in records if r['kind'] == 'SERVER']
+    """the instrumentation's server spans: FastAPI (0.142) also makes one of its own, instrumented or not"""
+    return [r for r in records if r['kind'] == 'SERVER' and r['scope'] == 'opentelemetry.instrumentation.fastapi']
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -76,8 +75,8 @@ def test_request_spans(otw, spans):
 
 
 # v1 leaves the ASGI send / receive spans out by default, keeping only the server span, and
-# OTEL_WRAPPER_FASTAPI_ASGI_SPANS=true brings them back (DEC-93); v0 always emits them and ignores the variable. a
-# scenario, since v1 reads the variable when it configures
+# OTEL_WRAPPER_FASTAPI_ASGI_SPANS=true brings them back (DEC-93; v0 always emitted them). a scenario, since v1 reads
+# the variable when it configures
 ASGI_SEND_SPANS = scenario(__name__, 'fastapi_asgi_send_spans', r'''
 from fastapi import FastAPI
 from tests.impl import instrument_app
@@ -143,13 +142,6 @@ def test_non_fastapi_objects_are_returned_unchanged(otw):
     assert otw.instrument_app(None) is None
 
 
-@pytest.mark.v0_specific  # v1's own entry points emit no spans (AC-22, DEC-49)
-def test_instrumenting_emits_a_span_for_the_instrument_call_itself(otw, spans):
-    otw.instrument_app(make_app())
-    assert spans.names(include_library_spans=True) == [
-        '<opentelemetry_wrapper.v0.dependencies.opentelemetry.instrument_fastapi>.instrument_fastapi_app']
-
-
 # ----------------------------------------------------------------------------------------------------------------------
 # headers (default OTEL_HEADER_ATTRIBUTES = x-userinfo)
 # ----------------------------------------------------------------------------------------------------------------------
@@ -197,11 +189,9 @@ def test_base64_userinfo_is_flattened_onto_the_server_span(app, spans):
     assert all(not header_attributes(r) for r in records if r is not server)
 
 
-@pytest.mark.xfail(IMPL_IS_V0, strict=True,
-                   reason='found by this suite (v0 bug list, 2nd section): base64 userinfo whose json length is not 1 '
-                          'mod 3 is not decoded on python >= 3.11 (see test_v0_extract_json_header.py), so it is '
-                          'recorded raw instead of flattened; v1 decodes it (OTW-7)')
 def test_base64_userinfo_of_another_length_is_flattened(app, spans):
+    # v0 bug (v0 bug list, 2nd section): base64 json whose length is not 1 mod 3 was not decoded on python >= 3.11,
+    # so it was recorded raw (OTW-7)
     obj = dict(USERINFO, pad='')
     while len(json.dumps(obj).encode()) % 3 != 2:
         obj['pad'] += 'x'
@@ -228,15 +218,6 @@ def test_undecodable_userinfo_is_recorded_raw(app, spans):
     assert header_attributes(server) == {'http.request.header.x-userinfo': 'just text'}
 
 
-@pytest.mark.v0_specific  # v1 never records a value that looks encoded but doesn't decode (AC-33, OTW-7)
-def test_jwt_userinfo_is_recorded_raw(app, spans):
-    jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.signature'
-    spans.clear()
-    asgi_request(app, '/hello', headers=[('x-userinfo', jwt)])
-    (server,) = server_spans(spans.records())
-    assert header_attributes(server) == {'http.request.header.x-userinfo': jwt}
-
-
 def test_other_headers_are_not_captured_by_default(app, spans):
     spans.clear()
     asgi_request(app, '/hello', headers=[('x-other', '{"a": 1}'), ('authorization', 'Bearer secret')])
@@ -252,7 +233,7 @@ def test_no_header_no_attributes(app, spans):
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# prometheus /metrics (default OTEL_EXPORTER_PROMETHEUS_ENDPOINT=/metrics)
+# prometheus /metrics (default OTEL_WRAPPER_PROMETHEUS_PATH=/metrics)
 # ----------------------------------------------------------------------------------------------------------------------
 
 def test_metrics_route_serves_prometheus_text_including_http_server_metrics(app, spans):
@@ -290,17 +271,9 @@ def test_existing_metrics_route_is_not_replaced(otw):
     assert asgi_request(app, '/metrics').text == '"custom"'
 
 
-@pytest.mark.v0_specific  # v1 excludes the exact path only (v0 lessons, AC-19), so /api/metrics gets a span
-def test_metrics_exclusion_also_hides_other_routes_containing_slash_metrics(app, spans):
-    # excluded_urls='/metrics' is a regex *search* over the full url, so these unrelated routes get no spans either
-    spans.clear()
-    assert asgi_request(app, '/api/metrics').text == '"not prometheus"'
-    assert asgi_request(app, '/metricsfoo').text == '"not prometheus either"'
-    assert spans.names() == []
-
-
 # ----------------------------------------------------------------------------------------------------------------------
-# env-dependent variants and fastapi_main.py, in fresh interpreters
+# env-dependent variants and fastapi_main.py, in fresh interpreters. the variants set v0's name for the path,
+# OTEL_EXPORTER_PROMETHEUS_ENDPOINT, which v1 still reads (with a warning) for one release
 # ----------------------------------------------------------------------------------------------------------------------
 
 _ENDPOINT_SCRIPT = r'''
@@ -323,8 +296,6 @@ emit('routes', [route.path for route in app.router.routes])  # after a request: 
 take(exp)
 '''
 
-ENDPOINT_TRAILING_SLASH = scenario(__name__, 'fastapi_metrics_trailing_slash', _ENDPOINT_SCRIPT,
-                                   env={'OTEL_EXPORTER_PROMETHEUS_ENDPOINT': '/metrics/'})
 ENDPOINT_CUSTOM = scenario(__name__, 'fastapi_metrics_custom', _ENDPOINT_SCRIPT.replace("'/metrics', '/metrics/'",
                                                                                         "'/prom/scrape', '/metrics'"),
                            env={'OTEL_EXPORTER_PROMETHEUS_ENDPOINT': 'prom//scrape'})
@@ -334,21 +305,13 @@ ENDPOINT_DISABLED = scenario(__name__, 'fastapi_metrics_disabled', _ENDPOINT_SCR
 FASTAPI_MAIN = scenario(__name__, 'fastapi_main_example', r'''
 import fastapi_main  # the example app; importing it does not start uvicorn
 from tests.v0._harness import asgi_request
-exp = setup_global_spans()  # the example calls v0's api itself, whatever OTW_IMPL is
+exp = setup_spans()
 for path in ('/hello', '/hello/world', '/metrics'):
     response = asgi_request(fastapi_main.app, path)
     emit(path, {'status': response.status, 'text': response.text[:200],
                 'process_time_header': 'x-process-time-seconds' in response.headers})
 emit('spans', take(exp))
 ''')
-
-
-@pytest.mark.v0_specific  # v1 never mounts: /metrics and /metrics/ both scrape, no redirect (AC-19, DEC-92)
-def test_trailing_slash_endpoint_mounts_the_prometheus_app_with_a_redirect():
-    result = ENDPOINT_TRAILING_SLASH.result()
-    assert result['/metrics'] == {'status': 307, 'location': '/metrics/', 'is_prometheus': False}
-    assert result['/metrics/'] == {'status': 200, 'location': None, 'is_prometheus': True}
-    assert result['/hello']['status'] == 200
 
 
 def test_endpoint_env_var_is_normalised():

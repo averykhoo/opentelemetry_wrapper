@@ -3,26 +3,22 @@
 this: DEC-34, OTW-11).
 each scenario runs in a fresh interpreter, since it reconfigures the root logger and the log record factory
 
-under `OTW_IMPL=v1` (OTW-11) the same scenarios run against `otel.instrument(logging)`: two handlers (OTLP and the
-stderr JSON one) where v0 adds one without an OTLP endpoint, span names `module.qualname` (DEC-47), and no per-call
-options (DEC-43: `print_json`, `stream` and `clobber_other_log_handlers` are v0-only). v1 fixes the negative offset
+the scenarios run against `otel.instrument(logging)` (OTW-11): two handlers (OTLP and the stderr JSON one) where v0
+added one without an OTLP endpoint, span names `module.qualname` (DEC-47), and no per-call options (DEC-43: v0's
+`print_json`, `stream` and `clobber_other_log_handlers` are gone). v1 fixes v0's negative offset
 """
 import json
 import re
 
 import pytest
 
-from tests import impl
 from tests.v0._harness import scenario
 
-IMPL_IS_V0 = impl.IMPL == 'v0'
-HANDLERS_PER_CALL = 1 if IMPL_IS_V0 else 2  # v1: the OTLP handler and the JSON one (AC-6: two, not four)
+HANDLERS_PER_CALL = 2  # the OTLP handler and the JSON one (AC-6: two, not four)
 
 
-def span_name(qualname: str, is_async: bool = False) -> str:
-    """v0's `<module>.qualname` (`async ` before a coroutine's) or v1's `module.qualname` (DEC-47)"""
-    if IMPL_IS_V0:
-        return f'{"async " if is_async else ""}<__main__>.{qualname}'
+def span_name(qualname: str) -> str:
+    """`module.qualname` (DEC-47; v0's was `<module>.qualname`, with `async ` before a coroutine's)"""
     return f'__main__.{qualname}'
 
 
@@ -82,43 +78,6 @@ instrument_logging()
 logging.warning('tz check')
 ''', env={'TZ': 'XYZ-8'})  # UTC+8
 
-TEXT_AND_STREAM = scenario(__name__, 'logging_text_and_stream', r'''
-import io, logging
-from tests.impl import decorate, instrument_logging
-exp = setup_spans()
-
-instrument_logging(print_json=False)
-
-@decorate
-def work():
-    logging.warning('text mode line')
-
-work()
-emit('span', take(exp))
-
-buffer = io.StringIO()
-instrument_logging(stream=buffer)
-logging.warning('sent to the stream')
-emit('stream_contents', buffer.getvalue())
-''')
-
-CLOBBER = scenario(__name__, 'logging_clobber', r'''
-import io, logging
-from tests.impl import instrument_logging
-
-noisy = logging.getLogger('noisy')
-own_stream = io.StringIO()
-noisy.addHandler(logging.StreamHandler(own_stream))
-noisy.propagate = False
-
-instrument_logging()
-noisy.warning('without clobbering')
-instrument_logging(clobber_other_log_handlers=True)
-noisy.warning('with clobbering')
-emit('own_handler_saw', own_stream.getvalue().splitlines())
-emit('noisy_propagate', noisy.propagate)
-''')
-
 
 def json_lines(result):
     out = []
@@ -164,7 +123,7 @@ def test_default_level_is_info(basic, basic_logs):
 def test_log_inside_a_span_carries_that_spans_ids(basic, basic_logs):
     spans = {s['name']: s for s in basic['spans']}
     sync_span = spans[span_name('work')]
-    async_span = spans[span_name('async_work', is_async=True)]
+    async_span = spans[span_name('async_work')]
 
     log = basic_logs['inside a span with-arg']
     assert log['otelTraceID'] == sync_span['trace_id']
@@ -244,51 +203,6 @@ def test_negative_utc_offset_asctime_is_correct():
     assert log['tz_name'] == 'EST'
 
 
-@pytest.mark.xfail(IMPL_IS_V0, strict=True,
-                   reason='v0 bug list "Wrong timezone offset for negative offsets": '
-                          'logging_json_formatter.py:99 uses timedelta.seconds (UTC-5 -> 68400)')
 def test_negative_utc_offset_seconds():
+    # v0 bug list "Wrong timezone offset for negative offsets": v0 used timedelta.seconds (UTC-5 -> 68400)
     assert single_log(TZ_NEGATIVE)['tz_utc_offset_seconds'] == -5 * 3600
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-# other output modes
-# ----------------------------------------------------------------------------------------------------------------------
-
-@pytest.fixture(scope='module')
-def text_and_stream():
-    result = TEXT_AND_STREAM.result()
-    assert result.returncode == 0, result.describe()
-    return result
-
-
-@pytest.mark.v0_specific  # no text mode in v1 (DEC-34: one-line JSON or off)
-def test_text_mode_writes_the_verbose_format_to_stderr(text_and_stream):
-    (span,) = text_and_stream['span']
-    lines = [line for line in text_and_stream.stderr_lines if 'text mode line' in line]
-    assert len(lines) == 1
-    match = re.fullmatch(r'\S+ \S+ WARNING  \[root\] \[scenario_logging_text_and_stream\.py:work:\d+\] '
-                         r'\[trace_id=(0x[0-9a-f]{32}) span_id=(0x[0-9a-f]{16}) resource\.service\.name=(.+)\] '
-                         r'- text mode line', lines[0])
-    assert match, lines[0]
-    assert match.group(1) == span['trace_id']
-    assert match.group(2) == span['span_id']
-
-
-@pytest.mark.v0_specific  # no per-call options in v1 (DEC-43): the JSON logs go to stderr
-def test_stream_argument_redirects_json_logs(text_and_stream):
-    (line,) = text_and_stream['stream_contents'].splitlines()
-    assert json.loads(line)['message'] == 'sent to the stream'
-    assert 'sent to the stream' not in text_and_stream.stderr
-
-
-@pytest.mark.v0_specific  # v1 has no clobber_other_log_handlers yet (OTW-11: replace_log_handlers if needed)
-def test_clobbering_other_handlers():
-    result = CLOBBER.result()
-    assert result.returncode == 0, result.describe()
-    # without clobbering, a logger with its own handler and propagate=False keeps logging only there
-    assert result['own_handler_saw'] == ['without clobbering']
-    # with clobbering, its handlers are dropped and it propagates to our root json handler
-    assert result['noisy_propagate'] is True
-    messages = [json.loads(line)['message'] for line in result.stderr_lines]
-    assert messages == ['with clobbering']

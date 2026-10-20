@@ -1,28 +1,16 @@
 """
-`instrument_decorate` on functions, coroutines, methods and other routines (in-process)
+`instrument_decorate` (v1: `@otel`) on functions, coroutines and other callables (in-process)
 
-class instrumentation is in test_v0_classes.py, since it can't be tested in-process (it is order-dependent)
+class instrumentation is in test_v0_classes.py, since it can't be tested in-process (it is order-dependent). v1's span
+names and generator spans differ from v0's (DEC-47, DEC-52, DEC-22): tests/v1/test_v1_decorator.py and
+tests/v1/test_v1_generators.py pin them
 """
 import asyncio
 import functools
 import inspect
-import sys
 from pathlib import Path
 
 import pytest
-
-from tests import impl
-
-# v1 fixes the bugs the strict xfails below pin, so they only expect to fail under v0
-IMPL_IS_V0 = impl.IMPL == 'v0'
-
-# from 3.14 functools.partial is a method descriptor, so inspect.isroutine accepts it and v0 wraps it like a function
-PARTIAL_IS_ROUTINE = sys.version_info >= (3, 14)
-
-
-def expected_name(func) -> str:
-    """v0's span name for a plain function: `<module>.qualname`"""
-    return f'<{func.__module__}>.{func.__qualname__}'
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -34,18 +22,6 @@ def plain_add(x, y=1):
     return x + y
 
 
-@pytest.mark.v0_specific  # v0 pins the span name `<module>.qualname`; v1 names it `module.qualname` (DEC-47)
-def test_function_call_creates_one_ok_span_named_after_module_and_qualname(otw, spans):
-    wrapped = otw.decorate(plain_add)
-    assert wrapped(1, y=2) == 3
-
-    records = spans.records()
-    assert [s['name'] for s in records] == [expected_name(plain_add)]
-    assert records[0]['status'] == 'OK'
-    assert records[0]['kind'] == 'INTERNAL'
-    assert records[0]['parent'] is None
-
-
 def test_decorated_function_keeps_metadata(otw, spans):
     wrapped = otw.decorate(plain_add)
     assert wrapped.__name__ == 'plain_add'
@@ -55,30 +31,12 @@ def test_decorated_function_keeps_metadata(otw, spans):
     assert inspect.signature(wrapped) == inspect.signature(plain_add)
 
 
-def attrs_target(x):
-    return x
-
-
-@pytest.mark.v0_specific  # deprecated `code.*` keys; v1 switches to the stable ones (DEC-31)
-def test_function_span_has_deprecated_code_attributes(otw, spans):
-    otw.decorate(attrs_target)(1)
-    (record,) = spans.records()
-    assert record['attributes'] == {
-        'code.function':  'attrs_target',
-        'code.namespace': __name__,
-        'code.filepath':  str(Path(__file__)),
-        'code.lineno':    attrs_target.__code__.co_firstlineno,
-    }
-
-
 def stable_attrs_target(x):
     return x
 
 
-@pytest.mark.xfail(IMPL_IS_V0, strict=True,
-                   reason='v0 bug list "Update CodeInfo": emit the stable code.function.name / '
-                          'code.file.path / code.line.number instead of the deprecated keys')
 def test_function_span_has_stable_code_attributes(otw, spans):
+    # v0 emitted the deprecated `code.function` / `code.namespace` / `code.filepath` / `code.lineno` (DEC-31)
     otw.decorate(stable_attrs_target)(1)
     (record,) = spans.records()
     attributes = record['attributes']
@@ -87,154 +45,20 @@ def test_function_span_has_stable_code_attributes(otw, spans):
     assert attributes['code.line.number'] == stable_attrs_target.__code__.co_firstlineno
 
 
-def raises_value_error():
-    raise ValueError('boom')
-
-
-@pytest.mark.v0_specific  # v0 pins the span name `<module>.qualname`; v1 names it `module.qualname` (DEC-47)
-def test_exception_propagates_and_span_is_error_with_exception_event(otw, spans):
-    wrapped = otw.decorate(raises_value_error)
-    with pytest.raises(ValueError, match='boom'):
-        wrapped()
-    (record,) = spans.records()
-    assert record['name'] == expected_name(raises_value_error)
-    assert record['status'] == 'ERROR'
-    assert 'exception' in record['events']
-
-
-def nested_inner():
-    return 1
-
-
-def nested_outer(inner):
-    return inner() + inner()
-
-
-@pytest.mark.v0_specific  # v0 pins the span name `<module>.qualname`; v1 names it `module.qualname` (DEC-47)
-def test_nested_decorated_calls_are_parent_and_children(otw, spans):
-    inner = otw.decorate(nested_inner)
-    outer = otw.decorate(nested_outer)
-    assert outer(inner) == 2
-
-    records = spans.records()
-    expected = [expected_name(nested_outer)] + [expected_name(nested_inner)] * 2
-    assert sorted(s['name'] for s in records) == sorted(expected)
-    outer_record = [s for s in records if s['name'] == expected_name(nested_outer)][0]
-    for s in records:
-        assert s['trace_id'] == outer_record['trace_id']
-        if s is not outer_record:
-            assert s['parent'] == expected_name(nested_outer)
-
-
-def lambda_holder():
-    return lambda: 42
-
-
-def make_closure():
-    def local_closure():
-        return 7
-
-    return local_closure
-
-
-@pytest.mark.v0_specific  # v0 pins the span name `<module>.qualname`; v1 names it `module.qualname` (DEC-47)
-def test_lambda_and_closure_names(otw, spans):
-    fn = lambda_holder()
-    assert otw.decorate(fn)() == 42
-    closure = make_closure()
-    assert otw.decorate(closure)() == 7
-    assert spans.names() == [f'<{__name__}>.lambda_holder.<locals>.<lambda>',
-                             f'<{__name__}>.make_closure.<locals>.local_closure']
-
-
 def renamed_target():
     return 'x'
 
 
 def test_func_name_override_via_partial(otw, spans):
-    # documented in the docstring of instrument_decorate
+    # documented in the docstring of v0's instrument_decorate
     decorated = functools.partial(otw.decorate, func_name='custom span name')(renamed_target)
     assert decorated() == 'x'
     assert spans.names() == ['custom span name']
 
 
-@pytest.mark.v0_specific  # v0 pins the span name `<module>.qualname`; v1 names it `module.qualname` (DEC-47)
-def test_builtin_function(otw, spans):
-    wrapped = otw.decorate(len)
-    assert wrapped([1, 2, 3]) == 3
-    assert spans.names() == ['<builtins>.len']
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-# idempotency
-# ----------------------------------------------------------------------------------------------------------------------
-
-def idempotent_target():
-    return 'ok'
-
-
-@pytest.mark.v0_specific  # v0 pins the span name `<module>.qualname`; v1 names it `module.qualname` (DEC-47)
-def test_decorating_twice_gives_one_span_and_the_same_wrapper(otw, spans):
-    once = otw.decorate(idempotent_target)
-    twice = otw.decorate(otw.decorate(idempotent_target))
-    later = otw.decorate(idempotent_target)  # decorating the original again, later on
-    again = otw.decorate(once)  # decorating the wrapper
-    assert once is twice is later is again
-
-    assert twice() == 'ok'
-    assert spans.names() == [expected_name(idempotent_target)]
-
-
-def lru_target(x):
-    return x * 2
-
-
-@pytest.mark.v0_specific  # v0 pins the span name `<module>.qualname`; v1 names it `module.qualname` (DEC-47)
-def test_decorating_an_lru_cache_over_an_instrumented_function_adds_no_second_span(otw, spans):
-    # same stack as `multiply` in experiment_otel_logging.py: @instrument_decorate @lru_cache @instrument_decorate
-    inner = otw.decorate(lru_target)
-    cached = functools.lru_cache(inner)
-    outer = otw.decorate(cached)
-    assert outer is cached  # recognised as already instrumented underneath, so returned unchanged
-
-    assert outer(2) == 4
-    assert outer(2) == 4  # cache hit, the instrumented function is not called again
-    assert spans.names() == [expected_name(lru_target)]
-
-
-def partial_target(a, b):
-    return a + b
-
-
-@pytest.mark.v0_specific  # v0 pins the span name `<module>.qualname`; v1 names it `module.qualname` (DEC-47)
-def test_partial_of_an_instrumented_function_is_returned_unchanged(otw, spans):
-    inner = otw.decorate(partial_target)
-    part = functools.partial(inner, 1)
-    assert otw.decorate(part) is part
-    assert part(2) == 3
-    assert spans.names() == [expected_name(partial_target)]
-
-
 # ----------------------------------------------------------------------------------------------------------------------
 # coroutines
 # ----------------------------------------------------------------------------------------------------------------------
-
-async def async_double(x):
-    await asyncio.sleep(0)
-    return x * 2
-
-
-@pytest.mark.v0_specific  # v0 pins the `async ` span-name prefix; v1 drops it (DEC-52, DEC-47)
-def test_async_function_span_is_prefixed_with_async(otw, spans):
-    wrapped = otw.decorate(async_double)
-    assert inspect.iscoroutinefunction(wrapped)
-    assert asyncio.run(wrapped(21)) == 42
-
-    records = spans.records()
-    assert [s['name'] for s in records] == [f'async {expected_name(async_double)}']
-    assert records[0]['status'] == 'OK'
-    assert records[0]['attributes']['code.function'] == 'async_double'
-
 
 async def async_raises():
     raise KeyError('nope')
@@ -247,100 +71,6 @@ def test_async_exception_propagates_and_span_is_error(otw, spans):
     (record,) = spans.records()
     assert record['status'] == 'ERROR'
     assert 'exception' in record['events']
-
-
-async def async_inner_leaf():
-    return 1
-
-
-async def async_outer_node(leaf):
-    return await leaf() + await leaf()
-
-
-@pytest.mark.v0_specific  # v0 pins the `async ` span-name prefix; v1 drops it (DEC-52, DEC-47)
-def test_nested_async_calls_are_parent_and_children(otw, spans):
-    leaf = otw.decorate(async_inner_leaf)
-    node = otw.decorate(async_outer_node)
-    assert asyncio.run(node(leaf)) == 2
-    records = spans.records()
-    children = [s for s in records if s['name'] == f'async {expected_name(async_inner_leaf)}']
-    assert len(children) == 2
-    assert all(s['parent'] == f'async {expected_name(async_outer_node)}' for s in children)
-
-
-@pytest.mark.v0_specific  # v0 pins the `asgiref.sync.AsyncToSync <...>` name; v1 names it by function (DEC-52, DEC-47)
-def test_asgiref_async_to_sync_wrapper_is_labelled(otw, spans):
-    from asgiref.sync import async_to_sync
-
-    async def converted(x):
-        return x + 1
-
-    wrapped = otw.decorate(async_to_sync(converted))
-    assert wrapped(1) == 2
-    assert spans.names() == [f'asgiref.sync.AsyncToSync <{__name__}>.{converted.__qualname__}']
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-# methods of classes that are NOT themselves instrumented
-# ----------------------------------------------------------------------------------------------------------------------
-
-class PlainThing:
-    def method(self, x):
-        return x
-
-    @staticmethod
-    def static(x):
-        return x
-
-    @classmethod
-    def clsmeth(cls, x):
-        return x
-
-
-@pytest.mark.v0_specific  # v0 pins the span name `<module>.qualname`; v1 names it `module.qualname` (DEC-47)
-def test_bound_method_static_method_and_classmethod(otw, spans):
-    thing = PlainThing()
-    assert otw.decorate(thing.method)(1) == 1
-    assert otw.decorate(PlainThing.static)(2) == 2
-    assert otw.decorate(PlainThing.clsmeth)(3) == 3
-    assert spans.names() == [f'<{__name__}>.PlainThing.method',
-                             f'<{__name__}>.PlainThing.static',
-                             f'<{__name__}>.PlainThing.clsmeth']
-
-
-@pytest.mark.v0_specific  # v0 pins the deprecated `code.function` / `code.namespace`; v1 emits stable `code.*` (DEC-31)
-def test_bound_method_code_function_attribute_drops_the_class_name(otw, spans):
-    otw.decorate(PlainThing().method)(1)
-    (record,) = spans.records()
-    assert record['attributes']['code.function'] == 'method'
-    assert record['attributes']['code.namespace'] == __name__
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-# generators (v1 will have real generator spans, DEC-22)
-# ----------------------------------------------------------------------------------------------------------------------
-
-def generator_child():
-    return 'child'
-
-
-def generator_target(child):
-    yield child()
-    yield child()
-
-
-@pytest.mark.v0_specific  # v1: one span per generator, over its whole iteration (DEC-22, AC-17)
-def test_generator_span_only_covers_creating_the_generator(otw, spans):
-    child = otw.decorate(generator_child)
-    gen = otw.decorate(generator_target)
-    assert list(gen(child)) == ['child', 'child']
-
-    records = spans.records()
-    assert sorted(s['name'] for s in records) == sorted([expected_name(generator_target)] +
-                                                        [expected_name(generator_child)] * 2)
-    # the generator's span already ended when the generator object was returned, so the body's spans are roots
-    for s in records:
-        assert s['parent'] is None
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -356,27 +86,10 @@ class CallableInstance:
         return x
 
 
-@pytest.mark.v0_specific  # v1 returns an unsupported target unchanged, with one warning (DEC-49, AC-7)
-def test_currently_raises_for_unsupported_objects(otw):
-    if not PARTIAL_IS_ROUTINE:
-        with pytest.raises(TypeError):
-            otw.decorate(functools.partial(partial_fresh_target, 2))  # partial of an un-instrumented function
-    with pytest.raises(TypeError):
-        otw.decorate(CallableInstance())
-    with pytest.raises(AssertionError):  # not even a TypeError: CodeInfo's __post_init__ asserts
-        otw.decorate(42)
-
-
-NEVER_CRASH_HOLE = ('v0 bug list "Never crash holes in instrument_decorate": raises TypeError for unsupported types '
-                    '(instrument_decorator.py:107)')
-
-
+# v0 bug list "Never crash holes in instrument_decorate": v0 raised TypeError for these (before 3.14, for a partial)
 @pytest.mark.parametrize('make', [
-    pytest.param(lambda: functools.partial(partial_fresh_target, 3), id='functools.partial',
-                 marks=pytest.mark.xfail(IMPL_IS_V0 and not PARTIAL_IS_ROUTINE, strict=True,
-                                         reason=NEVER_CRASH_HOLE)),
-    pytest.param(CallableInstance, id='callable instance',
-                 marks=pytest.mark.xfail(IMPL_IS_V0, strict=True, reason=NEVER_CRASH_HOLE)),
+    pytest.param(lambda: functools.partial(partial_fresh_target, 3), id='functools.partial'),
+    pytest.param(CallableInstance, id='callable instance'),
 ])
 def test_decorating_unsupported_callables_does_not_crash(otw, make):
     obj = make()

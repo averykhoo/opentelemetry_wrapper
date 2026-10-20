@@ -1,10 +1,10 @@
 """
 test-side helpers
 
-v0 sets global OpenTelemetry providers, patches `logging` / `dataclasses` / sqlalchemy globally, and reads its config
-from env vars at import time, none of which can be reset cleanly. anything that depends on that global state runs as
-a *scenario*: a small script executed in a fresh interpreter (the same conda python that runs pytest), which reports
-back via `_child.emit(key, value)`
+the wrapper sets global OpenTelemetry providers, patches `logging` / sqlalchemy / `requests` globally, and reads its
+config from env vars once, when it configures, none of which can be reset cleanly. anything that depends on that global
+state runs as a *scenario*: a small script executed in a fresh interpreter (the same conda python that runs pytest),
+which reports back via `_child.emit(key, value)`. the whole suite uses this (it lives in tests/v0 for history)
 
 scenarios are registered at import (collection) time and all started in parallel when collection finishes (see
 `tests/conftest.py`), so the suite pays for interpreter start-up roughly once instead of once per scenario
@@ -29,7 +29,6 @@ from typing import Optional
 from typing import Sequence
 from typing import Union
 
-from tests.impl import IMPL
 from tests.v0._child import RESULT_MARKER
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -43,14 +42,13 @@ _PRELUDE = 'from tests.v0._child import *  # noqa\n'
 def clean_env(overrides: Optional[Dict[str, Optional[str]]] = None) -> Dict[str, str]:
     """
     environment for a child interpreter: no OTEL_* / LOGFIRE_* config leaking in from the developer's shell
-    (so no OTLP exporter, no prometheus port), repo root importable, utf-8 stdio, the same `OTW_IMPL`
+    (so no OTLP exporter, no prometheus port), repo root importable, utf-8 stdio
     an override of `None` removes the variable
     """
     env = {k: v for k, v in os.environ.items() if not k.upper().startswith(('OTEL_', 'LOGFIRE_'))}
     env['PYTHONPATH'] = str(REPO_ROOT)
     env['PYTHONIOENCODING'] = 'utf-8'
     env['PYTHONUTF8'] = '1'
-    env['OTW_IMPL'] = IMPL  # the child tests the same implementation as pytest
     for k, v in (overrides or {}).items():
         if v is None:
             env.pop(k, None)
@@ -82,7 +80,7 @@ class Result:
         return [line for line in self.stderr.splitlines() if line.strip()]
 
     def stdout_json_objects(self) -> List[dict]:
-        """one-line json objects printed on stdout (v0's console span exporter writes one span per line)"""
+        """one-line json objects printed on stdout (one per line, as from a console exporter)"""
         out = []
         for line in self.stdout.splitlines():
             if line.startswith('{'):
@@ -144,8 +142,8 @@ def _tmp_dir() -> Path:
 
 def scenario_workers() -> int:
     """
-    how many scenarios run at once: one per core, 2 to 8, unless `OTW_SCENARIO_WORKERS` says otherwise (a nested
-    suite sets it, so the two runs together start fewer interpreters than two full pools)
+    how many scenarios run at once: one per core, 2 to 8, unless `OTW_SCENARIO_WORKERS` says otherwise (say, for
+    a pytest run inside a scenario, so the two runs together start fewer interpreters than two full pools)
     """
     configured = os.environ.get('OTW_SCENARIO_WORKERS', '').strip()
     if configured:
