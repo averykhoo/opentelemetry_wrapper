@@ -3,7 +3,6 @@ the per-call overhead benchmark (`benchmarks/overhead.py`) still runs; its numbe
 """
 import json
 
-from tests import impl
 from tests.v0._harness import REPO_ROOT
 from tests.v0._harness import scenario
 
@@ -15,8 +14,8 @@ def test_the_benchmark_runs_and_reports_every_row():
     result = SMOKE.result()
     assert result.returncode == 0, result.describe()
     report = json.loads(result.stdout.strip().splitlines()[-1])
-    assert report['impl'] == impl.IMPL
+    assert set(report) == {'calls', 'repeat', 'ns_per_call'}
     for exporter in ('none', 'batch'):
         rows = report['ns_per_call'][exporter]
         assert rows['bare'] > 0 and rows['otel_direct'] > 0
-        assert rows['decorated'] > 0  # v1 binds `decorate` since OTW-3
+        assert rows['decorated'] > 0

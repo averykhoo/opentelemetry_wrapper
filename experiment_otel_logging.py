@@ -6,14 +6,14 @@ from functools import lru_cache
 from asgiref.sync import async_to_sync
 from asgiref.sync import sync_to_async
 
-from opentelemetry_wrapper import instrument_decorate
-from opentelemetry_wrapper import instrument_logging
-from opentelemetry_wrapper.v0.utils.type_checking import typecheck
+from opentelemetry_wrapper import otel
 
-instrument_logging()
+# spans on stdout (v1 exports nothing unless told to), logs as one line of json each on stderr
+otel.configure(traces_exporter='console')
+otel.instrument(logging)
 
 
-@instrument_decorate
+@otel
 async def bitshift(x: int, shift_by: int):
     """
     shifts left if positive, right if negative
@@ -35,10 +35,9 @@ async def bitshift(x: int, shift_by: int):
         return x
 
 
-@instrument_decorate
+@otel
 @lru_cache
-@instrument_decorate
-@typecheck
+@otel
 async def multiply(multiplier: int, multiplicand: int):
     """
     very silly way to multiply things inspired by exponentiation-by-squaring
@@ -65,7 +64,7 @@ async def multiply(multiplier: int, multiplicand: int):
     return accumulator if not _negative else -accumulator
 
 
-@instrument_decorate
+@otel
 async def square(x):
     """
     absolutely unnecessary abstraction as would be expected in enterprise code
@@ -82,11 +81,11 @@ async def square(x):
     return await multiply(abs(x), abs(x))
 
 
-@instrument_decorate
+@otel
 @async_to_sync
-@instrument_decorate
+@otel
 @sync_to_async
-@instrument_decorate
+@otel
 @async_to_sync
 async def exponentiate(base, exponent):
     """
