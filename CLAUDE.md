@@ -55,12 +55,15 @@ or renumber an id. The pre-adoption design ids (PLAN.md's Q1-Q16, proposals 1-11
   machine, `claude plugin marketplace add averykhoo/context-engine`, then `claude plugin install
   context-engine@context-engine --scope project` (done here 2026-10-18; `claude mcp list` shows
   `plugin:context-engine:engine` connected), then restart Claude Code. Without its tools, use the CLI.
-- **The conda env** (2026-10-18): Python 3.12.15, opentelemetry 1.44.0 / 0.65b0, sqlalchemy 2.0.54, fastapi 0.142.2,
-  pydantic 2.13.5. Besides `requirements.txt` it holds `pytest`, `flake8`, `mypy`, `types-requests`, `logfire`
-  (only for the Q15 comparison, DEC-15), and, for the scrubbing benchmark (DEC-16) only, `greenery`, `interegular`,
-  `regex`, `google-re2` and `hyperscan` (greenery 4.2.2, interegular 0.3.3, regex 2026.9.29, google-re2 1.1.20251105,
-  hyperscan 0.9.1), and `aiosqlite` 0.22.1 for the AsyncEngine tests (DEC-91, 2026-10-19). `flit` (for releases) is not
-  installed.
+- **The conda env** (2026-10-18; OTel upgraded 2026-10-20 for the 1.0.0 caps, OTW-25): Python 3.12.15, opentelemetry
+  1.45.1 / 0.66b1 (which brought upstream's new `opentelemetry-exporter-http-transport` and
+  `opentelemetry-exporter-otlp-common`; `logfire` 5.1.1 now declares a conflict with sdk 1.45), sqlalchemy 2.0.54,
+  fastapi 0.142.2, pydantic 2.13.5. Besides `requirements.txt` it holds `pytest`, `flake8`, `mypy`, `types-requests`,
+  `logfire` (only for the Q15 comparison, DEC-15), and, for the scrubbing benchmark (DEC-16) only, `greenery`,
+  `interegular`, `regex`, `google-re2` and `hyperscan` (greenery 4.2.2, interegular 0.3.3, regex 2026.9.29, google-re2
+  1.1.20251105, hyperscan 0.9.1), and `aiosqlite` 0.22.1 for the AsyncEngine tests (DEC-91, 2026-10-19). `flit` (for
+  releases) is not installed.
+
 
 ## Gate
 
@@ -68,44 +71,40 @@ or renumber an id. The pre-adoption design ids (PLAN.md's Q1-Q16, proposals 1-11
 the repo root. Run it as `context-engine gate run` (`[gate]` in `context.toml`, scope `code`: everything but the
 records and the prose); before a commit touching code or tests, `context-engine gate status --require code`.
 
-- **Baseline:** `1104 passed, 5 skipped, 23 xfailed` in about 150 s on this machine (2026-10-19a, the v1 chain
-  merged; `243 passed, 2 skipped` on 2026-10-18k). `tests/test_v0_suite_under_v1.py` runs `tests/v0` under
-  `OTW_IMPL=v1` in a child interpreter (AC-8), so the default gate and CI check v1 against v0 too.
-  `tests/v0` characterizes v0 so v1 can be checked against it: plain tests pin behaviour v1 keeps; known bugs are
-  `xfail(strict=True)` tests asserting the correct behaviour, so they error once fixed; `@pytest.mark.v0_specific`
-  marks v0 details v1 changes. Global OTel state is isolated by running scenarios in subprocesses
+- **Baseline:** `1046 passed, 4 skipped` in about 145 s on this machine (2026-10-20a, the 1.0.0 cutover, OTW-25; about
+  `1151 passed, 5 skipped, 23 xfailed` before it, with v0 still in). v0 is deleted (DEC-96) and the suite runs v1 only:
+  there is no `OTW_IMPL` any more. `tests/v0` stays, as the characterization of what v1 keeps from v0 (AC-8): its tests
+  reach the package through the adapter `tests/impl.py`, which maps v0's neutral names onto v1; the tests that pinned v0
+  details v1 changes (`v0_specific`) and those of v0's internals went with v0. The root's warn-once aliases of v0's
+  names are `tests/v1/test_v1_aliases.py`. Global OTel state is isolated by running scenarios in subprocesses
   (`tests/v0/_harness.py`).
-- **`OTW_IMPL=v0|v1`** (DEC-38, default `v0`; since 2026-10-18j): the tests reach the package only through the
-  adapter `tests/impl.py`, and under `v1` the `v0_specific` tests are skipped (the one v0 skip is a v1-only
-  adapter test). `OTW_IMPL=v1` on the whole suite: `1014 passed, 116 skipped, 2 xfailed`, 0 failures (2026-10-19a;
-  the 2 xfails test v0 internals directly).
 - **Canaries** (`tests/upstream`, marker `upstream`, set by `tests/conftest.py`): one test per upstream behaviour or
   semi-private API v1 relies on (AC-23); `pytest -m upstream tests` runs just them. They build their own providers or
-  run in scenarios, so they pass under `OTW_IMPL=v0` and `v1` alike.
+  run in scenarios.
 - **CI** (DEC-56): `.github/workflows/tests.yml` on push and pull requests, Linux, Python 3.12 / 3.13 / 3.14; the
   steps are `ci/test.sh`. `requirements.txt` pins nothing yet, so CI tests the latest upstream releases.
-- **Outside the gate** (by hand, repo root on `PYTHONPATH`; all passed 2026-10-04):
+- **Outside the gate** (by hand, repo root on `PYTHONPATH`; the scripts ported to v1 and checked 2026-10-20a, OTW-25;
+  they also run in `tests/v0/test_v0_example_scripts.py` and `tests/v0/test_v0_fastapi.py`):
 
 | Check | Expected |
 |---|---|
-| `python experiment_otel_logging.py` | exit 0 (final assert passes), every log's `otelSpanID` matches a span |
-| `python setup_otel_logging.py` | exit 0, 9x `A.__new__` and 9x `A.__init__` spans, all status OK |
+| `python experiment_otel_logging.py` | exit 0 (final assert passes); console spans 89x `__main__.bitshift`, 4x `__main__.multiply`, 2x `__main__.square`, 2x `asgiref.sync.AsyncToSync.__call__`, all OK, one trace; every log's `otelSpanID` matches a span |
+| `python setup_otel_logging.py` | exit 0, 9x `__main__.A.__new__` and 9x `__main__.A.__init__` spans (plus `A.c`, `A.e`, ...), all status OK, every log inside a span |
 | `python log_weird_things.py` | exit 0, every stderr line is valid one-line JSON |
-| `python sqlalchemy_example.py` | exit 0 **and** `connect` + `SELECT :memory:` spans in stdout |
-| `python fastapi_main.py` | `/hello-hello` returns `"hello hello"`, `/metrics` and `:9464` return 200 |
-| `python opentelemetry_wrapper/v0/utils/type_checking.py` | same output under pydantic 2 and pydantic 1 |
-| `pytest --doctest-modules opentelemetry_wrapper/v0/config opentelemetry_wrapper/v0/utils/extract_json_header.py` | 4 passed |
-| `flake8 --max-line-length 119 ./opentelemetry_wrapper/` | 26 findings, all pre-existing |
-| `mypy ./opentelemetry_wrapper/` | 19 errors, all pre-existing |
-| `python benchmarks/overhead.py` (and with `OTW_IMPL=v1`) | a table of ns per call; v0 2026-10-18k: bare OTel span ~32 µs, decorated ~58 µs (no processor) |
+| `python sqlalchemy_example.py` | exit 0, the three `is_sqlalchemy_*` lines (True, True, False) **and** a `SELECT :memory:` span in stdout (no `connect` span: `otel.instrument(engine)`, DEC-1) |
+| `python fastapi_main.py` | `/hello-hello` returns `"hello hello"`, `/metrics` and `:9464` return 200 (of the 2 workers one serves `:9464`, the other warns) |
+| `flake8 --max-line-length 119 ./opentelemetry_wrapper/` | 1 finding, pre-existing (`v1/_prometheus.py:99`, E501) |
+| `mypy ./opentelemetry_wrapper/` | 11 errors, all pre-existing (in v1) |
+| `python benchmarks/overhead.py` | a table of ns per call; 2026-10-20a (v1): bare OTel span ~37 µs, decorated ~59 µs (no processor) |
 
-## Release (v0, by hand; `docs/runbooks/release.md` is the method)
+## Release (by hand; `docs/runbooks/release.md` is the method)
 
-The distribution is `opentelemetry_wrapper` on PyPI (flit; `requires-python = ">3.8.0"` for v0, `>=3.12` from the first
-release that ships v1, DEC-44). `pip install flit` into the env first. `~/.pypirc` holds a `[pypi]` section with
-`username = __token__` and the PyPI token. Bump `__version__` in `opentelemetry_wrapper/__init__.py` (which must keep
-its docstring), `flit publish`, then check the release installs: `pip download opentelemetry_wrapper==X.Y.Z` in an empty
-directory. The automated release for dependency-only bumps is planned (DEC-55, OTW-2).
+The distribution is `opentelemetry_wrapper` on PyPI (flit; `requires-python = ">=3.12"` from 1.0.0, the first release
+that ships v1 and the hard cutover from v0, DEC-44, DEC-96; the 0.x releases were v0, `">3.8.0"`). `pip install flit`
+into the env first. `~/.pypirc` holds a `[pypi]` section with `username = __token__` and the PyPI token. Bump
+`__version__` in `opentelemetry_wrapper/__init__.py` (which must keep its docstring), `flit publish`, then check the
+release installs: `pip download opentelemetry_wrapper==X.Y.Z` in an empty directory. The automated release for
+dependency-only bumps is planned (DEC-55, OTW-2).
 
 ## Scratch space
 

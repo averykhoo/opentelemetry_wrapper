@@ -27,8 +27,7 @@ pip install "opentelemetry_wrapper[fastapi,sqlalchemy,requests,system-metrics,hy
 
 Each integration is optional, behind an extra that brings its instrumentation and the library: `[fastapi]`,
 `[sqlalchemy]`, `[requests]`, `[system-metrics]` (CPU, memory and so on, through `psutil`) and `[hyperscan]` (a faster
-engine for [secret scrubbing](#secret-scrubbing)). Until 1.0.0, v0's dependencies (FastAPI, SQLAlchemy, requests,
-pydantic, the gRPC exporter, ...) are still installed by the plain install, so that v0's names keep working ([DEC-80]).
+engine for [secret scrubbing](#secret-scrubbing)). The plain install brings none of them, nor gRPC ([DEC-36]).
 The OpenTelemetry packages are pinned to one minor release at a time, since OpenTelemetry has shipped breaking changes
 in minor releases ([DEC-57]).
 
@@ -610,20 +609,31 @@ applies.
 
 ## Upgrading from v0
 
-Change the import to `from opentelemetry_wrapper import otel`. Until 1.0.0, v0's functions still import from the
-package root and behave exactly as they did in v0 ([DEC-80]): they are v0's own code, loaded the first time one of
-them is used, not wrappers around v1. At 1.0.0 v0 is deleted ([DEC-37]). Each has a v1 replacement:
+1.0.0 is a hard cutover ([DEC-96]): v0 is deleted, and so are the dependencies it brought (FastAPI, SQLAlchemy,
+pydantic, the gRPC exporter and the instrumentations: each integration is now an [extra](#installing)). It needs
+Python 3.12 or later ([DEC-44]). To stay on v0, pin `opentelemetry_wrapper<1`.
+
+So that upgrading does not break your app on the spot, v0's functions still import from the package root, as thin
+aliases onto v1: each does what its v1 replacement below does, and the first time it is called it writes one line to
+stderr naming that replacement ([DEC-81]: never through `warnings`, so a warnings filter can't turn it into an
+exception). The aliases are deleted in 2.0. Change the import to `from opentelemetry_wrapper import otel` and replace
+each one:
 
 | v0 | v1 |
 |---|---|
-| `@instrument_decorate` | `@otel` |
+| `@instrument_decorate` | `@otel` (the alias also spans a class's properties, as v0 did: `@otel(properties=True)`, [DEC-53]) |
 | `instrument_fastapi_app(app)` | `otel.instrument(app)` |
 | `instrument_sqlalchemy()` | `otel.instrument(sqlalchemy)` |
 | `instrument_sqlalchemy_engine(engine)` | `otel.instrument(engine)` |
 | `instrument_requests()` / `instrument_logging()` | `otel.instrument(requests)` / `otel.instrument(logging)` |
-| `instrument_system_metrics()` | `otel.instrument()` (with the `[system-metrics]` extra) |
+| `instrument_system_metrics()` | `otel.instrument()` (with the `[system-metrics]` extra; it also instruments logging and requests: there is no system-metrics-only call) |
 | `instrument_all()` | `otel.instrument()` |
-| `instrument_dataclasses()` (every `@dataclass` in the process) | removed: put `@otel` on the dataclasses you want ([DEC-42]) |
+| `instrument_dataclasses()` (every `@dataclass` in the process) | nothing: put `@otel` on the dataclasses you want ([DEC-42]); the alias does nothing but warn |
+
+Options v1 no longer takes (`instrument_logging(level=..., print_json=...)`, `instrument_all(log_json=...)`,
+`instrument_sqlalchemy_engine(engine, enable_commenter=...)`) are accepted by the aliases and ignored, with one more
+stderr line naming the environment variable that replaced them (below). v0's configuration values
+(`opentelemetry_wrapper.OTEL_SERVICE_NAME` and the like) are gone: read the environment variables themselves.
 
 What else changed ([DEC-52]):
 
@@ -714,7 +724,6 @@ Renamed variables (the old names still work for one release, with a warning at s
 [DEC-34]: https://github.com/averykhoo/opentelemetry_wrapper/blob/main/docs/decisions/DEC-34-console-one-line-json-logs-on-stderr-no-pretty.md
 [DEC-35]: https://github.com/averykhoo/opentelemetry_wrapper/blob/main/docs/decisions/DEC-35-pydantic-2-only-optional-never-imported-by-us.md
 [DEC-36]: https://github.com/averykhoo/opentelemetry_wrapper/blob/main/docs/decisions/DEC-36-otlp-http-only-grpc-export-dropped.md
-[DEC-37]: https://github.com/averykhoo/opentelemetry_wrapper/blob/main/docs/decisions/DEC-37-rollout-v1-ships-beside-v0-becomes-the-default.md
 [DEC-42]: https://github.com/averykhoo/opentelemetry_wrapper/blob/main/docs/decisions/DEC-42-global-dataclass-instrumentation-is-dropped.md
 [DEC-43]: https://github.com/averykhoo/opentelemetry_wrapper/blob/main/docs/decisions/DEC-43-logging-options-come-from-env-vars-and-otel.md
 [DEC-44]: https://github.com/averykhoo/opentelemetry_wrapper/blob/main/docs/decisions/DEC-44-v1-requires-python-3-12-or-later.md
@@ -735,7 +744,6 @@ Renamed variables (the old names still work for one release, with a warning at s
 [DEC-69]: https://github.com/averykhoo/opentelemetry_wrapper/blob/main/docs/decisions/DEC-69-red-metrics-computed-in-the-library.md
 [DEC-74]: https://github.com/averykhoo/opentelemetry_wrapper/blob/main/docs/decisions/DEC-74-a-value-that-fails-to-scrub-is-dropped-and.md
 [DEC-75]: https://github.com/averykhoo/opentelemetry_wrapper/blob/main/docs/decisions/DEC-75-the-wrapper-reports-its-own-swallowed-runtime.md
-[DEC-80]: https://github.com/averykhoo/opentelemetry_wrapper/blob/main/docs/decisions/DEC-80-root-is-v1-v0-s-names-load-lazily-v0-s.md
 [DEC-81]: https://github.com/averykhoo/opentelemetry_wrapper/blob/main/docs/decisions/DEC-81-runtime-warnings-go-to-stderr-once-never.md
 [DEC-82]: https://github.com/averykhoo/opentelemetry_wrapper/blob/main/docs/decisions/DEC-82-a-record-whose-scrubbing-fails-is-exported-bare.md
 [DEC-83]: https://github.com/averykhoo/opentelemetry_wrapper/blob/main/docs/decisions/DEC-83-configure-uses-the-auto-scrubbing-engine-once.md
@@ -745,3 +753,4 @@ Renamed variables (the old names still work for one release, with a warning at s
 [DEC-92]: https://github.com/averykhoo/opentelemetry_wrapper/blob/main/docs/decisions/DEC-92-otel-metrics-exporter-prometheus-serves-on-9464.md
 [DEC-93]: https://github.com/averykhoo/opentelemetry_wrapper/blob/main/docs/decisions/DEC-93-fastapi-s-asgi-send-receive-spans-are-off-by.md
 [DEC-94]: https://github.com/averykhoo/opentelemetry_wrapper/blob/main/docs/decisions/DEC-94-with-otel-wrapper-debug-true-a-scrubbing.md
+[DEC-96]: https://github.com/averykhoo/opentelemetry_wrapper/blob/main/docs/decisions/DEC-96-the-first-v1-release-is-1-0-0-a-hard-cutover-v0.md
