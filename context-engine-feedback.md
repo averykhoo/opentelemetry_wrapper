@@ -5,6 +5,36 @@ the engine repo (`averykhoo/context-engine`). Every session appends at its clean
 feedback): after-action reviews, frictions, tokens spent on ceremony, engine bugs and refusals with a bad remedy,
 and simplifications that would help. Newest first; each entry dated, with its session key.
 
+## 2026-10-20a: three owner answers, the 1.0.0 cutover through one task agent
+
+### What worked
+
+- **Multiple-choice rounds on a consequential owner hint** ("hard cutover" against DEC-80): three short prompts turned
+  a half-formed preference into a buildable decision (DEC-96), each answer recorded verbatim in one words file.
+- **One task agent in its own worktree** (map, build, three lens reviewers, sabotage of 21 behaviours) returned a
+  short report; the session merged and gated first-hand. Its reviewers found real bugs (`-W error` crashing through
+  v1's warnings, a vacuous FastAPI test, a wrong README row).
+
+### Friction
+
+- **`record new decision` refuses without `decision_status`**, and the refusal costs a round trip: default it to
+  PROVISIONAL (the status every owner decision here has) or say so in `--help`.
+- **NOW holds one item**, so a task the owner asks for this turn cannot go to NOW while an older item sits there;
+  `task new --pri NOW` refused, and both new items went to NEXT. The remedy (demote the other) re-ranks work the
+  owner did not touch.
+- **A brief over 120 characters is refused at `task new`**, a second round trip; a truncation with a warning would
+  do.
+- **`commit` adds no `Co-Authored-By:` trailer** to its own commits; the contract's trailer rule expects both.
+- **A status question ("how are we progressing") is answerable from `orient` alone**; opening a session for it would
+  have been pure ceremony, so the session opened only when the owner gave intent.
+- **Subagent notifications are noisy**: every interim stop of the task agent, and each of its own subagents
+  finishing, reached the top level as a notification needing a reply.
+
+### Method lesson
+
+- Deleting a package directory in a worktree leaves the main checkout's untracked `__pycache__` behind after the
+  merge, and a directory with no `__init__.py` imports as a namespace package: remove it before gating.
+
 ## 2026-10-19a: the v1 chain through one reusable build/review/fix workflow (DEC-87)
 
 ### What worked
