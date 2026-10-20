@@ -20,3 +20,7 @@ tasks: [OTW-2, OTW-21]
   filtering. Local versions (`+tag`) can't be uploaded to PyPI.
 
 *Imported at adoption (2026-10-18) from `PLAN.md` § Workstreams § 0. Tests, as committed at `24a0430`; now at `docs/archive/PLAN.md`.*
+
+## Amendments
+
+- **2026-10-20a (claude-code/2.1.287):** 2026-10-20 (session 2026-10-20a): DEC-97 (owner) stages it: the automation first runs up to the push without publishing to PyPI; publishing is turned on after the owner has seen a couple of correct pushes. It waits until after the v1 release.
