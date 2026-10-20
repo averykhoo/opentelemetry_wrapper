@@ -18,3 +18,7 @@ one-line JSON logs and Prometheus. Python floor: **3.12** (the SDK itself needs 
   3.12 floor in that release: make it a minor-version bump with a clear note, and the v0 deletion 1.0.0.
 
 *Imported at adoption (2026-10-18) from `PLAN.md` § Goal, `PLAN.md` § Workstreams § 10. Packaging, as committed at `24a0430`; now at `docs/archive/PLAN.md`.*
+
+## Amendments
+
+- **2026-10-20a (claude-code/2.1.287):** 2026-10-20 (session 2026-10-20a): the minor-version bump with v0 side by side is superseded by DEC-96 (owner): v1 first ships as 1.0.0, with v0 deleted in the same release and its root names kept as warn-once aliases onto v1.
