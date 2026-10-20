@@ -9,7 +9,7 @@ deps: []
 source: session 2026-10-18c
 created: 2026-10-18
 moved: 2026-10-19a
-updated: 2026-10-19a
+updated: 2026-10-20a
 ---
 
 The 2026-10-18c verification (five independent checkers plus a skeptic each) found no lost content and no blocker; these confirmed findings remain.
@@ -24,3 +24,4 @@ The 2026-10-18c verification (five independent checkers plus a skeptic each) fou
 - 2026-10-18e (claude-code/2.1.287): Charter bullet settled in the owner's review (DEC-72): the owner kept 'the higher goal wins' as a real ranking, never crash first. The other bullets (criteria, adoption-map errata, nits) remain.
 - 2026-10-18g (claude-code/2.1.287): Its criteria bullet (asyncio extension into AC-9, negative UTC offset into AC-18) is folded into OTW-20.
 - 2026-10-18h (claude-code/2.1.287): 2026-10-18h: the criteria bullet is done in OTW-20 (AC-9 asyncio extension, AC-18 negative UTC offset); the adoption-map errata and nits remain.
+- 2026-10-20a (claude-code/2.1.287): 2026-10-20a: also for the owner's charter review: the charter's line on v0's type_checking.py staying in v0 is stale since v0 was deleted (DEC-96, DEC-41 amended). docs/archive/README.md's README row still says v0's names import until 1.0.0 (DEC-80, superseded).

@@ -4,9 +4,27 @@ Append-only, newest first, one entry per session (FRAMEWORK §7.1).
 
 ---
 
-## 2026-10-20a · kind: open
+## 2026-10-20a · kind: close
 
-- **opened:** 2026-10-20T09:37:27+08:00 by claude-code/2.1.287
+- **rows:** OTW-24, OTW-25, OTW-26, OTW-27, OTW-21, OTW-19, ASK-25, ASK-26
+- **receipts:**
+  - guards: gate PASSED in 111.4s (1047 passed, 4 skipped, 2 warnings in 108.85s (0:01:48)) on
+    g1/code:4a978efe3985ed79; lint clean
+  - read: orient; OTW-19, ASK-25, OTW-21, OTW-15, OTW-17; DEC-31, DEC-42, DEC-44, DEC-80, DEC-81,
+    DEC-83, DEC-84, DEC-85; README upgrade section
+  - asked: ASK-26
+- **summary** (the owner digest):
+  - ASK-25 answered (DEC-95): only is_class emitted, the other DEC-31 extras commented out with the
+    reason; OTW-24 done.
+  - DEC-96 (owner): the first v1 release is 1.0.0, a hard cutover; supersedes DEC-80, amends DEC-44.
+  - OTW-25 built and merged on main: v0 deleted, warn-once aliases onto v1, lean install, OTel caps
+    1.45/0.66, version 1.0.0.
+  - DEC-97 (owner): OTW-21 after v1, push-only first, publish after a couple of correct pushes.
+  - Not pushed, not released; v0.1.25 tagged locally at 34e18ce. ASK-26 (drop v0's OTEL_* root
+    values) raised.
+- **Still owed:**
+  - push of this session's commits and the v0.1.25 tag (owner's yes, then a CI watcher); the 1.0.0
+    release (OTW-26, owner's word)
 
 ---
 
