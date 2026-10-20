@@ -8,6 +8,7 @@ tags: [release, api, packaging]
 decided: 2026-10-20
 session: 2026-10-20a
 body_sha: sha256:12fbebd735dff8c9db18be3689489b3e0889f997fbfb75d007faab411e6cc47a
+supersedes: [DEC-80]
 ---
 
 Owner, 2026-10-20 (session 2026-10-20a). The session recommended moving the OTel caps to 1.45 / 0.66 first, then a `0.2.0rc1` pre-release, then `0.2.0`. The owner wrote, verbatim:

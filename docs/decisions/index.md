@@ -152,7 +152,6 @@ Generated from each decision's frontmatter by `context-engine decision index`; n
 - [DEC-74](DEC-74-a-value-that-fails-to-scrub-is-dropped-and.md): A value that fails to scrub is dropped and replaced by its own 'scrubbing failed' placeholder *(owner, 2026-10-18)*
 - [DEC-75](DEC-75-the-wrapper-reports-its-own-swallowed-runtime.md): The wrapper reports its own swallowed runtime failures: one stderr JSON line per site, tracebacks opt-in *(owner, 2026-10-18)*
 - [DEC-77](DEC-77-charter-parsimony-rank-placements-confirmed.md): Charter parsimony: rank placements confirmed, fail small in G-3, slimmer G-1, charter trimmed *(owner, 2026-10-18)*
-- [DEC-80](DEC-80-root-is-v1-v0-s-names-load-lazily-v0-s.md): Root is v1; v0's names load lazily; v0's dependencies stay core until 1.0.0 *(owner, 2026-10-19)*
 - [DEC-81](DEC-81-runtime-warnings-go-to-stderr-once-never.md): Runtime warnings go to stderr once, never through warnings.warn *(owner, 2026-10-19)*
 - [DEC-82](DEC-82-a-record-whose-scrubbing-fails-is-exported-bare.md): A record whose scrubbing fails is exported bare; dropped only if even that fails *(owner, 2026-10-19)*
 - [DEC-83](DEC-83-configure-uses-the-auto-scrubbing-engine-once.md): Configure uses the auto scrubbing engine once the [hyperscan] extra exists *(owner, 2026-10-19)*
@@ -174,6 +173,10 @@ Generated from each decision's frontmatter by `context-engine decision index`; n
 
 - [DEC-18](DEC-18-scrubbing-s-optional-fast-engine-is-an-re2.md): Scrubbing's optional fast engine is an `[re2]` hybrid *(owner, 2026-10-18)*; superseded by DEC-16
 - [DEC-66](DEC-66-no-sanitizer-just-don-t-log-secrets.md): No sanitizer: just don't log secrets *(owner, 2023-06-05)*; superseded by DEC-58
+
+### untagged
+
+- [DEC-80](DEC-80-root-is-v1-v0-s-names-load-lazily-v0-s.md): Root is v1; v0's names load lazily; v0's dependencies stay core until 1.0.0 *(owner, 2026-10-19)*; superseded by DEC-96
 
 ## REJECTED
 

@@ -5,9 +5,11 @@ title: Root is v1; v0's names load lazily; v0's dependencies stay core until 1.0
 actor: owner
 decided: 2026-10-19
 session: 2026-10-18l
-decision_status: PROVISIONAL
+decision_status: SUPERSEDED
 answers: ASK-23
 body_sha: sha256:b4422b5bd885ab107938c9bb9faaf19850c196e6c8b97d14aa13efdfd6ea6088
+status: deprecated
+superseded_by: [DEC-96]
 ---
 
 Owner, answering ASK-23: *"Owner, 2026-10-19 (session 2026-10-18l), verbatim, answering ASK-23 put as a multiple-choice question whose recommended option was "Root v1, v0 lazy: Root exports otel/OtelWrapperWarning; v0's old names still resolve via a lazy module __getattr__ (v0's setup then runs on first use of a v0 name, not at import). v0's deps become a [v0] extra.":
