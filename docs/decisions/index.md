@@ -154,6 +154,7 @@ Generated from each decision's frontmatter by `context-engine decision index`; n
 - [DEC-81](DEC-81-runtime-warnings-go-to-stderr-once-never.md): Runtime warnings go to stderr once, never through warnings.warn *(owner, 2026-10-19)*
 - [DEC-82](DEC-82-a-record-whose-scrubbing-fails-is-exported-bare.md): A record whose scrubbing fails is exported bare; dropped only if even that fails *(owner, 2026-10-19)*
 - [DEC-83](DEC-83-configure-uses-the-auto-scrubbing-engine-once.md): Configure uses the auto scrubbing engine once the [hyperscan] extra exists *(owner, 2026-10-19)*
+- [DEC-95](DEC-95-only-is-class-is-emitted-the-other-dec-31.md): Only is_class is emitted; the other DEC-31 extras stay commented out with the reason *(owner, 2026-10-20)*
 
 ## DEFERRED
 
