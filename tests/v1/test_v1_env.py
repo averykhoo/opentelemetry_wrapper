@@ -4,11 +4,7 @@ with an endpoint (DEC-28), v0's old names for one release (DEC-52, DEC-59), the 
 """
 import pytest
 
-from tests import impl
-
-if impl.IMPL == 'v1':
-    impl.import_v1()  # under v1 the package root must not import v0 (see tests/impl.py)
-from opentelemetry_wrapper.v1 import _env  # noqa: E402
+from opentelemetry_wrapper.v1 import _env
 
 
 def resolve(explicit=None, **environ):

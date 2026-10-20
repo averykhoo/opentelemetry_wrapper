@@ -2,23 +2,23 @@
 # NOTE: also update pyproject.toml (the pins and the sqlalchemy cap are in both)
 
 # core (DEC-57: strict OTel pins)
-opentelemetry-api>=1.44,<1.45
-opentelemetry-sdk>=1.44,<1.45
-opentelemetry-exporter-otlp-proto-http>=1.44,<1.45
-opentelemetry-semantic-conventions>=0.65b0,<0.66
-opentelemetry-instrumentation-logging>=0.65b0,<0.66
-opentelemetry-exporter-prometheus>=0.65b0,<0.66
+opentelemetry-api>=1.45,<1.46
+opentelemetry-sdk>=1.45,<1.46
+opentelemetry-exporter-otlp-proto-http>=1.45,<1.46
+opentelemetry-semantic-conventions>=0.66b0,<0.67
+opentelemetry-instrumentation-logging>=0.66b0,<0.67
+opentelemetry-exporter-prometheus>=0.66b0,<0.67
 
 # the extras: fastapi, sqlalchemy, requests, system-metrics, hyperscan, dev
-opentelemetry-instrumentation-fastapi>=0.65b0,<0.66
-opentelemetry-instrumentation-requests>=0.65b0,<0.66
-opentelemetry-instrumentation-sqlalchemy>=0.65b0,<0.66
-opentelemetry-instrumentation-system-metrics>=0.65b0,<0.66
+opentelemetry-instrumentation-fastapi>=0.66b0,<0.67
+opentelemetry-instrumentation-requests>=0.66b0,<0.67
+opentelemetry-instrumentation-sqlalchemy>=0.66b0,<0.67
+opentelemetry-instrumentation-system-metrics>=0.66b0,<0.67
 fastapi
 requests
-# TODO: temporary pin, since opentelemetry-instrumentation-sqlalchemy (<=0.66b0) silently skips sqlalchemy>=2.1
+# TODO: temporary pin, since opentelemetry-instrumentation-sqlalchemy (<=0.66b1) silently skips sqlalchemy>=2.1
 #  check https://github.com/open-telemetry/opentelemetry-python-contrib/issues/5118 (and PR #5120)
-#  once a release supports 2.1, remove `<2.1` here AND in pyproject.toml (twice), and set that release as the minimum
+#  once a release supports 2.1, remove `<2.1` here AND in pyproject.toml (the [sqlalchemy] extra), and set that release as the minimum
 #  for opentelemetry-instrumentation-sqlalchemy; then check that `sqlalchemy_example.py` prints a `SELECT` span
 sqlalchemy[asyncio]<2.1
 hyperscan
@@ -28,10 +28,9 @@ mypy
 # DEC-91: aiosqlite, the async sqlite driver the AsyncEngine tests run on
 aiosqlite
 
-# v0 core dependencies until 1.0.0 (DEC-80, pyproject.toml), and what the v0 tests import through the example apps
-opentelemetry-exporter-otlp-proto-grpc>=1.44,<1.45
+# what the tests and the example scripts import besides: pydantic (the logging tests), asgiref (experiment_otel_logging.py),
+# starlette, uvicorn and itsdangerous (fastapi_main.py)
 pydantic
-typing-extensions
 asgiref
 itsdangerous
 starlette

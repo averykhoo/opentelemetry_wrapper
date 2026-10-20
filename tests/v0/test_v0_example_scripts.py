@@ -1,5 +1,9 @@
 """
-the example scripts in the repo root, run unmodified (CLAUDE.md § Gate, outside the gate)
+the example scripts in the repo root, run unmodified (CLAUDE.md § Gate, outside the gate), on v1 since 1.0.0 (OTW-25)
+
+each script turns on v1's console span exporter (`otel.configure(traces_exporter='console')`), so its spans are
+OpenTelemetry's `ConsoleSpanExporter` output on stdout (indented json, one object per span), and
+`otel.instrument(logging)` writes one line of json per log on stderr
 
 fastapi_main.py is in test_v0_fastapi.py (it starts uvicorn on :8000 when run as a script, so it is imported there)
 """
@@ -15,8 +19,8 @@ EXPERIMENT = scenario(__name__, 'script_experiment_otel_logging', script=REPO_RO
 SETUP = scenario(__name__, 'script_setup_otel_logging', script=REPO_ROOT / 'setup_otel_logging.py')
 WEIRD = scenario(__name__, 'script_log_weird_things', script=REPO_ROOT / 'log_weird_things.py')
 SQLALCHEMY = scenario(__name__, 'script_sqlalchemy_example', script=REPO_ROOT / 'sqlalchemy_example.py')
-TYPE_CHECKING = scenario(__name__, 'script_type_checking',
-                         script=REPO_ROOT / 'opentelemetry_wrapper' / 'v0' / 'utils' / 'type_checking.py')
+
+NO_SPAN = '0x' + '0' * 16
 
 
 def ok(handle):
@@ -25,13 +29,27 @@ def ok(handle):
     return result
 
 
+def json_objects(text):
+    """every json object in `text`, however it is indented (the console exporter writes each span over many lines)"""
+    decoder = json.JSONDecoder()
+    out, at = [], text.find('{')
+    while at >= 0:
+        try:
+            obj, end = decoder.raw_decode(text, at)
+        except json.JSONDecodeError:
+            end = at + 1
+        else:
+            out.append(obj)
+        at = text.find('{', end)
+    return out
+
+
 def console_spans(result):
-    """v0's console exporter prints one json span per line on stdout"""
-    return [obj for obj in result.stdout_json_objects() if 'context' in obj and 'name' in obj]
+    return [obj for obj in json_objects(result.stdout) if 'context' in obj and 'name' in obj]
 
 
 def stderr_logs(result):
-    return [json.loads(line) for line in result.stderr_lines]
+    return [json.loads(line) for line in result.stderr_lines]  # fails on any line that is not one json object
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -47,19 +65,21 @@ def test_experiment_otel_logging_logs_match_spans():
         assert log['otelSpanID'] in spans, log
         assert spans[log['otelSpanID']]['context']['trace_id'] == log['otelTraceID']
     assert {log['funcName'] for log in logs} == {'exponentiate', 'multiply', 'square'}
+    assert len({s['context']['trace_id'] for s in spans.values()}) == 1  # one call, one trace, across threads
 
 
 def test_experiment_otel_logging_span_names():
     spans = console_spans(ok(EXPERIMENT))
     assert collections.Counter(s['name'] for s in spans) == {
-        'async <__main__>.bitshift':                                                                      89,
-        'async @typecheck <__main__>.multiply':                                                           4,
-        'async <__main__>.square':                                                                        2,
-        'asgiref.sync.AsyncToSync <__main__>.exponentiate':                                               1,
-        '<opentelemetry_wrapper.v0.dependencies.opentelemetry.instrument_logging>.instrument_logging':    1,
+        '__main__.bitshift':                 89,
+        # `@otel @lru_cache @otel`: the outer `@otel` returns the lru_cache as it is
+        '__main__.multiply':                 4,
+        '__main__.square':                   2,
+        # asgiref's AsyncToSync keeps no `__wrapped__`, so its spans are named after its `__call__`; the `@otel` over
+        # `sync_to_async` finds the AsyncToSync already decorated and returns it unchanged: 3 decorators, 2 spans
+        'asgiref.sync.AsyncToSync.__call__': 2,
     }
     assert all(s['status']['status_code'] == 'OK' for s in spans)
-    assert all('duration_ns' in s for s in spans)  # v0's console formatter adds this
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -70,22 +90,20 @@ def test_setup_otel_logging_spans():
     result = ok(SETUP)
     spans = console_spans(result)
     assert collections.Counter(s['name'] for s in spans) == {
-        '<__main__>.A.__new__':                                                                               9,
-        '<__main__>.A.__init__':                                                                              9,
-        '<__main__>.A.c':                                                                                     2,
-        '<__main__>.A.c.<locals>.d':                                                                          2,
-        'property <__main__>.A.e':                                                                            2,
-        '<__main__>.A.b':                                                                                     1,
-        '<__main__>.A.__call__':                                                                              1,
-        '<__main__>.A.__enter__':                                                                             1,
-        '<__main__>.A.__exit__':                                                                              1,
-        '<opentelemetry_wrapper.v0.dependencies.opentelemetry.instrument_dataclasses>.instrument_dataclasses': 1,
-        '<opentelemetry_wrapper.v0.dependencies.opentelemetry.instrument_logging>.instrument_logging':         1,
+        '__main__.A.__new__':      9,
+        '__main__.A.__init__':     9,
+        '__main__.A.c':            2,
+        '__main__.A.c.<locals>.d': 2,
+        '__main__.A.e':            2,  # `@otel(properties=True)`
+        '__main__.A.b':            1,
+        '__main__.A.__call__':     1,
+        '__main__.A.__enter__':    1,  # one span from `__enter__` to `__exit__` (DEC-22)
     }
     assert all(s['status']['status_code'] == 'OK' for s in spans)
+    span_ids = {s['context']['span_id'] for s in spans}
     logs = stderr_logs(result)
     assert len(logs) == 26
-    assert all(log['otelSpanID'] != '0x' + '0' * 16 for log in logs)  # every log is inside some span
+    assert all(log['otelSpanID'] in span_ids for log in logs)  # every log is inside one of the spans
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -102,6 +120,7 @@ def weird_logs():
 
 def test_log_weird_things_every_line_is_json(weird_logs):
     assert [log['levelname'] for log in weird_logs] == ['WARNING'] * 7 + ['INFO'] * 8 + ['ERROR'] * 3
+    assert all(log['otelSpanID'] == NO_SPAN for log in weird_logs)  # logged outside any span
 
 
 def test_log_weird_things_encodings(weird_logs):
@@ -113,37 +132,26 @@ def test_log_weird_things_encodings(weird_logs):
     assert msgs[7] == '(1.234+4j)'  # complex -> str
     assert msgs[8] == 0.1111111111111111  # Decimal -> float: precision is lost in `msg`...
     assert messages[8] == '0.' + '1' * 68  # ...but not in `message`
-    assert msgs[10] == '<builtins>.print'  # functions and classes are named via CodeInfo
-    assert msgs[11] == '<pydantic.main>.BaseModel'
-    assert msgs[12] == '<pydantic.v1.json>.pydantic_encoder'
-    assert messages[14] == 'MSG=1 ARGS=(2, 3, 4, 5, 6, 7)'  # bad format args don't crash
-    assert msgs[15] == '<__main__>.Something'
+    assert msgs[9] == 'logging'  # modules, functions and classes are named `module.qualname`, never their repr
+    assert msgs[10] == 'builtins.print'
+    assert msgs[11] == 'pydantic.main.BaseModel'
+    assert msgs[12] == 'pydantic.v1.json.pydantic_encoder'
+    assert msgs[14] == 1 and messages[14] == 'MSG=1 ARGS=(2, 3, 4, 5, 6, 7)'  # bad format args don't crash
+    assert msgs[15] == '__main__.Something'
     assert msgs[16] == {'key': 'value'}  # pydantic model -> dict
-    assert messages[16] == "key='value'"
-    assert msgs[17] == '<__main__>.<lambda>'
+    assert msgs[17] == '__main__.<lambda>'
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# sqlalchemy_example.py: exit 0 and connect + SELECT :memory: spans in stdout
+# sqlalchemy_example.py: exit 0 and a `SELECT :memory:` span in stdout (`otel.instrument(engine)` traces that engine's
+# queries; `connect` spans come from `otel.instrument(sqlalchemy)`, DEC-1)
 # ----------------------------------------------------------------------------------------------------------------------
 
 def test_sqlalchemy_example_spans():
     result = ok(SQLALCHEMY)
     assert result.stdout.splitlines()[:3] == ['is_sqlalchemy_engine True', 'is_sqlalchemy_sync_engine True',
                                               'is_sqlalchemy_async_engine False']
-    names = [s['name'] for s in console_spans(result)]
-    assert 'connect' in names
-    assert 'SELECT :memory:' in names
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-# type_checking.py: same output under pydantic 2 and pydantic 1 (only pydantic 2 is installed; output recorded on
-# 2026-10-04, when both matched)
-# ----------------------------------------------------------------------------------------------------------------------
-
-def test_type_checking_script_output():
-    result = ok(TYPE_CHECKING)
-    assert result.stdout.splitlines() == [
-        "'asdf'", "'123'", '123', '123.0', '100', '100', '100', 'datetime.date(2024, 1, 1)',
-        '4.0', '4', '6.25', '4', '4.0', 'True', '2',
-    ]
+    spans = console_spans(result)
+    assert [s['name'] for s in spans] == ['SELECT :memory:']
+    assert spans[0]['attributes']['db.system'] == 'sqlite'
+    assert spans[0]['attributes']['db.statement'] == 'SELECT * FROM sqlite_master'  # no sqlcommenter unless asked

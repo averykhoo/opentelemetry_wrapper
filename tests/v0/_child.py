@@ -8,8 +8,8 @@ import sys
 
 RESULT_MARKER = '@@RESULT@@ '
 
-# spans that v0's own entry points emit for themselves (they are all `@instrument_decorate`d), e.g.
-# `<opentelemetry_wrapper.v0.dependencies.opentelemetry.instrument_logging>.instrument_logging`
+# spans that the wrapper's own entry points emit for themselves, left out of `take` unless asked for: v0's did, e.g.
+# `<opentelemetry_wrapper.(v0 module)>.instrument_logging`; v1's emit none (AC-22)
 LIBRARY_SPAN_PREFIX = '<opentelemetry_wrapper.'
 
 
@@ -22,32 +22,15 @@ def emit(key, value):
 
 
 def setup_spans():
-    """
-    capture finished spans in memory, using whatever global tracer provider the library under test set up
-    v0 installs its own `TracerProvider` the first time anything asks for a tracer
-    """
+    """capture every span the wrapper finishes, in memory (v1's test sink, OTW-3)"""
     from tests import impl
-    if impl.IMPL == 'v1':
-        return impl.span_exporter()  # v1's test sink (OTW-3)
-    impl.require_v0('setup_spans')
-
-    from opentelemetry import trace
-    from opentelemetry.sdk.trace.export import SimpleSpanProcessor
-    from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
-
-    from opentelemetry_wrapper.v0.dependencies.opentelemetry.otel_providers import init_tracer_provider
-
-    init_tracer_provider()
-    exporter = InMemorySpanExporter()
-    trace.get_tracer_provider().add_span_processor(SimpleSpanProcessor(exporter))
-    return exporter
+    return impl.span_exporter()
 
 
 def setup_global_spans():
     """
-    capture finished spans in memory from the global SDK tracer provider, whatever installed it: for code that calls
-    an implementation's api directly rather than through `tests.impl` (the repo's v0 examples, which import v0 names
-    and so run v0 under either OTW_IMPL)
+    capture finished spans in memory from the global SDK tracer provider, whatever installed it: for code that sets up
+    OpenTelemetry without the wrapper, or whose spans the wrapper's test sink does not see
     """
     from opentelemetry import trace
     from opentelemetry.sdk.trace import TracerProvider
@@ -67,6 +50,7 @@ def span_record(span, names_by_id):
         'name':       span.name,
         'status':     span.status.status_code.name,
         'kind':       span.kind.name,
+        'scope':      span.instrumentation_scope.name if span.instrumentation_scope else None,
         'parent':     names_by_id.get(span.parent.span_id) if span.parent else None,
         'trace_id':   f'0x{span.context.trace_id:032x}',
         'span_id':    f'0x{span.context.span_id:016x}',
@@ -88,4 +72,3 @@ def take(exporter, *, include_library_spans=False):
 
 def names(exporter, **kwargs):
     return [s['name'] for s in take(exporter, **kwargs)]
-

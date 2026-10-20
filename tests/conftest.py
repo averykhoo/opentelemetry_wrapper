@@ -1,13 +1,10 @@
 """
-shared fixtures for the characterization suite
+shared fixtures for the whole suite
 
-the suite pins down v0's *current* behaviour so that the v1 rewrite (epic OTW-1) can be checked against it
-conventions:
-* a plain test asserts what v0 does today, and is expected to hold for v1 too
-* `@pytest.mark.xfail(strict=True, reason=...)` asserts the *correct* behaviour for a known v0 bug, so it starts
-  failing-to-xfail (i.e. XPASS -> error) the moment the bug is fixed; then delete the marker
-* `@pytest.mark.v0_specific` pins a v0 detail that a v1 decision changes (or that is an implementation detail),
-  so a v1 run is expected to differ there; read those failures, don't blindly fix them
+`tests/v0` is the characterization suite: written against v0's behaviour so that the v1 rewrite (epic OTW-1) could be
+checked against it, it now runs against v1 (through `tests/impl.py`) and pins what v1 keeps of v0. its tests that
+claim a criterion pin a v0 bug that v1 fixes; v0's details that v1 changed were dropped with v0 (1.0.0)
+`tests/v1` holds v1's own tests, `tests/upstream` the canaries for upstream behaviour v1 relies on
 references: `DEC-n` / `OTW-n` are decision and task records (`docs/decisions/`, `tasks/`); "the v0 bug list" is
 the pre-adoption HANDOFF.md's TODO section, kept verbatim in `docs/evidence/history-to-2026-10-18.md`
 """
@@ -15,8 +12,8 @@ import os
 import sys
 from pathlib import Path
 
-# v0 reads its configuration from env vars at import time, so sanitise them before anything imports the package:
-# no OTLP exporter (nothing must try to reach a collector), no prometheus port (nothing must bind :9464), not disabled
+# the package reads its configuration from env vars when it configures, so sanitise them before anything does: no
+# OTLP exporter (nothing must try to reach a collector), no prometheus port (nothing must bind :9464), not disabled
 for _k in list(os.environ):
     if _k.upper().startswith('OTEL_'):
         del os.environ[_k]
@@ -32,7 +29,6 @@ from tests.v0 import _harness  # noqa: E402
 
 
 def pytest_configure(config):
-    config.addinivalue_line('markers', 'v0_specific: pins a v0 detail that v1 is expected to change (docs/decisions)')
     config.addinivalue_line('markers', 'upstream: a canary for upstream behaviour we rely on (tests/upstream, set '
                                        'automatically); `pytest -m upstream` runs just those')
     config.addinivalue_line('markers', 'criterion(id): the AC-n criterion in docs/criteria.md that this test claims')
@@ -45,12 +41,6 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         if _UPSTREAM_DIR in Path(item.fspath).resolve().parents:
             item.add_marker(pytest.mark.upstream)
-    # v0_specific tests pin v0 details, so they only run against v0 (DEC-38)
-    if impl.IMPL != 'v0':
-        skip = pytest.mark.skip(reason=f'v0_specific: pins a v0 detail, and OTW_IMPL={impl.IMPL}')
-        for item in items:
-            if item.get_closest_marker('v0_specific'):
-                item.add_marker(skip)
 
 
 def pytest_collection_finish(session):
@@ -66,47 +56,13 @@ def pytest_sessionfinish(session, exitstatus):
 
 @pytest.fixture(scope='session')
 def otw():
-    """the public API of the package under test, through the OTW_IMPL adapter (`tests/impl.py`)"""
+    """the package's api under v0's names, through the adapter (`tests/impl.py`)"""
     return impl
 
 
 @pytest.fixture(scope='session')
-def _in_memory_exporter(otw):
-    if impl.IMPL == 'v1':  # v1's test sink (OTW-3)
-        yield impl.span_exporter()
-        return
-    impl.require_v0('in-process span capture')
-    from opentelemetry import trace
-    from opentelemetry.sdk.trace import TracerProvider
-    from opentelemetry.sdk.trace.export import SimpleSpanProcessor
-    from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
-
-    # importing the package installs v0's global tracer provider (decorated functions get their tracer at import)
-    from opentelemetry_wrapper.v0.dependencies.opentelemetry.otel_providers import init_tracer_provider
-    init_tracer_provider()
-    provider = trace.get_tracer_provider()
-    assert isinstance(provider, TracerProvider), f'some other tracer provider got installed first: {provider!r}'
-
-    _silence_console_span_exporters(provider)
-    exporter = InMemorySpanExporter()
-    provider.add_span_processor(SimpleSpanProcessor(exporter))
-    yield exporter
-    provider.force_flush()
-
-
-def _silence_console_span_exporters(provider):
-    """
-    v0 always adds a batched ConsoleSpanExporter, whose background thread writes span json straight to the terminal
-    (it bound sys.stdout before pytest's capture was involved); point it at a null stream for in-process tests.
-    best effort, via SDK internals: if they change, the only cost is noisy output
-    """
-    import io
-    from opentelemetry.sdk.trace.export import ConsoleSpanExporter
-
-    for processor in getattr(getattr(provider, '_active_span_processor', None), '_span_processors', ()):
-        exporter = getattr(getattr(processor, '_batch_processor', None), '_exporter', None)
-        if isinstance(exporter, ConsoleSpanExporter):
-            exporter.out = io.StringIO()  # nothing reads it; replaced rather than closed so writes never fail
+def _in_memory_exporter():
+    return impl.span_exporter()  # v1's test sink (OTW-3)
 
 
 class SpanCapture:

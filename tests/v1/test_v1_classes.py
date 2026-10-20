@@ -5,7 +5,7 @@ managers (DEC-22)
 
 each scenario runs in a fresh interpreter (global OTel state can't be reset). The v0 class bugs these guard against
 (first class only, two spans through instances, the leak, the source read per property access) are also pinned by
-`tests/v0/test_v0_classes.py`, which passes under `OTW_IMPL=v1` (AC-11)
+`tests/v0/test_v0_classes.py`, which runs against v1 (AC-11)
 """
 import pytest
 from tests.v0._harness import scenario

@@ -8,14 +8,14 @@ try:
 except ImportError:
     from pydantic.json import pydantic_encoder  # v1
 
-from opentelemetry_wrapper import instrument_logging
+from opentelemetry_wrapper import otel
 
 
 class Something(BaseModel):
     key: str = 'value'
 
 
-instrument_logging()
+otel.instrument(logging)  # one line of json per log on stderr
 
 # json-like
 logging.warning('')

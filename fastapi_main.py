@@ -14,15 +14,14 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
 
-from opentelemetry_wrapper import instrument_all
-from opentelemetry_wrapper import instrument_fastapi_app
+from opentelemetry_wrapper import otel
 
-instrument_all(clobber_other_log_handlers=True)
+otel.instrument()  # logging, requests and system metrics, whichever are installed
 
-app = instrument_fastapi_app(FastAPI(title='My Super Project',
-                                     description='This is a very fancy project, with docs for the API and everything',
-                                     version='2.5.0',  # only semver makes sense here
-                                     ))
+app = otel.instrument(FastAPI(title='My Super Project',
+                              description='This is a very fancy project, with docs for the API and everything',
+                              version='2.5.0',  # only semver makes sense here
+                              ))  # request spans, and a `/metrics` route for Prometheus
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(SessionMiddleware, secret_key='config.settings.secret_key')
@@ -68,10 +67,10 @@ def hello_hello() -> str:
 
 
 if __name__ == '__main__':
-    # this only works because the env vars are preserved in the spawned processes
-    # otherwise, setting these after initializing otel wrapper would obviously fail
+    # the workers re-import this module, so they see these: this process configured before they were set. metrics are
+    # also served on their own port, 9464, by whichever worker binds it first (the other warns once and carries on)
     os.environ['OTEL_EXPORTER_PROMETHEUS_PORT'] = '9464'
-    os.environ['OTEL_EXPORTER_PROMETHEUS_ENDPOINT'] = '/metrics'
+    os.environ['OTEL_WRAPPER_PROMETHEUS_PATH'] = '/metrics'
 
     uvicorn.run(f'{inspect.getmodulename(__file__)}:app',
                 host='localhost',

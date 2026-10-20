@@ -67,7 +67,7 @@ def test_python_floor_is_3_12():  # DEC-44
     assert PYPROJECT['requires-python'] == '>=3.12'
 
 
-@pytest.mark.parametrize('name', SDK_FAMILY + ('opentelemetry-exporter-otlp-proto-grpc',))  # grpc: see below
+@pytest.mark.parametrize('name', SDK_FAMILY)
 def test_sdk_family_is_capped_at_the_next_minor(name):  # DEC-57
     for req in _named(_everything(), name):
         lower, upper = _bounds(req)
@@ -105,15 +105,16 @@ def test_core_dependencies_include_the_otlp_http_family():  # DEC-36
     assert set(SDK_FAMILY + CONTRIB_FAMILY) <= names
 
 
-def test_no_grpc_exporter_is_declared():  # DEC-36
+def test_no_grpc_exporter_is_declared():  # DEC-36: since 1.0.0 (DEC-96) without exception
     declared = {r.name for r in _everything()} | {r.name for r in _requirements_txt()}
-    # the one transitional exception: v0's otel_providers.py imports the gRPC exporters at module level, and v0's
-    # dependencies stay core until 1.0.0 (DEC-80), so the exporter package does too; then empty this set
-    allowed = {'opentelemetry-exporter-otlp-proto-grpc'}
-    assert not (declared & GRPC_NAMES) - allowed, sorted((declared & GRPC_NAMES) - allowed)
-    # grpcio comes only through that package, and never as an extra
-    assert not {r.name for reqs in _extras().values() for r in reqs} & GRPC_NAMES
-    assert 'opentelemetry-exporter-otlp' not in declared  # the meta package: gRPC and HTTP together
+    assert not declared & GRPC_NAMES, sorted(declared & GRPC_NAMES)
+
+
+@pytest.mark.criterion('AC-20')
+def test_the_core_install_is_lean():  # DEC-96: v0's FastAPI, SQLAlchemy, requests and pydantic dependencies are gone
+    core = {r.name for r in _core()}
+    assert core == set(SDK_FAMILY + CONTRIB_FAMILY), sorted(core - set(SDK_FAMILY + CONTRIB_FAMILY))
+    assert not core & ({'fastapi', 'sqlalchemy', 'requests', 'pydantic', 'starlette'} | set(INSTRUMENTORS.values()))
 
 
 @pytest.mark.criterion('AC-20')

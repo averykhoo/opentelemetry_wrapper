@@ -1,39 +1,40 @@
 import logging
+from dataclasses import dataclass
 from functools import lru_cache
 
-from opentelemetry_wrapper import instrument_dataclasses
-from opentelemetry_wrapper import instrument_decorate
-from opentelemetry_wrapper import instrument_logging
+from opentelemetry_wrapper import otel
 
 if __name__ == '__main__':
-    instrument_dataclasses()
-    from dataclasses import dataclass
+    # spans on stdout (v1 exports nothing unless told to), logs as one line of json each on stderr
+    otel.configure(traces_exporter='console')
 
-
+    # v0's `instrument_dataclasses()` instrumented every dataclass; v1 decorates the class (DEC-42), and properties
+    # only when asked (v0 spanned them)
+    @otel(properties=True)
     @dataclass  # (frozen=True)
     class A:
         x = 1
 
-        @instrument_decorate
+        @otel
         def __new__(cls, *args, **kwargs):
             logging.info('A.__new__')
             return super(A, cls).__new__(cls, *args, **kwargs)
 
-        # @instrument_decorate
+        # @otel
         def __init__(self):
             logging.info('A.__init__')
             # self.y = 2
 
-        # @instrument_decorate
+        # @otel
         def b(self):
             logging.info('A.b')
             return 1
 
-        # @instrument_decorate
+        # @otel
         def c(self):
             logging.info('A.c')
 
-            @instrument_decorate
+            @otel
             def d():
                 logging.info('A.c.d')
                 return 1
@@ -60,13 +61,13 @@ if __name__ == '__main__':
             pass
 
 
-    @instrument_decorate
+    @otel
     @lru_cache
     def f(x):
         return x + 1
 
 
-    instrument_logging()
+    otel.instrument(logging)
     A().b()
     A().c()()
     A()()
@@ -75,10 +76,10 @@ if __name__ == '__main__':
     A().e
     A().x
 
-    a = instrument_decorate(A)()
-    a_c = instrument_decorate(a.c)
-    a_c_d = instrument_decorate(a_c())
+    a = otel(A)()
+    a_c = otel(a.c)
+    a_c_d = otel(a_c())
     a_c_d()
 
-    with instrument_decorate(A)():
+    with otel(A)():
         ...

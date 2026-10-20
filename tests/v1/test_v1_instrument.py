@@ -18,7 +18,7 @@ import logging
 import warnings
 
 from tests.impl import import_v1
-v1 = import_v1()  # opentelemetry_wrapper.v1 (neither it nor the package root imports v0)
+v1 = import_v1()  # opentelemetry_wrapper.v1
 otel = v1.otel
 from opentelemetry_wrapper.v1 import OtelWrapperWarning
 from opentelemetry_wrapper.v1 import _config

@@ -1,16 +1,16 @@
 """
-per-call overhead of a decorated function, for the implementation `OTW_IMPL` selects (v0 or v1, DEC-38)
+per-call overhead of a function decorated with `@otel`
 
     python benchmarks/overhead.py                  # a table, from the repo root
-    OTW_IMPL=v1 python benchmarks/overhead.py      # the same against v1
     python benchmarks/overhead.py --json           # one json object, for comparing runs
 
 each exporter setup runs in a fresh interpreter, because the tracer provider is global. "none" is a `TracerProvider`
 with no processor, so a span is created and dropped; "batch" adds a `BatchSpanProcessor` with an exporter that
 discards everything (the setup behind DEC-15's per-span figures), so the caller thread pays for queueing a span but
-not for exporting it. the provider is set before the package under test is imported, so v0 keeps it and adds no
-console exporter. rows: the bare function, a span from the OTel tracer directly (the floor), and the function
-decorated through `tests.impl.decorate`. on Windows, as in DEC-15, the ratios matter, not the absolute numbers
+not for exporting it. the provider is set before the package is imported and no `OTEL_*` variable is passed on, so
+`otel` follows that provider and adds no exporter of its own. rows: the bare function, a span from the OTel tracer
+directly (the floor), and the function decorated with `otel`. on Windows, as in DEC-15, the ratios matter, not the
+absolute numbers
 """
 import argparse
 import json
@@ -58,14 +58,10 @@ def child(exporter: str, calls: int, repeat: int) -> dict:
             return bare()
 
     rows = {'bare': _per_call_ns(bare, calls, repeat), 'otel_direct': _per_call_ns(otel_direct, calls, repeat)}
-    try:
-        from tests.impl import decorate
-        decorated = decorate(bare)
-        decorated()  # the first call may do one-off work
-    except NotImplementedError as e:
-        rows['decorated'] = f'unbound: {e}'
-    else:
-        rows['decorated'] = _per_call_ns(decorated, calls, repeat)
+    from opentelemetry_wrapper import otel
+    decorated = otel(bare)
+    decorated()  # the first call may do one-off work (it sets the wrapper up)
+    rows['decorated'] = _per_call_ns(decorated, calls, repeat)
     provider.shutdown()
     return rows
 
@@ -84,7 +80,6 @@ def main(argv=None) -> int:
 
     env = {k: v for k, v in os.environ.items() if not k.upper().startswith('OTEL_')}
     env['PYTHONPATH'] = str(REPO_ROOT)
-    impl = env.get('OTW_IMPL') or 'v0'
     results = {}
     for exporter in EXPORTERS:
         out = subprocess.run([sys.executable, __file__, '--child', exporter, '--calls', str(args.calls),
@@ -96,13 +91,13 @@ def main(argv=None) -> int:
         results[exporter] = json.loads(out.stdout.strip().splitlines()[-1])
 
     if args.json:
-        print(json.dumps({'impl': impl, 'calls': args.calls, 'repeat': args.repeat, 'ns_per_call': results}))
+        print(json.dumps({'calls': args.calls, 'repeat': args.repeat, 'ns_per_call': results}))
         return 0
-    print(f'OTW_IMPL={impl}, ns per call (fastest of {args.repeat} x {args.calls} calls)')
+    print(f'ns per call (fastest of {args.repeat} x {args.calls} calls)')
     print(f'{"":<12}' + ''.join(f'{e:>14}' for e in EXPORTERS))
     for row in ('bare', 'otel_direct', 'decorated'):
         cells = [results[e][row] for e in EXPORTERS]
-        print(f'{row:<12}' + ''.join(f'{c:>14.0f}' if isinstance(c, float) else f'{"unbound":>14}' for c in cells))
+        print(f'{row:<12}' + ''.join(f'{c:>14.0f}' for c in cells))
     return 0
 
 

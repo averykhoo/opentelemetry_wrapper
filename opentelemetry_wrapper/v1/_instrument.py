@@ -146,7 +146,11 @@ def instrument_logging(notes: List[str]) -> None:
 def instrument_requests(notes: List[str]) -> None:
     """client spans, with the listed response headers (upstream latency, OTW-7); a forwarded x-userinfo that header
     capture records is redacted"""
-    from opentelemetry.instrumentation.requests import RequestsInstrumentor
+    try:
+        from opentelemetry.instrumentation.requests import RequestsInstrumentor
+    except ImportError as e:
+        _instrumentation_missing('requests', 'requests', 'requests', e, notes)
+        return
     settings = _config.settings()
     _run_instrumentor(RequestsInstrumentor(), 'requests', notes,
                       request_hook=_headers.requests_request_hook(settings.header_attributes),
@@ -158,10 +162,15 @@ def instrument_system_metrics(notes: List[str]) -> None:
     _run_instrumentor(SystemMetricsInstrumentor(), 'system metrics', notes)
 
 
+def _instrumentation_missing(what: str, library: str, extra: str, error: ImportError, notes: List[str]) -> None:
+    """an integration's extra is missing (or the library itself, which its instrumentation imports): one warning"""
+    notes.append(f'otel.instrument({what}) did nothing: the {library} instrumentation cannot be imported ({error}). '
+                 f'Install opentelemetry_wrapper[{extra}]')
+
+
 def _sqlalchemy_instrumentation_missing(what: str, error: ImportError, notes: List[str]) -> None:
     """the `[sqlalchemy]` extra is missing (or sqlalchemy itself, which the instrumentation imports): one warning"""
-    notes.append(f'otel.instrument({what}) did nothing: the SQLAlchemy instrumentation cannot be imported ({error}). '
-                 f'Install opentelemetry_wrapper[sqlalchemy]')
+    _instrumentation_missing(what, 'SQLAlchemy', 'sqlalchemy', error, notes)
 
 
 def _sqlalchemy_asyncio_available() -> bool:
@@ -304,7 +313,11 @@ def instrument_app(app: Any, notes: List[str]) -> Any:
         notes.append('otel.instrument(app) was called after the app started, when middleware can no longer be added; '
                      'the app is returned uninstrumented. Instrument it before serving requests')
         return app
-    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+    try:
+        from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+    except ImportError as e:
+        _instrumentation_missing('app', 'FastAPI', 'fastapi', e, notes)
+        return app
     from opentelemetry.instrumentation.dependencies import get_dependency_conflicts
     conflict = get_dependency_conflicts(FastAPIInstrumentor().instrumentation_dependencies())
     if conflict is not None:

@@ -1,5 +1,6 @@
 """
-global setup: `instrument_all`, `OTEL_WRAPPER_DISABLED`, service name / resource, prometheus port, `requests`
+global setup: `instrument_all` (v1: `otel.instrument()`), `OTEL_WRAPPER_DISABLED`, service name / resource, prometheus
+port, `requests`
 
 everything that depends on import-time env vars or installs global providers runs in a fresh interpreter
 """
@@ -8,7 +9,6 @@ import socket
 
 import pytest
 
-from tests import impl
 from tests.v0._harness import scenario
 
 
@@ -19,24 +19,22 @@ def _free_port() -> int:
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-# public API surface (v0 and v1 ship side by side, so v0's names must keep working)
+# public API surface (v0's function names stay, as aliases onto v1, so code written for v0 keeps working)
 # ----------------------------------------------------------------------------------------------------------------------
 
-PUBLIC_NAMES = ('__version__', 'instrument_all', 'instrument_dataclasses', 'instrument_decorate',
-                'instrument_fastapi_app', 'instrument_logging', 'instrument_requests', 'instrument_sqlalchemy',
-                'instrument_sqlalchemy_engine')
+V0_FUNCTIONS = ('instrument_all', 'instrument_dataclasses', 'instrument_decorate', 'instrument_fastapi_app',
+                'instrument_logging', 'instrument_requests', 'instrument_sqlalchemy', 'instrument_sqlalchemy_engine',
+                'instrument_system_metrics')
 
 
 def test_public_api():
-    # the package itself, not the OTW_IMPL adapter: these are v0's own names, which must keep working under v1 too
+    # the package itself, not the adapter: v0's own names (its OTEL_* configuration values are gone)
     import opentelemetry_wrapper as otw
-    assert set(PUBLIC_NAMES) <= set(otw.__all__)
-    for name in PUBLIC_NAMES:
-        assert hasattr(otw, name), name
-    for name in PUBLIC_NAMES[1:]:
+    assert set(V0_FUNCTIONS) | {'__version__', 'otel', 'OtelWrapperWarning'} <= set(otw.__all__)
+    for name in V0_FUNCTIONS:
         assert callable(getattr(otw, name)), name
     assert isinstance(otw.__version__, str)
-    assert callable(otw.instrument_system_metrics)  # importable, though missing from __all__ (v0 cleanup, OTW-18)
+    assert 'OTEL_SERVICE_NAME' not in otw.__all__
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -83,40 +81,22 @@ def _stderr_json(result):
 def test_instrument_all_twice_does_not_raise_or_duplicate_handlers(instrument_all_result):
     assert instrument_all_result['first_call_returns'] is None
     assert instrument_all_result['second_call_returns'] is None
-    assert instrument_all_result['handlers_added'] == (1 if impl.IMPL == 'v0' else 2)  # v1: OTLP + JSON (OTW-11)
+    assert instrument_all_result['handlers_added'] == 2  # OTLP + JSON (OTW-11; v0 added one)
     messages = [log['message'] for log in _stderr_json(instrument_all_result)]
     assert messages.count('after instrument_all') == 1
 
 
 def test_instrument_all_defaults(instrument_all_result):
     # v1 drops global dataclass instrumentation (DEC-42): `@otel` on each dataclass instead
-    assert instrument_all_result['dataclasses_patched'] is (impl.IMPL == 'v0')
+    assert instrument_all_result['dataclasses_patched'] is False
     assert instrument_all_result['requests_instrumented'] is True
     assert instrument_all_result['system_metrics_instrumented'] is True
     assert instrument_all_result['sqlalchemy_instrumented'] is False  # "too noisy for a default"
 
 
-@pytest.mark.v0_specific  # v1 logs no config: `otel.config` is a read-only view of it, secrets redacted (DEC-27)
-def test_instrument_all_logs_its_config_once_as_json(instrument_all_result):
-    logs = _stderr_json(instrument_all_result)  # also asserts every stderr line is json
-    config_logs = [log for log in logs if isinstance(log['msg'], dict)
-                   and 'opentelemetry_wrapper.__version__' in log['msg']]
-    assert len(config_logs) == 1
-    assert config_logs[0]['name'] == 'opentelemetry_wrapper'
-    assert config_logs[0]['msg']['OTEL_EXPORTER_PROMETHEUS_ENDPOINT'] == '/metrics'
-
-
-@pytest.mark.v0_specific  # v1: instrumenting twice behaves as once, nothing to warn about (DEC-19, AC-6)
-def test_second_instrument_all_warns_that_system_metrics_are_already_instrumented(instrument_all_result):
-    # instrument_system_metrics() has no "already instrumented" guard, unlike the other instrumentors
-    logs = _stderr_json(instrument_all_result)
-    assert [log['message'] for log in logs].count('Attempting to instrument while already instrumented') == 1
-
-
-@pytest.mark.xfail(impl.IMPL == 'v0', strict=True,
-                   reason='v0 bug list "Secrets in logs" (from reading the code, reproduced here): instrument_all() '
-                          'logs OTEL_EXPORTER_OTLP_HEADER verbatim (__init__.py:71); v1 logs no config (DEC-27)')
 def test_instrument_all_does_not_log_otlp_header_values(instrument_all_result):
+    # v0 bug list "Secrets in logs": v0's instrument_all() logged OTEL_EXPORTER_OTLP_HEADER verbatim; v1 logs no
+    # config (DEC-27)
     assert 's3cr3t-t0ken' not in instrument_all_result.stderr
     assert 's3cr3t-t0ken' not in json.dumps(instrument_all_result['warnings'])
 
@@ -129,7 +109,6 @@ DISABLED = scenario(__name__, 'disabled', r'''
 import asyncio, dataclasses, logging
 original_dataclass = dataclasses.dataclass
 from tests import impl as otw
-from tests.impl import IMPL as otw_impl
 otw.load()
 from fastapi import FastAPI
 from sqlalchemy import create_engine
@@ -164,8 +143,6 @@ emit('app_returned_unchanged', otw.instrument_app(app) is app)
 engine = create_engine('sqlite://')
 emit('engine_returned_unchanged', otw.instrument_engine(engine) is engine)
 otw.instrument_sqlalchemy(); otw.instrument_requests()
-if otw_impl == 'v0':  # v1 drops instrument_dataclasses
-    otw.instrument_dataclasses()
 emit('spans', take(exp, include_library_spans=True))
 
 # the scrape route is read after a request: v1 places it at the app's first request (OTW-12), so before one it is
@@ -197,7 +174,7 @@ def test_disabled_makes_every_entry_point_a_no_op():
 _RESOURCE_SCRIPT = r'''
 from opentelemetry import trace
 from tests import impl
-impl.load()  # installs the tracer provider
+impl.load()  # configures from the environment, which installs the tracer provider
 emit('resource', dict(trace.get_tracer_provider().resource.attributes))
 '''
 
@@ -205,7 +182,6 @@ SERVICE_FROM_ENV = scenario(__name__, 'service_name_env', _RESOURCE_SCRIPT,
                             env={'OTEL_SERVICE_NAME': 'my-service', 'OTEL_SERVICE_NAMESPACE': 'my-namespace'})
 SERVICE_FROM_RESOURCE_ATTRIBUTES = scenario(__name__, 'service_name_resource_attributes', _RESOURCE_SCRIPT, env={
     'OTEL_RESOURCE_ATTRIBUTES': 'service.name=from-attributes,service.namespace=ns-from-attributes,team=core'})
-SERVICE_DEFAULT = scenario(__name__, 'service_name_default', _RESOURCE_SCRIPT)
 
 
 def test_service_name_and_namespace_from_env():
@@ -220,15 +196,6 @@ def test_service_name_and_namespace_from_otel_resource_attributes():
     assert resource['service.name'] == 'from-attributes'
     assert resource['service.namespace'] == 'ns-from-attributes'
     assert resource['team'] == 'core'  # Resource.create() merges OTEL_RESOURCE_ATTRIBUTES
-
-
-@pytest.mark.v0_specific  # DEC-29: service.name will follow semconv instead
-def test_default_service_name_is_user_at_host_and_main_file():
-    resource = SERVICE_DEFAULT.result()['resource']
-    name = resource['service.name']
-    assert '@' in name
-    assert name.endswith(':<scenario_service_name_default.py>')
-    assert 'service.namespace' not in resource  # not in k8s, nothing configured
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -266,14 +233,11 @@ def test_prometheus_port_serves_metrics_on_every_path():
         assert result[path] == [200, True]
 
 
-@pytest.mark.xfail(impl.IMPL == 'v0', strict=True,
-                   reason='v0 bug list "Prometheus port only binds to localhost" (from reading the code, reproduced '
-                          'here): otel_providers.py:112 hardcodes addr="localhost" and ignores '
-                          'OTEL_EXPORTER_PROMETHEUS_HOST; v1 binds it (AC-19, OTW-12)')
 def test_prometheus_host_env_var_is_honoured():
+    # v0 bug list "Prometheus port only binds to localhost": v0 ignored OTEL_EXPORTER_PROMETHEUS_HOST (AC-19, OTW-12)
     result = PROMETHEUS_HOST.result()
     if result['non_loopback_ip'] is None:
-        pytest.skip('no non-loopback address to test with')  # note: a skip inside a strict xfail is still a skip
+        pytest.skip('no non-loopback address to test with')
     assert result['reachable_via_non_loopback_ip'] is True
 
 
