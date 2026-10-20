@@ -5,11 +5,11 @@ title: Renovate auto-merge of OTel bumps and auto-release of dependency-only mer
 brief: 'Split from OTW-2 (DEC-78): Renovate bumps of the strict OTel pins, auto-merged on green CI; patch release (AC-24)'
 pri: LATER
 state: open
-deps: [OTW-2, OTW-13]
+deps: [OTW-2, OTW-13, OTW-25]
 source: session 2026-10-18j
 created: 2026-10-18
 moved: 2026-10-18j
-updated: 2026-10-18j
+updated: 2026-10-20a
 review: [shipped, write-op]
 ---
 
@@ -27,3 +27,7 @@ Owner-side setup it needs: install the Renovate GitHub app on the repo, add a Py
 ## Read first
 
 - [DEC-54](../docs/decisions/DEC-54-upstream-otel-bumps-renovate-prs-that-auto.md), [DEC-55](../docs/decisions/DEC-55-dependency-only-merges-are-released.md), [DEC-57](../docs/decisions/DEC-57-strict-otel-pins-capped-at-the-next-minor.md), [DEC-78](../docs/decisions/DEC-78-building-starts-otw-2-is-split-renovate-and.md); `docs/runbooks/release.md`
+
+## Log
+
+- 2026-10-20a (claude-code/2.1.287): DEC-97 (owner, 2026-10-20): after the v1 release; build it push-only first, publish turned on after a couple of correct pushes.

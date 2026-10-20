@@ -271,6 +271,12 @@ def test_a_routine_is_not_marked_as_a_class():  # AC-10
     assert _introspect.IS_CLASS not in attributes_of(plain)[1]
 
 
+def test_is_class_is_the_only_extra_attribute():  # DEC-95: no wrapper chain, no end line
+    for target in (plain, partial(plain), no_wraps(plain), Outer.Inner):
+        extras = {key for key in attributes_of(target)[1] if key.startswith('opentelemetry_wrapper.')}
+        assert extras <= {_introspect.IS_CLASS}, target
+
+
 def test_file_path_is_absolute_when_the_code_has_a_relative_file_name():  # AC-10 (DEC-31: absolute preferred)
     code = compile('def relative():\n    pass\n', os.path.join('some', 'dir', 'file.py'), 'exec')
     namespace = {'__name__': 'fake.module'}

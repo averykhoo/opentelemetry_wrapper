@@ -8,6 +8,7 @@ session: 2026-10-20a
 decision_status: PROVISIONAL
 answers: ASK-25
 body_sha: sha256:3f0ea12e99c3b5c4b7abe68d0d519876b6b37bdd8f766de5fe5b513401725b82
+tasks: [OTW-24]
 ---
 
 Owner, answering ASK-25: *"Owner, 2026-10-20 (session 2026-10-20a), verbatim, answering ASK-25 (options (a) emit all three DEC-31 extras, (b) is_class only, recommended (b)):

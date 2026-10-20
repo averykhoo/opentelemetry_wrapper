@@ -31,6 +31,11 @@ from opentelemetry.semconv.attributes.code_attributes import CODE_LINE_NUMBER
 from opentelemetry_wrapper.v1._warnings import warn_at_runtime
 
 IS_CLASS = 'opentelemetry_wrapper.code.is_class'  # our own prefix (DEC-31): set when the target is a class
+# DEC-31 also listed these two extras; DEC-95 leaves them out: nothing reads them yet, and each would add an attribute
+# to every span. adding one later breaks nobody, removing one after a release would. to emit them, uncomment these and
+# the lines marked DEC-95 in `_describe`
+# WRAPPER_CHAIN = 'opentelemetry_wrapper.code.wrapper_chain'  # the wrappers `underlying` unwrapped, outermost first
+# END_LINE = 'opentelemetry_wrapper.code.end_line_number'  # the function's last line, from its code object
 
 Attributes = Dict[str, Any]
 Described = Tuple[str, Attributes]
@@ -140,6 +145,12 @@ def _describe(target: Any) -> Described:
     if code is not None:
         attributes[CODE_FILE_PATH] = _absolute(code.co_filename)
         attributes[CODE_LINE_NUMBER] = code.co_firstlineno
+        # DEC-95: left out, no consumer yet (see END_LINE above)
+        # attributes[END_LINE] = max((line for _, _, line in code.co_lines() if line is not None),
+        #                            default=code.co_firstlineno)
+    # DEC-95: left out, no consumer yet (see WRAPPER_CHAIN above); `underlying` would have to return the names of the
+    # objects it stepped through, e.g. `('functools.partial', 'module.wrapper')`
+    # attributes[WRAPPER_CHAIN] = wrapper_names
     return name, attributes
 
 
