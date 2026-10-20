@@ -4,22 +4,22 @@ LIVING. Orientation note (FRAMEWORK §5.1): what is true now, the next session's
 derivable from the code. The board is `context-engine task list`; this note keeps no copy of it. The banner is
 written at each clean close by `context-engine banner set`.
 
-## Banner (2026-10-19a)
+## Banner (2026-10-20a)
 
 - **Engine mode since 2026-10-18a** (engine `7fd3997`, framework 0.5): the v1 design is records now (DEC-n, the
   board, AC-n); `docs/evidence/adoption-map-2026-10-18.md` maps the archived `PLAN.md` / `TODO.md` onto them.
 - **The charter is the owner's since 2026-10-18e** (DEC-72, DEC-73, trimmed by DEC-77): the higher goal wins, never
   crash first; scrub failures get their own placeholder (DEC-74); swallowed runtime failures go to stderr (DEC-75).
-- **v1 is built (2026-10-19a, DEC-87: one build/review/fix workflow per task, the session merging and gating).**
-  Every v1 workstream is closed; `tests/v0` passes under `OTW_IMPL=v1` and the gate checks it (AC-8, OTW-22);
-  `README.md` is v1's, v0's is `docs/archive/README_v0.md` (OTW-16). Owner decisions this session: DEC-88 to DEC-94.
-- **Left on OTW-1:** OTW-21 (auto-release) waits for the owner, who said "don't release" (DEC-85); ASK-25 is open;
-  OTW-15 waits on upstream; OTW-19 (records errata) is NOW. No release has been cut: v1 is on `main` only.
-- **v0 is not touched** (DEC-71). `main` is the v1 line, v0 patches go from a tag (DEC-84).
-- **On `main`, every merge pushed; CI green on all 6 jobs** (python 3.12-3.14 x extras all/none). The GitHub token in
-  `.scratch/gh_token` is rejected now; listing runs and jobs needs none, reading a job's log does.
-- **Commits are automatic here, pushes need the owner's yes** (DEC-70; this session had it, DEC-88). Every clean close
-  appends to `context-engine-feedback.md`. The local gate takes about 150 s (1151 passed, 5 skipped, 23 xfailed).
+- **1.0.0 is built on `main`, not released, not pushed (2026-10-20a, DEC-96, OTW-25):** a hard cutover. v0 is deleted
+  (last v0 release tagged `v0.1.25` locally, DEC-84); its root names are warn-once aliases onto v1 until 2.0
+  (`opentelemetry_wrapper/_v0_aliases.py`); the install is lean; OTel caps are 1.45 / 0.66; the suite runs v1 only.
+- **Waiting on the owner:** the push of 2026-10-20a's commits and the `v0.1.25` tag; the release itself (OTW-26,
+  DEC-85 holds); ASK-26 (dropping v0's root `OTEL_*` values). OTW-21 comes after 1.0.0, push-only first (DEC-97).
+  OTW-19 (records errata, charter notes) is NOW; OTW-15 waits on upstream.
+- **`main` is the v1 line**, v0 patches branch from the `v0.1.25` tag (DEC-84). CI was green on 2026-10-19a's push;
+  the cutover has not run in CI yet. Listing runs and jobs needs no token, reading a job's log does.
+- **Commits are automatic here, pushes need the owner's yes** (DEC-70). Every clean close appends to
+  `context-engine-feedback.md`. The local gate takes about 110 s (1047 passed, 4 skipped).
 
 ## Next session: start here
 
